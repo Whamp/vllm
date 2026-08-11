@@ -40,7 +40,9 @@ from vllm.model_executor.layers.quantization.utils.marlin_utils import (
     marlin_make_workspace_new,
 )
 from vllm.model_executor.layers.quantization.utils.quant_utils import (
+    GroupShape,
     QuantKey,
+    ScaleDesc,
     kInt4Static32GroupScale,
     kInt4StaticGroupScale,
     kInt8StaticGroupScale,
@@ -85,8 +87,14 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             assert self.group_size == -1
             scale = kInt8StaticGroupScale
         else:
-            raise ValueError(
-                "CompressedTensorsWNA16MoEMethod only supports int4 and int8 now."
+            scale = ScaleDesc(
+                dtype=torch.float16,
+                static=True,
+                group_shape=(
+                    GroupShape.PER_CHANNEL
+                    if self.group_size == -1
+                    else GroupShape(row=1, col=self.group_size)
+                ),
             )
 
         weight_key = QuantKey(self.quant_type, scale, symmetric=self.symmetric)
@@ -110,7 +118,10 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             WNA16MoEBackend.MARLIN,
             WNA16MoEBackend.BATCHED_MARLIN,
         ]
-        self.is_transposed = self.wna16_backend != WNA16MoEBackend.FLASHINFER_TRTLLM
+        self.is_transposed = self.wna16_backend not in (
+            WNA16MoEBackend.FLASHINFER_TRTLLM,
+            WNA16MoEBackend.HUMMING,
+        )
 
         if self.is_marlin:
             assert check_moe_marlin_supports_config(
@@ -465,6 +476,7 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             moe_quant_config=self.moe_quant_config,
             moe_config=self.moe,
             experts_cls=self.experts_cls,
+            backend=self.wna16_backend,
             routing_tables=layer._expert_routing_tables(),
             **marlin_args,
         )
@@ -565,6 +577,12 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
     def get_fused_moe_quant_config(
         self, layer: torch.nn.Module
     ) -> FusedMoEQuantConfig | None:
+        if self.wna16_backend == WNA16MoEBackend.HUMMING:
+            from vllm.model_executor.layers.quantization.utils.humming_utils import (
+                get_humming_moe_quant_config,
+            )
+
+            return get_humming_moe_quant_config(layer)
         return make_wna16_moe_quant_config(
             w1_scale=layer.w13_weight_scale,
             w2_scale=layer.w2_weight_scale,
