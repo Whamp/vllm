@@ -22,6 +22,9 @@ from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import (
 from vllm.model_executor.layers.quantization import moe_wna16
 from vllm.model_executor.layers.quantization.auto_awq import AutoAWQConfig
 from vllm.model_executor.layers.quantization.auto_gptq import AutoGPTQConfig
+from vllm.model_executor.layers.quantization.compressed_tensors.schemes.compressed_tensors_wNa16 import (  # noqa: E501
+    WNA16_SUPPORTED_TYPES_MAP,
+)
 from vllm.model_executor.layers.quantization.moe_wna16 import (
     MoeWNA16Config,
     MoeWNA16Method,
@@ -138,6 +141,80 @@ def test_compressed_tensors_weights_are_transposed_for_triton():
     assert torch.equal(converted[1], w2.transpose(1, 2).contiguous().view(torch.uint8))
     assert torch.equal(converted[2], w13_scale.transpose(1, 2).contiguous())
     assert torch.equal(converted[3], w2_scale.transpose(1, 2).contiguous())
+
+
+def test_moe_wna16_accepts_int2_for_humming(monkeypatch):
+    from tests.kernels.moe.utils import make_dummy_moe_config
+
+    captured = {}
+
+    def fake_select_wna16_moe_backend(*, weight_key, **kwargs):
+        del kwargs
+        captured["weight_key"] = weight_key
+        return WNA16MoEBackend.HUMMING, object
+
+    monkeypatch.setattr(
+        moe_wna16, "select_wna16_moe_backend", fake_select_wna16_moe_backend
+    )
+    quant_config = MoeWNA16Config(
+        linear_quant_method="gptq",
+        weight_bits=2,
+        group_size=128,
+        has_zp=False,
+        lm_head_quantized=False,
+        modules_to_not_convert=None,
+        full_config={},
+    )
+
+    method = MoeWNA16Method(quant_config, make_dummy_moe_config())
+
+    assert method.wna16_backend == WNA16MoEBackend.HUMMING
+    assert captured["weight_key"].dtype == WNA16_SUPPORTED_TYPES_MAP[2]
+    assert captured["weight_key"].scale.group_shape.row == 1
+    assert captured["weight_key"].scale.group_shape.col == 128
+
+
+def test_moe_wna16_gptq_loader_accepts_int2(monkeypatch):
+    loaded_weight = torch.arange(12, dtype=torch.int32).reshape(3, 4)
+    captured = {}
+
+    def original_loader(param, weight, *args, **kwargs):
+        del param, args, kwargs
+        captured["weight"] = weight
+        return True
+
+    quant_config = MoeWNA16Config(
+        linear_quant_method="gptq",
+        weight_bits=2,
+        group_size=128,
+        has_zp=False,
+        lm_head_quantized=False,
+        modules_to_not_convert=None,
+        full_config={},
+    )
+    layer = SimpleNamespace(
+        quant_config=quant_config,
+        group_size_div_factor=1,
+        intermediate_size_per_partition=1,
+        moe_config=SimpleNamespace(tp_size=1),
+    )
+    monkeypatch.setattr(
+        moe_wna16, "get_tp_group", lambda: SimpleNamespace(device=torch.device("cpu"))
+    )
+    monkeypatch.setattr(moe_wna16, "get_tensor_model_parallel_rank", lambda: 0)
+    loader = MoeWNA16Method.get_weight_loader(layer, original_loader)
+
+    assert loader(
+        torch.nn.Parameter(torch.empty(0)),
+        loaded_weight,
+        "w1.qweight",
+        "w1",
+        0,
+        return_success=True,
+    )
+    assert torch.equal(
+        captured["weight"], loaded_weight.T.contiguous().view(torch.uint8)
+    )
 
 
 def test_moe_wna16_setup_forwards_selected_backend(monkeypatch):
