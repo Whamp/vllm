@@ -1247,7 +1247,8 @@ def test_inc_get_quant_method_moe_uses_resolved_scheme(monkeypatch) -> None:
     assert method is sentinel
 
 
-def test_resolve_gptq_moe_falls_back_to_moe_wna16(monkeypatch) -> None:
+@pytest.mark.parametrize("bits", [2, 4])
+def test_resolve_gptq_moe_falls_back_to_moe_wna16(monkeypatch, bits) -> None:
     captured = {}
 
     class DummyMoeConfig:
@@ -1281,7 +1282,7 @@ def test_resolve_gptq_moe_falls_back_to_moe_wna16(monkeypatch) -> None:
     )
 
     layer_config = INCLayerConfig(
-        bits=4,
+        bits=bits,
         group_size=128,
         sym=True,
         packing_format="auto_round:auto_gptq",
@@ -1294,7 +1295,7 @@ def test_resolve_gptq_moe_falls_back_to_moe_wna16(monkeypatch) -> None:
 
     assert captured["from_config"] == {
         "quant_method": "gptq",
-        "bits": 4,
+        "bits": bits,
         "group_size": 128,
         "sym": True,
         "lm_head": False,
