@@ -35,13 +35,16 @@ from vllm.model_executor.layers.quantization.base_config import (
 from vllm.model_executor.layers.quantization.utils.quant_utils import (
     INT4_DTYPE,
     INT8_DTYPE,
+    GroupShape,
     QuantKey,
+    ScaleDesc,
     kInt4Static32GroupScale,
     kInt4StaticGroupScale,
     kInt8StaticGroupScale,
 )
 from vllm.model_executor.utils import replace_parameter, set_weight_attrs
 from vllm.platforms import current_platform
+from vllm.scalar_type import scalar_types
 
 
 class MoeWNA16Config(QuantizationConfig):
@@ -159,7 +162,9 @@ class MoeWNA16Config(QuantizationConfig):
 
         awq_min_capability = AutoAWQConfig.get_min_capability()
 
-        gptq_compatible = quant_method == "gptq" and not desc_act and num_bits in [4, 8]
+        gptq_compatible = (
+            quant_method == "gptq" and not desc_act and num_bits in [2, 4, 8]
+        )
         awq_compatible = (
             quant_method == "awq"
             and num_bits == 4
@@ -202,10 +207,10 @@ def is_layer_skipped_quant(prefix: str, modules_to_not_convert: list[str]):
 
 
 class MoeWNA16Method(FusedMoEMethodBase):
-    """Linear method for MOE WNA16 (W8A16/W4A16) quantization.
+    """Linear method for MoE W2A16, W4A16, and W8A16 quantization.
 
     Args:
-        quant_config: The MOE WNA16 (W8A16/W4A16) quantization config.
+        quant_config: The MoE weight-only quantization configuration.
     """
 
     def __init__(self, quant_config: MoeWNA16Config, moe: "FusedMoEConfig") -> None:
@@ -215,7 +220,14 @@ class MoeWNA16Method(FusedMoEMethodBase):
         num_bits = self.quant_config.weight_bits
         group_size = self.quant_config.group_size
 
-        if num_bits == 4:
+        if num_bits == 2:
+            quant_type = scalar_types.uint2b2
+            scale = ScaleDesc(
+                dtype=torch.float16,
+                static=True,
+                group_shape=GroupShape(row=1, col=group_size),
+            )
+        elif num_bits == 4:
             quant_type = INT4_DTYPE
             if group_size == 32:
                 scale = kInt4Static32GroupScale
@@ -226,7 +238,7 @@ class MoeWNA16Method(FusedMoEMethodBase):
             quant_type = INT8_DTYPE
             scale = kInt8StaticGroupScale
         else:
-            raise ValueError("MoeWNA16Method only supports int4 and int8 now.")
+            raise ValueError("MoeWNA16Method only supports int2, int4, and int8.")
 
         weight_key = QuantKey(quant_type, scale)
 
@@ -593,7 +605,7 @@ class MoeWNA16Method(FusedMoEMethodBase):
                 else:
                     loaded_weight = loaded_weight.T
             elif layer.quant_config.linear_quant_method == "gptq":
-                assert layer.quant_config.weight_bits in [4, 8]
+                assert layer.quant_config.weight_bits in [2, 4, 8]
                 if "weight" in weight_name:
                     loaded_weight = loaded_weight.T.contiguous().view(torch.uint8)
                 elif "zeros" in weight_name:
