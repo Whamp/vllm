@@ -1428,6 +1428,7 @@ def convert_to_wna16_moe_kernel_format(
     w2: torch.Tensor,
     w13_scale: torch.Tensor,
     w2_scale: torch.Tensor,
+    w2_quant_config: QuantizationConfig | QuantizationArgs | None = None,
     w13_g_idx: torch.Tensor | None = None,
     w2_g_idx: torch.Tensor | None = None,
     w13_qzeros: torch.Tensor | None = None,
@@ -1482,6 +1483,14 @@ def convert_to_wna16_moe_kernel_format(
                     has_zero_point=quant_config.has_zp,
                 ),
                 input_schema=HummingInputSchema(),
+            )
+        elif w2_quant_config is not None:
+            convert_to_humming_moe_kernel_format(
+                layer,
+                weight_quant_configs={
+                    "w13": _humming_wna16_weight_schema(quant_config),
+                    "w2": _humming_wna16_weight_schema(w2_quant_config),
+                },
             )
         else:
             convert_to_humming_moe_kernel_format(

@@ -59,14 +59,23 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
         input_quant: QuantizationArgs | None,
         moe: FusedMoEConfig,
         layer_name: str | None = None,
+        w2_weight_quant: QuantizationArgs | None = None,
     ):
         super().__init__(moe)
         self.weight_quant = weight_quant
+        self.w13_weight_quant = weight_quant
+        self.has_projection_specific_quant = w2_weight_quant is not None
+        self.w2_weight_quant = (
+            weight_quant if w2_weight_quant is None else w2_weight_quant
+        )
         self.input_quant = input_quant
-        # Extract properties from weight_quant
+        # Shared attributes preserve existing backend behavior. Humming also
+        # reads the projection-specific schemas for mixed WNA16 checkpoints.
         self.symmetric = weight_quant.symmetric
         self.num_bits = weight_quant.num_bits
-        self.packed_factor = 32 // weight_quant.num_bits
+        self.w13_packed_factor = 32 // self.w13_weight_quant.num_bits
+        self.w2_packed_factor = 32 // self.w2_weight_quant.num_bits
+        self.packed_factor = self.w13_packed_factor
         self.strategy = weight_quant.strategy
         self.group_size = weight_quant.group_size
         self.actorder = weight_quant.actorder
@@ -113,6 +122,26 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             may_have_bias=False,
             allow_tile_padding=not is_actorder,
         )
+
+        if self.has_projection_specific_quant:
+            if self.w13_weight_quant.group_size != self.w2_weight_quant.group_size:
+                raise ValueError(
+                    "Mixed WNA16 MoE projections must use the same group size."
+                )
+            shared_layout_fields = ("type", "strategy", "symmetric", "actorder")
+            if any(
+                getattr(self.w13_weight_quant, field)
+                != getattr(self.w2_weight_quant, field)
+                for field in shared_layout_fields
+            ):
+                raise ValueError(
+                    "Mixed WNA16 MoE projections may differ only in bit width."
+                )
+            if self.wna16_backend != WNA16MoEBackend.HUMMING:
+                raise ValueError(
+                    "Mixed WNA16 MoE projection quantization requires the "
+                    "Humming backend."
+                )
 
         self.is_marlin = self.wna16_backend in [
             WNA16MoEBackend.MARLIN,
@@ -163,16 +192,18 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                 "num_groups_w2 must be provided for weight scales/zero_points"
             )
         w13_num_shards = 2 if self.moe.is_act_and_mul else 1
+        w13_packed_factor = self.w13_packed_factor
+        w2_packed_factor = self.w2_packed_factor
         shape_map = {
             "w13_weight": {
                 "Flashinfer": (
                     num_experts,
                     w13_num_shards * intermediate_size_per_partition,
-                    hidden_size // self.packed_factor,
+                    hidden_size // w13_packed_factor,
                 ),
                 "Marlin": (
                     num_experts,
-                    hidden_size // self.packed_factor,
+                    hidden_size // w13_packed_factor,
                     w13_num_shards * intermediate_size_per_partition,
                 ),
             },
@@ -194,18 +225,18 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                     num_groups_w13,
                     w13_num_shards
                     * intermediate_size_per_partition
-                    // self.packed_factor,
+                    // w13_packed_factor,
                 ),
             },
             "w2_weight": {
                 "Flashinfer": (
                     num_experts,
                     hidden_size,
-                    intermediate_size_per_partition // self.packed_factor,
+                    intermediate_size_per_partition // w2_packed_factor,
                 ),
                 "Marlin": (
                     num_experts,
-                    intermediate_size_per_partition // self.packed_factor,
+                    intermediate_size_per_partition // w2_packed_factor,
                     hidden_size,
                 ),
             },
@@ -217,7 +248,7 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                 "Marlin": (
                     num_experts,
                     num_groups_w2,
-                    hidden_size // self.packed_factor,
+                    hidden_size // w2_packed_factor,
                 ),
             },
         }
@@ -492,6 +523,9 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             w2=layer.w2_weight_packed,
             w13_scale=layer.w13_weight_scale,
             w2_scale=layer.w2_weight_scale,
+            w2_quant_config=(
+                self.w2_weight_quant if self.has_projection_specific_quant else None
+            ),
             w13_g_idx=layer.w13_weight_g_idx,
             w2_g_idx=layer.w2_weight_g_idx,
             w13_qzeros=getattr(layer, "w13_weight_zero_point", None),
