@@ -1195,6 +1195,42 @@ def test_compressed_tensors_wna16_moe_selects_humming_only_bits(monkeypatch, num
     assert captured["weight_key"].scale.group_shape == GroupShape(row=1, col=128)
 
 
+@pytest.mark.skip_global_cleanup
+def test_compressed_tensors_wna16_setup_forwards_humming_layer(monkeypatch):
+    from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
+    from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
+        compressed_tensors_moe_wna16 as wna16_module,
+    )
+
+    method = object.__new__(wna16_module.CompressedTensorsWNA16MoEMethod)
+    method.experts_cls = object
+    method.wna16_backend = WNA16MoEBackend.HUMMING
+    method.moe = object()
+    method.is_marlin = False
+    quant_config = object()
+    method.get_fused_moe_quant_config = lambda layer: quant_config
+    layer = Mock()
+    layer._expert_routing_tables.return_value = (None, None, None)
+    captured = {}
+    kernel = object()
+
+    def fake_make_wna16_moe_kernel(**kwargs):
+        captured.update(kwargs)
+        return kernel
+
+    monkeypatch.setattr(
+        wna16_module,
+        "make_wna16_moe_kernel",
+        fake_make_wna16_moe_kernel,
+    )
+
+    method._setup_kernel(layer)
+
+    assert method.moe_kernel is kernel
+    assert captured["backend"] == WNA16MoEBackend.HUMMING
+    assert captured["layer"] is layer
+
+
 @pytest.mark.skipif(
     not current_platform.is_cuda() or not current_platform.has_device_capability(80),
     reason="MXFP4 requires ampere or newer",
