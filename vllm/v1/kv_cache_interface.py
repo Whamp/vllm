@@ -249,8 +249,7 @@ class AttentionSpec(KVCacheSpec):
 
     @property
     def real_page_size_bytes(self) -> int:
-        """Alias of ``unpadded_page_size_bytes``: with packing folded into
-        ``state_content_bytes`` there is no separate data-only page.
+        """Alias of ``unpadded_page_size_bytes``
         TODO(lucas): follow up with TPU backend to see if we can remove this property.
         """
         return self.unpadded_page_size_bytes
