@@ -5,10 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from vllm.models.deepseek_v4.nvidia.model import (
-    _make_deepseek_v4_weights_mapper,
-    _uses_compressed_tensors_fp8_linears,
-)
+from vllm.models.deepseek_v4.nvidia.model import _make_deepseek_v4_weights_mapper
+from vllm.models.deepseek_v4.quant_config import DeepseekV4FP8Config
 
 
 @pytest.fixture
@@ -16,29 +14,63 @@ def should_do_global_cleanup_after_test() -> bool:
     return False
 
 
-def test_compressed_tensors_fp8_linear_gate_requires_explicit_fallback() -> None:
-    config = SimpleNamespace(
-        quantization_config={
-            "quant_method": "compressed-tensors",
-            "config_groups": {
-                "experts": {"format": "pack-quantized", "targets": ["RoutedExperts"]}
-            },
-        }
-    )
-    assert not _uses_compressed_tensors_fp8_linears(config)
-
-    config.quantization_config["config_groups"]["linears"] = {
-        "format": "float-quantized",
-        "targets": ["Linear"],
+def _hybrid_quantization_config() -> dict:
+    return {
+        "quant_method": "compressed-tensors",
+        "base_quant_method": "deepseek_v4_fp8",
+        "format": "pack-quantized",
+        "config_groups": {
+            "experts": {
+                "format": "pack-quantized",
+                "targets": ["model.layers.0.ffn.experts.0.gate_proj"],
+                "weights": {
+                    "num_bits": 2,
+                    "type": "int",
+                    "strategy": "group",
+                    "group_size": 128,
+                    "symmetric": True,
+                    "dynamic": False,
+                },
+                "input_activations": None,
+                "output_activations": None,
+            }
+        },
     }
-    assert _uses_compressed_tensors_fp8_linears(config)
 
 
-def test_compressed_tensors_mapper_keeps_fp8_linear_scale_name() -> None:
-    mapper = _make_deepseek_v4_weights_mapper("fp4", compressed_tensors_hybrid=True)
+def test_hybrid_config_overrides_to_deepseek_native_fp8() -> None:
+    assert (
+        DeepseekV4FP8Config.override_quantization_method(
+            _hybrid_quantization_config(),
+            None,
+            SimpleNamespace(model_type="deepseek_v4"),
+        )
+        == "deepseek_v4_fp8"
+    )
+
+
+def test_hybrid_config_delegates_only_routed_experts(monkeypatch) -> None:
+    from vllm.models.deepseek_v4 import quant_config as quant_config_module
+
+    class FakeRoutedExperts:
+        pass
+
+    monkeypatch.setattr(quant_config_module, "RoutedExperts", FakeRoutedExperts)
+    config = DeepseekV4FP8Config.from_config(_hybrid_quantization_config())
+    delegated_method = object()
+    config._compressed_tensors_config.get_quant_method = (
+        lambda layer, prefix: delegated_method
+    )
+
+    method = config.get_quant_method(FakeRoutedExperts(), "model.layers.0.ffn.experts")
+    assert method is delegated_method
+
+
+def test_hybrid_mapper_keeps_native_fp8_linear_scale_name() -> None:
+    mapper = _make_deepseek_v4_weights_mapper("fp4")
 
     assert mapper._map_name("layers.0.attn.wq_a.scale") == (
-        "model.layers.0.attn.wq_a.weight_scale"
+        "model.layers.0.attn.wq_a.weight_scale_inv"
     )
     assert mapper._map_name("layers.0.ffn.experts.0.w1.weight_scale") == (
         "model.layers.0.ffn.experts.0.w1.weight_scale"
