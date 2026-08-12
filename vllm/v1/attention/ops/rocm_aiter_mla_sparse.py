@@ -2269,9 +2269,7 @@ def _sparse_attn_decode_partial_blocked_kernel(
         # longest of them. Every row starts at 0, which makes the shared body
         # mask-free up to the shortest length.
         extra_start_last = tl.load(extra_indptr_ptr + q_base + group_size - 1)
-        extra_union = (
-            tl.load(extra_indptr_ptr + q_base + group_size) - extra_start_last
-        )
+        extra_union = tl.load(extra_indptr_ptr + q_base + group_size) - extra_start_last
         extra_row_len = tl.load(extra_indptr_ptr + token + 1) - tl.load(
             extra_indptr_ptr + token
         )
@@ -2624,9 +2622,7 @@ def _rocm_sparse_attn_prefill_blocked_triton(
 
     if out is None:
         out = torch.empty_like(q, dtype=torch.bfloat16)
-    _sparse_attn_prefill_blocked_kernel[
-        (block_req.numel(), num_heads // block_h)
-    ](
+    _sparse_attn_prefill_blocked_kernel[(block_req.numel(), num_heads // block_h)](
         q,
         kv,
         block_req,
@@ -2804,6 +2800,14 @@ def decode_query_block_size(next_n: int) -> int:
     return _query_block_size(envs.VLLM_SPARSE_DENSE_QUERY_BLOCK_DECODE, 0)
 
 
+CUDA_SPLIT_K_DECODE_MIN_SHARED_MEMORY_BYTES = 157_696
+
+
+def cuda_split_k_decode_supported(max_shared_memory_bytes: int) -> bool:
+    """Return whether CUDA can launch the sparse split-K decode kernel."""
+    return max_shared_memory_bytes >= CUDA_SPLIT_K_DECODE_MIN_SHARED_MEMORY_BYTES
+
+
 @functools.lru_cache
 def _use_split_k_decode() -> bool:
     """Whether decode takes the split-K path instead of the single-pass one.
@@ -2811,10 +2815,15 @@ def _use_split_k_decode() -> bool:
     Split-K exists for the low-batch regime: the single-pass grid is
     ``num_queries x heads_blocks``, so a single-query decode occupies 4 of an
     A100's 108 SMs. The split-count heuristic reads the real CU/SM count, so
-    it adapts off gfx950 even though ``mu`` was tuned there.
+    it adapts off gfx950 even though ``mu`` was tuned there. CUDA devices whose
+    per-block shared-memory limit cannot launch the split-K tile use the
+    existing single-pass fallback instead.
     """
     if current_platform.is_cuda():
-        return True
+        try:
+            return cuda_split_k_decode_supported(get_max_shared_memory_bytes())
+        except Exception:
+            return False
     return _ON_GFX942 or _ON_GFX950
 
 
