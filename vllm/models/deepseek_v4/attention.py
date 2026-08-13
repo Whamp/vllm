@@ -218,9 +218,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
             # just that the flag is on. Only the ratio-4 layers carry the
             # merged input trio; every layer carries fused_wqa_wkv.
             n_layers = config.num_hidden_layers
-            n_trio = sum(
-                1 for r in config.compress_ratios[:n_layers] if max(1, r) == 4
-            )
+            n_trio = sum(1 for r in config.compress_ratios[:n_layers] if max(1, r) == 4)
             reached = n_layers if self._unreplicate_all_layers else n_trio
             logger.info_once(
                 "VLLM_UNREPLICATE_ATTN_GEMMS: token-sharding fused_wqa_wkv on "
@@ -313,6 +311,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
             head_dim=self.head_dim,
             rope_head_dim=self.rope_head_dim,
             max_position_embeddings=config.max_position_embeddings,
+            max_model_len=vllm_config.model_config.max_model_len,
             compress_ratio=self.compress_ratio,
         )
         self.indexer_rotary_emb = self.rotary_emb
@@ -587,8 +586,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
                 self.ln_events[0],
                 self.ln_events[1:4],
                 aux_streams,
-                enable=hidden_states.shape[0]
-                <= self._multi_stream_threshold,
+                enable=hidden_states.shape[0] <= self._multi_stream_threshold,
             )
             if sharded:
                 qr_kv = self._gather_tokens(qr_kv, rows)
@@ -650,8 +648,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
             self.ln_events[0],
             self.ln_events[1:4],
             aux_streams,
-            enable=hidden_states.shape[0]
-            <= self._multi_stream_threshold,
+            enable=hidden_states.shape[0] <= self._multi_stream_threshold,
         )
         if sharded:
             qr_kv = self._gather_tokens(qr_kv, rows)
