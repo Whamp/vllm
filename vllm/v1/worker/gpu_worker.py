@@ -52,6 +52,10 @@ from vllm.distributed.weight_transfer import (
 )
 from vllm.logger import init_logger
 from vllm.lora.request import LoRARequest
+from vllm.model_executor.model_loader.model_memory_diagnostics import (
+    capture_device_memory_report_if_enabled,
+    capture_model_memory_report_if_enabled,
+)
 from vllm.model_executor.warmup.kernel_warmup import kernel_warmup
 from vllm.multimodal.gpu_ipc_memory import reserve_mm_ipc_gpu_memory
 from vllm.platforms import current_platform
@@ -398,6 +402,11 @@ class Worker(WorkerBase):
             logger.debug(
                 "worker requested memory: %sGiB", format_gib(self.requested_memory)
             )
+            capture_device_memory_report_if_enabled(
+                stage="distributed initialized",
+                device=self.device,
+                reset_peak_after_capture=True,
+            )
         else:
             raise RuntimeError(f"Unsupported device type: {self.device_config.device}")
 
@@ -422,6 +431,11 @@ class Worker(WorkerBase):
 
             self.model_runner = GPUModelRunnerV1(self.vllm_config, self.device)
 
+        capture_device_memory_report_if_enabled(
+            stage="model runner initialized",
+            device=self.device,
+            reset_peak_after_capture=True,
+        )
         if self.rank == 0:
             # If usage stat is enabled, collect relevant info.
             report_usage_stats(self.vllm_config)
@@ -441,6 +455,13 @@ class Worker(WorkerBase):
         ):
             self.model_runner.load_model(load_dummy_weights=load_dummy_weights)
 
+        capture_model_memory_report_if_enabled(
+            self.model_runner.get_model(),
+            stage="worker load complete",
+            device=self.device,
+            include_storage_details=False,
+            reset_peak_after_capture=True,
+        )
         if self.vllm_config.weight_transfer_config is not None:
             self.weight_transfer_engine = WeightTransferEngineFactory.create_engine(
                 self.vllm_config.weight_transfer_config,
@@ -516,6 +537,13 @@ class Worker(WorkerBase):
         ):
             cudagraph_memory_estimate = self.model_runner.profile_cudagraph_memory()
 
+        capture_model_memory_report_if_enabled(
+            self.model_runner.get_model(),
+            stage="profile complete",
+            device=self.device,
+            include_storage_details=False,
+            reset_peak_after_capture=True,
+        )
         # Respect the opt-in flag as originally designed.
         cudagraph_memory_estimate_applied = (
             cudagraph_memory_estimate
@@ -664,6 +692,13 @@ class Worker(WorkerBase):
         with self._maybe_get_memory_pool_context(tag="kv_cache"):
             self.model_runner.initialize_kv_cache(kv_cache_config)
 
+        capture_model_memory_report_if_enabled(
+            self.model_runner.get_model(),
+            stage="kv cache allocated",
+            device=self.device,
+            include_storage_details=False,
+            reset_peak_after_capture=True,
+        )
         if self.model_config.enable_return_routed_experts:
             self.model_runner.init_routed_experts_capturer()
 
@@ -846,6 +881,12 @@ class Worker(WorkerBase):
         # Warmup / first-compile is done — activate the `VLLM_GPU_SYNC_CHECK`
         # gate so subsequent `execute_model` / `sample_tokens` calls enforce it.
         enable_gpu_sync_check()
+        capture_model_memory_report_if_enabled(
+            self.model_runner.get_model(),
+            stage="warmup complete",
+            device=self.device,
+            include_storage_details=False,
+        )
 
         return CompilationTimes(
             language_model=self.compilation_config.compilation_time,

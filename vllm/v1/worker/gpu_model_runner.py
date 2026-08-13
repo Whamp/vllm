@@ -72,6 +72,9 @@ from vllm.model_executor.layers.rotary_embedding import (
     XDRotaryEmbedding,
 )
 from vllm.model_executor.model_loader import get_model_loader
+from vllm.model_executor.model_loader.model_memory_diagnostics import (
+    capture_model_memory_report_if_enabled,
+)
 from vllm.model_executor.model_loader.reload import (
     finalize_layerwise_reload,
     initialize_layerwise_reload,
@@ -5413,6 +5416,13 @@ class GPUModelRunner(
                 drafter_model := getattr(drafter, "model", None)
             ):
                 prepare_communication_buffer_for_model(drafter_model)
+            capture_model_memory_report_if_enabled(
+                self.model,
+                stage="communication prepared",
+                device=self.device,
+                include_storage_details=False,
+                reset_peak_after_capture=True,
+            )
         mm_config = self.model_config.multimodal_config
         self.is_multimodal_pruning_enabled = (
             supports_multimodal_pruning(self.get_model())
