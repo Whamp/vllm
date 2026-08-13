@@ -66,6 +66,107 @@ def test_hybrid_config_delegates_only_routed_experts(monkeypatch) -> None:
     assert method is delegated_method
 
 
+def test_hybrid_config_resolves_layer_specific_group_sizes(monkeypatch) -> None:
+    from vllm.models.deepseek_v4 import quant_config as quant_config_module
+
+    class FakeRoutedExperts:
+        moe_config = object()
+
+    monkeypatch.setattr(quant_config_module, "RoutedExperts", FakeRoutedExperts)
+    config_payload = _hybrid_quantization_config()
+    config_payload["config_groups"] = {
+        "w2_g128": {
+            "format": "pack-quantized",
+            "targets": [
+                "model.layers.0.ffn.experts.0.gate_proj",
+                "model.layers.0.ffn.experts.0.up_proj",
+                "model.layers.0.ffn.experts.0.down_proj",
+            ],
+            "weights": {
+                "num_bits": 2,
+                "type": "int",
+                "strategy": "group",
+                "group_size": 128,
+                "symmetric": True,
+                "dynamic": False,
+            },
+            "input_activations": None,
+            "output_activations": None,
+        },
+        "w2_g256": {
+            "format": "pack-quantized",
+            "targets": [
+                "model.layers.1.ffn.experts.0.gate_proj",
+                "model.layers.1.ffn.experts.0.up_proj",
+                "model.layers.1.ffn.experts.0.down_proj",
+            ],
+            "weights": {
+                "num_bits": 2,
+                "type": "int",
+                "strategy": "group",
+                "group_size": 256,
+                "symmetric": True,
+                "dynamic": False,
+            },
+            "input_activations": None,
+            "output_activations": None,
+        },
+        "w2_g512": {
+            "format": "pack-quantized",
+            "targets": [
+                "model.layers.2.ffn.experts.0.gate_proj",
+                "model.layers.2.ffn.experts.0.up_proj",
+            ],
+            "weights": {
+                "num_bits": 2,
+                "type": "int",
+                "strategy": "group",
+                "group_size": 512,
+                "symmetric": True,
+                "dynamic": False,
+            },
+            "input_activations": None,
+            "output_activations": None,
+        },
+        "w4_g512": {
+            "format": "pack-quantized",
+            "targets": ["model.layers.2.ffn.experts.0.down_proj"],
+            "weights": {
+                "num_bits": 4,
+                "type": "int",
+                "strategy": "group",
+                "group_size": 512,
+                "symmetric": True,
+                "dynamic": False,
+            },
+            "input_activations": None,
+            "output_activations": None,
+        },
+    }
+    config = DeepseekV4FP8Config.from_config(config_payload)
+    compressed_config = config._compressed_tensors_config
+    assert compressed_config is not None
+
+    for layer, expected_bits, expected_group_size in (
+        (0, 2, 128),
+        (1, 2, 256),
+        (2, 4, 512),
+    ):
+        gate = compressed_config.get_scheme_dict(
+            FakeRoutedExperts(),
+            f"model.layers.{layer}.ffn.experts.0.gate_proj",
+        )
+        down = compressed_config.get_scheme_dict(
+            FakeRoutedExperts(),
+            f"model.layers.{layer}.ffn.experts.0.down_proj",
+        )
+        assert gate is not None and down is not None
+        assert gate["weights"].group_size == expected_group_size
+        assert down["weights"].group_size == expected_group_size
+        assert gate["weights"].num_bits == 2
+        assert down["weights"].num_bits == expected_bits
+
+
 def test_hybrid_mapper_keeps_native_fp8_linear_scale_name() -> None:
     mapper = _make_deepseek_v4_weights_mapper("fp4")
 
