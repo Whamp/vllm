@@ -1186,6 +1186,7 @@ def _make_humming_indexed_experts(
     activation: MoEActivation,
     *,
     weight_schema: Any = None,
+    weight_schemas: dict[str, Any] | None = None,
     tensor_factory: Callable[..., torch.Tensor] | None = None,
     top_k: int = 6,
     num_experts: int = 12,
@@ -1218,7 +1219,12 @@ def _make_humming_indexed_experts(
         ("w13", gate_up_size, hidden_size, num_w13_stacks),
         ("w2", hidden_size, intermediate_size, 1),
     ):
-        tensor_attrs = weight_schema.get_tensors_attrs(
+        sublayer_weight_schema = (
+            weight_schemas.get(sublayer_name, weight_schema)
+            if weight_schemas is not None
+            else weight_schema
+        )
+        tensor_attrs = sublayer_weight_schema.get_tensors_attrs(
             shape_n=shape_n,
             shape_k=shape_k,
             param_dtype=layer.params_dtype,
@@ -1228,6 +1234,7 @@ def _make_humming_indexed_experts(
         for tensor_name, attrs in tensor_attrs.items():
             tensor = (
                 tensor_factory(
+                    sublayer_name=sublayer_name,
                     tensor_name=tensor_name,
                     attrs=attrs,
                     shape_n=shape_n,
@@ -1249,6 +1256,7 @@ def _make_humming_indexed_experts(
     humming_utils.convert_to_humming_moe_kernel_format(
         layer,
         weight_schema=weight_schema,
+        weight_schemas=weight_schemas,
         input_schema=humming.HummingInputSchema(a_dtype=humming.dtypes.bfloat16),
     )
 
@@ -1366,22 +1374,52 @@ def test_humming_indexed_writes_supplied_output_buffer():
 
 
 @pytest.mark.skipif(not current_platform.is_cuda(), reason="Requires CUDA")
-def test_humming_w2_group128_indexed_numerical_oracle():
+@pytest.mark.parametrize(
+    ("w13_group_size", "w2_group_size", "down_bits"),
+    [
+        (128, 128, 2),
+        (256, 128, 2),
+        (512, 256, 2),
+        (512, 512, 2),
+        (512, 128, 4),
+        (512, 256, 4),
+        (512, 512, 4),
+    ],
+    ids=[
+        "w2-g128-g128",
+        "w2-g256-g128",
+        "w2-g512-g256",
+        "w2-g512-g512",
+        "w4-g512-g128",
+        "w4-g512-g256",
+        "w4-g512-g512",
+    ],
+)
+def test_humming_wna16_grouped_indexed_numerical_oracle(
+    w13_group_size, w2_group_size, down_bits
+):
     from vllm.forward_context import set_forward_context
     from vllm.utils import humming
 
     weight_scale = 2**-10
-    weight_schema = humming.CompressedTensorsWeightSchema(
-        format="pack-quantized",
-        type="int",
-        num_bits=2,
-        strategy="group",
-        symmetric=True,
-        group_size=128,
-    )
+    weight_schemas = {
+        sublayer_name: humming.CompressedTensorsWeightSchema(
+            format="pack-quantized",
+            type="int",
+            num_bits=bits,
+            strategy="group",
+            symmetric=True,
+            group_size=group_size,
+        )
+        for sublayer_name, bits, group_size in (
+            ("w13", 2, w13_group_size),
+            ("w2", down_bits, w2_group_size),
+        )
+    }
 
     def make_positive_unit_weights(
         *,
+        sublayer_name: str,
         tensor_name: str,
         attrs: dict[str, Any],
         shape_n: int,
@@ -1389,10 +1427,14 @@ def test_humming_w2_group128_indexed_numerical_oracle():
         num_experts: int,
     ) -> torch.Tensor:
         if tensor_name == "weight_packed":
-            # Compressed-tensors offsets signed W2 code +1 to uint2 code 3.
+            # Compressed-tensors offsets signed codes into unsigned lanes.
+            # W2 +1 is lane 0b11; W4 +1 is lane 0b1001.
+            packed_positive_one = -1 if sublayer_name == "w13" else -1717986919
+            if sublayer_name == "w2" and down_bits == 2:
+                packed_positive_one = -1
             return torch.full(
                 attrs["shape"],
-                -1,
+                packed_positive_one,
                 dtype=attrs["dtype"],
                 device="cuda",
             )
@@ -1413,19 +1455,26 @@ def test_humming_w2_group128_indexed_numerical_oracle():
     activation = MoEActivation.SILU
     experts = _make_humming_indexed_experts(
         activation,
-        weight_schema=weight_schema,
+        weight_schemas=weight_schemas,
         tensor_factory=make_positive_unit_weights,
         top_k=2,
         num_experts=4,
         hidden_size=512,
-        intermediate_size=256,
+        intermediate_size=512,
     )
     layer = experts.layer
-    for sublayer_name in ("w13", "w2"):
+    for sublayer_name, expected_dtype, expected_group_size in (
+        ("w13", humming.dtypes.uint2, w13_group_size),
+        (
+            "w2",
+            humming.dtypes.uint2 if down_bits == 2 else humming.dtypes.uint4,
+            w2_group_size,
+        ),
+    ):
         meta = layer.humming_metas[sublayer_name]
         assert meta.a_dtype == humming.dtypes.bfloat16
-        assert meta.b_dtype == humming.dtypes.uint2
-        assert meta.weight_scale_group_size == 128
+        assert meta.b_dtype == expected_dtype
+        assert meta.weight_scale_group_size == expected_group_size
 
     num_tokens = 4
     top_k = experts.moe_config.experts_per_token

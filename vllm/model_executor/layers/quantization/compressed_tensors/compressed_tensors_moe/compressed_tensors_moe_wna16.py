@@ -77,7 +77,9 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
         self.w2_packed_factor = 32 // self.w2_weight_quant.num_bits
         self.packed_factor = self.w13_packed_factor
         self.strategy = weight_quant.strategy
-        self.group_size = weight_quant.group_size
+        self.w13_group_size = self.w13_weight_quant.group_size
+        self.w2_group_size = self.w2_weight_quant.group_size
+        self.group_size = self.w13_group_size
         self.actorder = weight_quant.actorder
 
         # Extract quant_type and create weight key for oracle selection
@@ -124,10 +126,6 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
         )
 
         if self.has_projection_specific_quant:
-            if self.w13_weight_quant.group_size != self.w2_weight_quant.group_size:
-                raise ValueError(
-                    "Mixed WNA16 MoE projections must use the same group size."
-                )
             shared_layout_fields = ("type", "strategy", "symmetric", "actorder")
             if any(
                 getattr(self.w13_weight_quant, field)
@@ -135,7 +133,8 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                 for field in shared_layout_fields
             ):
                 raise ValueError(
-                    "Mixed WNA16 MoE projections may differ only in bit width."
+                    "Mixed WNA16 MoE projections may differ only in bit width "
+                    "and group size."
                 )
             if self.wna16_backend != WNA16MoEBackend.HUMMING:
                 raise ValueError(
@@ -328,36 +327,36 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
 
         load_full_w2, w2_scales_size, self.is_k_full = self._w2_scale_sharding(
             self.actorder,
-            self.group_size,
+            self.w2_group_size,
             intermediate_size_per_partition,
             intermediate_size_full,
         )
 
         if self.strategy == "channel":
             num_groups_w2 = num_groups_w13 = 1
-            self.group_size = -1
+            self.w13_group_size = self.w2_group_size = self.group_size = -1
         else:
-            if hidden_size % self.group_size != 0:
+            if hidden_size % self.w13_group_size != 0:
                 raise ValueError(
-                    "CompressedTensors WNA16 MoE requires hidden_size "
-                    f"({hidden_size}) to be divisible by group_size "
-                    f"({self.group_size})."
+                    "CompressedTensors WNA16 MoE gate/up hidden_size "
+                    f"({hidden_size}) must be divisible by w13 group size "
+                    f"({self.w13_group_size})."
                 )
             if (
                 not load_full_w2
-                and intermediate_size_per_partition % self.group_size != 0
+                and intermediate_size_per_partition % self.w2_group_size != 0
             ):
                 raise ValueError(
-                    "CompressedTensors WNA16 MoE with static group "
-                    "scales requires the MoE intermediate size per "
+                    "CompressedTensors WNA16 MoE down-projection static group "
+                    "scales require the MoE intermediate size per "
                     "tensor-parallel partition "
                     f"({intermediate_size_per_partition}) to be divisible by "
-                    f"group_size ({self.group_size}). Scale groups would "
+                    f"w2 group size ({self.w2_group_size}). Scale groups would "
                     "otherwise cross TP shard boundaries; use a compatible TP "
                     "size or enable expert parallelism."
                 )
-            num_groups_w2 = w2_scales_size // self.group_size
-            num_groups_w13 = hidden_size // self.group_size
+            num_groups_w2 = w2_scales_size // self.w2_group_size
+            num_groups_w13 = hidden_size // self.w13_group_size
 
         layer.num_groups_w13 = num_groups_w13
         layer.num_groups_w2 = num_groups_w2

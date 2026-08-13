@@ -1064,10 +1064,53 @@ def test_compressed_tensors_moe_allocates_separate_w13_w2_bit_widths(monkeypatch
     assert method.get_weight_shape("w2_weight", 1, 128, 128) == (1, 128, 16)
 
 
+def test_compressed_tensors_moe_allocates_projection_group_scales(monkeypatch):
+    from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
+    from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
+        compressed_tensors_moe_wna16 as wna16_module,
+    )
+
+    def quant_args(group_size):
+        return QuantizationArgs(
+            num_bits=2,
+            type=QuantizationType.INT,
+            strategy=QuantizationStrategy.GROUP,
+            symmetric=True,
+            dynamic=False,
+            group_size=group_size,
+        )
+
+    monkeypatch.setattr(
+        wna16_module,
+        "select_wna16_moe_backend",
+        lambda **_kwargs: (WNA16MoEBackend.HUMMING, object),
+    )
+    method = wna16_module.CompressedTensorsWNA16MoEMethod(
+        quant_args(512),
+        None,
+        Mock(is_act_and_mul=True),
+        w2_weight_quant=quant_args(128),
+    )
+    layer = torch.nn.Module()
+
+    method.create_weights(
+        layer,
+        num_experts=2,
+        hidden_size=512,
+        intermediate_size_per_partition=512,
+        intermediate_size_full=512,
+        params_dtype=torch.bfloat16,
+    )
+
+    assert layer.w13_weight_scale.shape == (2, 1024, 1)
+    assert layer.w2_weight_scale.shape == (2, 512, 4)
+    assert method.w13_group_size == 512
+    assert method.w2_group_size == 128
+
+
 @pytest.mark.parametrize(
     "w2_bits,w2_group_size,backend,error_match",
     [
-        (2, 64, "HUMMING", "same group size"),
         (4, 128, "MARLIN", "requires the Humming backend"),
     ],
 )
