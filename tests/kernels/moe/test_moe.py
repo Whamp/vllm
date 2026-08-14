@@ -1192,6 +1192,7 @@ def _make_humming_indexed_experts(
     num_experts: int = 12,
     hidden_size: int = 2688,
     intermediate_size: int = 1856,
+    swiglu_limit: float | None = None,
 ):
     pytest.importorskip("humming")
     from vllm.model_executor.layers.fused_moe.experts.fused_humming_moe import (
@@ -1213,6 +1214,7 @@ def _make_humming_indexed_experts(
     layer = torch.nn.Module()
     layer.moe_config = moe_config
     layer.params_dtype = torch.bfloat16
+    layer.swiglu_limit = swiglu_limit
 
     weight_schema = weight_schema or humming.ModeloptNvfp4WeightSchema()
     for sublayer_name, shape_n, shape_k, stack_size in (
@@ -1401,7 +1403,8 @@ def test_humming_wna16_grouped_indexed_numerical_oracle(
     from vllm.forward_context import set_forward_context
     from vllm.utils import humming
 
-    weight_scale = 2**-10
+    weight_scale = 2**-5
+    swiglu_limit = 10.0
     weight_schemas = {
         sublayer_name: humming.CompressedTensorsWeightSchema(
             format="pack-quantized",
@@ -1461,6 +1464,7 @@ def test_humming_wna16_grouped_indexed_numerical_oracle(
         num_experts=4,
         hidden_size=512,
         intermediate_size=512,
+        swiglu_limit=swiglu_limit,
     )
     layer = experts.layer
     for sublayer_name, expected_dtype, expected_group_size in (
@@ -1525,7 +1529,8 @@ def test_humming_wna16_grouped_indexed_numerical_oracle(
         )
 
     gate_up = hidden_size * weight_scale
-    expected_value = F.silu(torch.tensor(gate_up)) * gate_up
+    clamped_gate_up = min(gate_up, swiglu_limit)
+    expected_value = F.silu(torch.tensor(clamped_gate_up)) * clamped_gate_up
     expected_value *= intermediate_size * weight_scale
     expected = torch.full_like(output, expected_value.item())
     torch.testing.assert_close(output, expected, atol=5e-3, rtol=2e-2)

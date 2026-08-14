@@ -373,8 +373,36 @@ def test_humming_quant_config_preserves_separate_w13_w2_schemas():
 
     assert quant_config._w1.dtype == "uint2"
     assert quant_config._w2.dtype == "uint4"
-    assert quant_config._w1.shape == GroupShape(row=128, col=1)
-    assert quant_config._w2.shape == GroupShape(row=128, col=1)
+    assert quant_config._w1.shape == GroupShape(row=1, col=128)
+    assert quant_config._w2.shape == GroupShape(row=1, col=128)
+
+
+def test_humming_quant_config_preserves_swiglu_parameters():
+    from vllm.model_executor.layers.quantization.utils.humming_utils import (
+        get_humming_moe_quant_config,
+    )
+
+    input_schema = SimpleNamespace(a_dtype=None)
+    weight_schema = SimpleNamespace(
+        b_dtype="uint2",
+        weight_scale_group_size=128,
+        weight_scale_group_size_n=0,
+    )
+    layer = SimpleNamespace(
+        input_schemas={"w13": input_schema, "w2": input_schema},
+        weight_schemas={"w13": weight_schema, "w2": weight_schema},
+        w13_weight_scale=torch.ones(1),
+        w2_weight_scale=torch.ones(1),
+        swiglu_alpha=1.25,
+        swiglu_beta=0.5,
+        swiglu_limit=10.0,
+    )
+
+    quant_config = get_humming_moe_quant_config(layer)
+
+    assert quant_config.gemm1_alpha == 1.25
+    assert quant_config.gemm1_beta == 0.5
+    assert quant_config.gemm1_clamp_limit == 10.0
 
 
 def test_moe_wna16_uses_humming_quant_config(monkeypatch):

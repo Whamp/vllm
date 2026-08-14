@@ -579,13 +579,10 @@ def make_humming_moe_quant_config(
 
 def _humming_moe_weight_group_shape(weight_schema: "HummingWeightSchema") -> GroupShape:
     """Return the fused MoE group shape for one Humming weight schema."""
-    group_size = weight_schema.weight_scale_group_size
-    group_size_n = weight_schema.weight_scale_group_size_n
-    if group_size_n > 1:
-        return GroupShape(row=group_size, col=group_size_n)
-    if group_size == 0:
-        return GroupShape(row=-1, col=1)
-    return GroupShape(row=group_size, col=1)
+    return _group_shape(
+        group_size=weight_schema.weight_scale_group_size,
+        group_size_n=weight_schema.weight_scale_group_size_n,
+    )
 
 
 def get_humming_moe_quant_config(
@@ -603,6 +600,13 @@ def get_humming_moe_quant_config(
     else:
         q_dtype = str(input_schema.a_dtype)
 
+    if gemm1_alpha is None:
+        gemm1_alpha = getattr(layer, "swiglu_alpha", None)
+    if gemm1_beta is None:
+        gemm1_beta = getattr(layer, "swiglu_beta", None)
+    if gemm1_clamp_limit is None:
+        gemm1_clamp_limit = getattr(layer, "swiglu_limit", None)
+
     return make_humming_moe_quant_config(
         quant_dtype=q_dtype,
         weight_dtype=str(w13_weight_schema.b_dtype),
@@ -617,6 +621,9 @@ def get_humming_moe_quant_config(
         w2_gscale=getattr(layer, "w2_global_scale", None),
         w2_zp=getattr(layer, "w2_zero_point", None),
         w2_bias=getattr(layer, "w2_bias", None),
+        gemm1_alpha=gemm1_alpha,
+        gemm1_beta=gemm1_beta,
+        gemm1_clamp_limit=gemm1_clamp_limit,
     )
 
 
