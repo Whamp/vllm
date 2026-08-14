@@ -59,6 +59,7 @@ if TYPE_CHECKING:
     VLLM_XLA_CHECK_RECOMPILATION: bool = False
     VLLM_SPARSE_INDEXER_MAX_LOGITS_MB: int = 512
     VLLM_DSV4_CACHE_WO_A_BF16: bool = True
+    VLLM_DSV4_WO_A_MARLIN_DIAGONAL: bool = False
     VLLM_USE_RAY_COMPILED_DAG_CHANNEL_TYPE: Literal["auto", "nccl", "shm"] = "auto"
     VLLM_USE_RAY_COMPILED_DAG_OVERLAP_COMM: bool = False
     VLLM_USE_RAY_WRAPPED_PP_COMM: bool = True
@@ -1085,6 +1086,11 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # lower persistent GPU memory use.
     "VLLM_DSV4_CACHE_WO_A_BF16": lambda: (
         os.environ.get("VLLM_DSV4_CACHE_WO_A_BF16", "1") == "1"
+    ),
+    # Pack DeepSeek V4's grouped output projection for FP8 Marlin, apply one
+    # local full projection, and select the block-diagonal group outputs.
+    "VLLM_DSV4_WO_A_MARLIN_DIAGONAL": lambda: (
+        os.environ.get("VLLM_DSV4_WO_A_MARLIN_DIAGONAL", "0") == "1"
     ),
     # If set, the OpenAI API server will stay alive even after the underlying
     # AsyncLLMEngine errors and stops serving requests
