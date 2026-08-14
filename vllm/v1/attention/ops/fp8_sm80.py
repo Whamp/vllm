@@ -40,9 +40,11 @@ def native_fp8_cast_supported() -> bool:
 # plumbing. Defaults to the software path: it is bit-exact everywhere, just
 # slower, so a failed probe degrades performance rather than compilation.
 try:
-    _NATIVE_FP8_CAST = tl.constexpr(native_fp8_cast_supported())
+    native_fp8_cast = native_fp8_cast_supported()
 except Exception:
-    _NATIVE_FP8_CAST = tl.constexpr(False)
+    native_fp8_cast = False
+
+_NATIVE_FP8_CAST = tl.constexpr(native_fp8_cast) if tl.constexpr is not None else False
 
 
 _E4M3FN_BF16_LUT_CACHE: dict[tuple[torch.device, float | None], torch.Tensor] = {}

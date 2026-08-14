@@ -12,6 +12,7 @@ def build_deepseek_v4_rope(
     head_dim: int,
     rope_head_dim: int,
     max_position_embeddings: int,
+    max_model_len: int,
     compress_ratio: int,
 ) -> RotaryEmbedding:
     rope_parameters = config.rope_parameters
@@ -30,7 +31,7 @@ def build_deepseek_v4_rope(
     rope_parameters["rope_dim"] = rope_head_dim
     return get_rope(
         head_dim,
-        max_position=max_position_embeddings,
+        max_position=min(max_position_embeddings, max_model_len),
         rope_parameters=rope_parameters,
         is_neox_style=False,
     )

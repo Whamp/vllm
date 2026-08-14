@@ -38,17 +38,40 @@ class CompressedTensorsMoEMethod(FusedMoEMethodBase):
             for proj_name in [".0.gate_proj", ".0.up_proj", ".0.down_proj"]
         ]
         # TODO: refactor this to use expert_mapping and check all layer numbers
-        all_scheme_dicts = [
+        gate_scheme, up_scheme, down_scheme = [
             quant_config.get_scheme_dict(layer, name) for name in unfused_names
         ]
-        scheme_dict = all_scheme_dicts.pop()
-
-        # multiple schemes found
-        if not all([cur_dict == scheme_dict for cur_dict in all_scheme_dicts]):
+        if gate_scheme != up_scheme:
             raise ValueError(
-                "All MoE projections need to have same "
-                "quantization scheme but found multiple"
+                "Fused MoE gate and up projections must have the same "
+                "quantization scheme."
             )
+
+        scheme_dict = gate_scheme
+        w2_weight_quant = None
+        if down_scheme != gate_scheme:
+            if gate_scheme is None or down_scheme is None:
+                raise ValueError(
+                    "Fused MoE projections cannot mix quantized and unquantized "
+                    "schemes."
+                )
+            w13_input_quant = gate_scheme.get("input_activations")
+            w2_input_quant = down_scheme.get("input_activations")
+            w13_weight_quant = gate_scheme.get("weights")
+            w2_weight_quant = down_scheme.get("weights")
+            same_runtime_format = (
+                gate_scheme.get("format") == down_scheme.get("format")
+                and w13_input_quant == w2_input_quant
+            )
+            both_wna16 = quant_config._is_wNa16_group_channel(
+                w13_weight_quant, w13_input_quant
+            ) and quant_config._is_wNa16_group_channel(w2_weight_quant, w2_input_quant)
+            if not same_runtime_format or not both_wna16:
+                raise ValueError(
+                    "Fused MoE down projection may differ from gate/up only "
+                    "for WNA16 schemes with matching activation and checkpoint "
+                    "formats."
+                )
 
         if scheme_dict is None:  # ignored layer
             return UnquantizedFusedMoEMethod(layer.moe_config)
@@ -134,6 +157,7 @@ class CompressedTensorsMoEMethod(FusedMoEMethodBase):
                 weight_quant,
                 input_quant,
                 layer.moe_config,
+                w2_weight_quant=w2_weight_quant,
             )
         elif quant_config._is_nvfp4_format(weight_quant):
             from .compressed_tensors_moe_w4a4_nvfp4 import (

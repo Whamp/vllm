@@ -40,7 +40,9 @@ from vllm.model_executor.layers.quantization.utils.marlin_utils import (
     marlin_make_workspace_new,
 )
 from vllm.model_executor.layers.quantization.utils.quant_utils import (
+    GroupShape,
     QuantKey,
+    ScaleDesc,
     kInt4Static32GroupScale,
     kInt4StaticGroupScale,
     kInt8StaticGroupScale,
@@ -57,16 +59,27 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
         input_quant: QuantizationArgs | None,
         moe: FusedMoEConfig,
         layer_name: str | None = None,
+        w2_weight_quant: QuantizationArgs | None = None,
     ):
         super().__init__(moe)
         self.weight_quant = weight_quant
+        self.w13_weight_quant = weight_quant
+        self.has_projection_specific_quant = w2_weight_quant is not None
+        self.w2_weight_quant = (
+            weight_quant if w2_weight_quant is None else w2_weight_quant
+        )
         self.input_quant = input_quant
-        # Extract properties from weight_quant
+        # Shared attributes preserve existing backend behavior. Humming also
+        # reads the projection-specific schemas for mixed WNA16 checkpoints.
         self.symmetric = weight_quant.symmetric
         self.num_bits = weight_quant.num_bits
-        self.packed_factor = 32 // weight_quant.num_bits
+        self.w13_packed_factor = 32 // self.w13_weight_quant.num_bits
+        self.w2_packed_factor = 32 // self.w2_weight_quant.num_bits
+        self.packed_factor = self.w13_packed_factor
         self.strategy = weight_quant.strategy
-        self.group_size = weight_quant.group_size
+        self.w13_group_size = self.w13_weight_quant.group_size
+        self.w2_group_size = self.w2_weight_quant.group_size
+        self.group_size = self.w13_group_size
         self.actorder = weight_quant.actorder
 
         # Extract quant_type and create weight key for oracle selection
@@ -85,8 +98,14 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             assert self.group_size == -1
             scale = kInt8StaticGroupScale
         else:
-            raise ValueError(
-                "CompressedTensorsWNA16MoEMethod only supports int4 and int8 now."
+            scale = ScaleDesc(
+                dtype=torch.float16,
+                static=True,
+                group_shape=(
+                    GroupShape.PER_CHANNEL
+                    if self.group_size == -1
+                    else GroupShape(row=1, col=self.group_size)
+                ),
             )
 
         weight_key = QuantKey(self.quant_type, scale, symmetric=self.symmetric)
@@ -106,11 +125,31 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             allow_tile_padding=not is_actorder,
         )
 
+        if self.has_projection_specific_quant:
+            shared_layout_fields = ("type", "strategy", "symmetric", "actorder")
+            if any(
+                getattr(self.w13_weight_quant, field)
+                != getattr(self.w2_weight_quant, field)
+                for field in shared_layout_fields
+            ):
+                raise ValueError(
+                    "Mixed WNA16 MoE projections may differ only in bit width "
+                    "and group size."
+                )
+            if self.wna16_backend != WNA16MoEBackend.HUMMING:
+                raise ValueError(
+                    "Mixed WNA16 MoE projection quantization requires the "
+                    "Humming backend."
+                )
+
         self.is_marlin = self.wna16_backend in [
             WNA16MoEBackend.MARLIN,
             WNA16MoEBackend.BATCHED_MARLIN,
         ]
-        self.is_transposed = self.wna16_backend != WNA16MoEBackend.FLASHINFER_TRTLLM
+        self.is_transposed = self.wna16_backend not in (
+            WNA16MoEBackend.FLASHINFER_TRTLLM,
+            WNA16MoEBackend.HUMMING,
+        )
 
         if self.is_marlin:
             assert check_moe_marlin_supports_config(
@@ -152,16 +191,18 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                 "num_groups_w2 must be provided for weight scales/zero_points"
             )
         w13_num_shards = 2 if self.moe.is_act_and_mul else 1
+        w13_packed_factor = self.w13_packed_factor
+        w2_packed_factor = self.w2_packed_factor
         shape_map = {
             "w13_weight": {
                 "Flashinfer": (
                     num_experts,
                     w13_num_shards * intermediate_size_per_partition,
-                    hidden_size // self.packed_factor,
+                    hidden_size // w13_packed_factor,
                 ),
                 "Marlin": (
                     num_experts,
-                    hidden_size // self.packed_factor,
+                    hidden_size // w13_packed_factor,
                     w13_num_shards * intermediate_size_per_partition,
                 ),
             },
@@ -183,18 +224,18 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                     num_groups_w13,
                     w13_num_shards
                     * intermediate_size_per_partition
-                    // self.packed_factor,
+                    // w13_packed_factor,
                 ),
             },
             "w2_weight": {
                 "Flashinfer": (
                     num_experts,
                     hidden_size,
-                    intermediate_size_per_partition // self.packed_factor,
+                    intermediate_size_per_partition // w2_packed_factor,
                 ),
                 "Marlin": (
                     num_experts,
-                    intermediate_size_per_partition // self.packed_factor,
+                    intermediate_size_per_partition // w2_packed_factor,
                     hidden_size,
                 ),
             },
@@ -206,7 +247,7 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                 "Marlin": (
                     num_experts,
                     num_groups_w2,
-                    hidden_size // self.packed_factor,
+                    hidden_size // w2_packed_factor,
                 ),
             },
         }
@@ -286,36 +327,36 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
 
         load_full_w2, w2_scales_size, self.is_k_full = self._w2_scale_sharding(
             self.actorder,
-            self.group_size,
+            self.w2_group_size,
             intermediate_size_per_partition,
             intermediate_size_full,
         )
 
         if self.strategy == "channel":
             num_groups_w2 = num_groups_w13 = 1
-            self.group_size = -1
+            self.w13_group_size = self.w2_group_size = self.group_size = -1
         else:
-            if hidden_size % self.group_size != 0:
+            if hidden_size % self.w13_group_size != 0:
                 raise ValueError(
-                    "CompressedTensors WNA16 MoE requires hidden_size "
-                    f"({hidden_size}) to be divisible by group_size "
-                    f"({self.group_size})."
+                    "CompressedTensors WNA16 MoE gate/up hidden_size "
+                    f"({hidden_size}) must be divisible by w13 group size "
+                    f"({self.w13_group_size})."
                 )
             if (
                 not load_full_w2
-                and intermediate_size_per_partition % self.group_size != 0
+                and intermediate_size_per_partition % self.w2_group_size != 0
             ):
                 raise ValueError(
-                    "CompressedTensors WNA16 MoE with static group "
-                    "scales requires the MoE intermediate size per "
+                    "CompressedTensors WNA16 MoE down-projection static group "
+                    "scales require the MoE intermediate size per "
                     "tensor-parallel partition "
                     f"({intermediate_size_per_partition}) to be divisible by "
-                    f"group_size ({self.group_size}). Scale groups would "
+                    f"w2 group size ({self.w2_group_size}). Scale groups would "
                     "otherwise cross TP shard boundaries; use a compatible TP "
                     "size or enable expert parallelism."
                 )
-            num_groups_w2 = w2_scales_size // self.group_size
-            num_groups_w13 = hidden_size // self.group_size
+            num_groups_w2 = w2_scales_size // self.w2_group_size
+            num_groups_w13 = hidden_size // self.w13_group_size
 
         layer.num_groups_w13 = num_groups_w13
         layer.num_groups_w2 = num_groups_w2
@@ -465,6 +506,8 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             moe_quant_config=self.moe_quant_config,
             moe_config=self.moe,
             experts_cls=self.experts_cls,
+            backend=self.wna16_backend,
+            layer=layer,
             routing_tables=layer._expert_routing_tables(),
             **marlin_args,
         )
@@ -480,6 +523,9 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             w2=layer.w2_weight_packed,
             w13_scale=layer.w13_weight_scale,
             w2_scale=layer.w2_weight_scale,
+            w2_quant_config=(
+                self.w2_weight_quant if self.has_projection_specific_quant else None
+            ),
             w13_g_idx=layer.w13_weight_g_idx,
             w2_g_idx=layer.w2_weight_g_idx,
             w13_qzeros=getattr(layer, "w13_weight_zero_point", None),
@@ -565,6 +611,12 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
     def get_fused_moe_quant_config(
         self, layer: torch.nn.Module
     ) -> FusedMoEQuantConfig | None:
+        if self.wna16_backend == WNA16MoEBackend.HUMMING:
+            from vllm.model_executor.layers.quantization.utils.humming_utils import (
+                get_humming_moe_quant_config,
+            )
+
+            return get_humming_moe_quant_config(layer)
         return make_wna16_moe_quant_config(
             w1_scale=layer.w13_weight_scale,
             w2_scale=layer.w2_weight_scale,
