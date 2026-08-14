@@ -941,23 +941,19 @@ def _fused_inverse_rope_gptj(
     return out
 
 
-def _get_cached_wo_a_bf16(
+def _get_wo_a_bf16(
     wo_a: torch.nn.Module,
     n_local_groups: int,
     o_lora_rank: int,
     hidden_dim: int,
 ) -> torch.Tensor:
-    """Dequantize wo_a to bf16 once and cache it on the module.
+    """Return the DeepSeek V4 BF16 output projection, optionally cached."""
+    cache_enabled = envs.VLLM_DSV4_CACHE_WO_A_BF16
+    if cache_enabled:
+        cached = getattr(wo_a, "_dsv4_wo_a_bf16", None)
+        if cached is not None:
+            return cached
 
-    wo_a weights are static, so the fp8 -> fp32 -> (* block scale) -> bf16
-    dequant only needs to run once. Recomputing it every decode step shows up
-    in the profile as the largest copy/mul kernels (``direct_copy float`` ~55us
-    and ``MulFunctor float`` ~31us per two layers). SGLang / ATOM keep wo_a in
-    bf16 and feed a plain bf16 GEMM; this mirrors that.
-    """
-    cached = getattr(wo_a, "_dsv4_wo_a_bf16", None)
-    if cached is not None:
-        return cached
     if hasattr(wo_a, "weight_scale_inv"):
         wo_a_weight = wo_a.weight.view(n_local_groups, o_lora_rank, hidden_dim).to(
             torch.float32
@@ -969,13 +965,15 @@ def _get_cached_wo_a_bf16(
             o_lora_rank,
             hidden_dim,
         )
-        cached = (wo_a_weight * wo_a_scale).to(torch.bfloat16)
+        wo_a_bf16 = (wo_a_weight * wo_a_scale).to(torch.bfloat16)
     else:
-        cached = wo_a.weight.view(n_local_groups, o_lora_rank, hidden_dim).to(
+        wo_a_bf16 = wo_a.weight.view(n_local_groups, o_lora_rank, hidden_dim).to(
             torch.bfloat16
         )
-    wo_a._dsv4_wo_a_bf16 = cached
-    return cached
+
+    if cache_enabled:
+        wo_a._dsv4_wo_a_bf16 = wo_a_bf16
+    return wo_a_bf16
 
 
 def rocm_inv_rope_einsum(
@@ -997,9 +995,7 @@ def rocm_inv_rope_einsum(
     )
     o_ref = o_ref.view(o.shape[0], n_local_groups, -1)
 
-    wo_a_weight = _get_cached_wo_a_bf16(
-        wo_a, n_local_groups, o_lora_rank, o_ref.shape[-1]
-    )
+    wo_a_weight = _get_wo_a_bf16(wo_a, n_local_groups, o_lora_rank, o_ref.shape[-1])
 
     return torch.einsum("tgd,grd->tgr", o_ref, wo_a_weight)
 
