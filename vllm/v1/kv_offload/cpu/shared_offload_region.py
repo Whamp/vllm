@@ -117,6 +117,11 @@ class SharedOffloadRegion:
         self._views: list[torch.Tensor] = []
         self.is_pinned: bool = False
 
+    @property
+    def is_creator(self) -> bool:
+        """Whether this worker created and owns cleanup of the mmap file."""
+        return self._creator
+
     def create_next_view(self, tensor_page_size: int) -> torch.Tensor:
         """Allocate a strided int8 view for this worker, one canonical tensor.
 

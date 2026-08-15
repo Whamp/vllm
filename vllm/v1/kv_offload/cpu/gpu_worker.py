@@ -121,7 +121,9 @@ def compute_sub_block_ptrs(
 
 
 def pin_mmap_region(region: SharedOffloadRegion) -> None:
-    """Register the entire mmap as CUDA pinned memory via cudaHostRegister."""
+    """Register the creator's mmap once via cudaHostRegister."""
+    if not region.is_creator:
+        return
     if not current_platform.is_cuda_alike():
         logger.info(
             "Skipping mmap host registration on %s; cudaHostRegister is only "
@@ -133,26 +135,18 @@ def pin_mmap_region(region: SharedOffloadRegion) -> None:
     rank = region.rank
 
     base_ptr = region._base.data_ptr()
-    cudart = torch.cuda.cudart()
-    result = cudart.cudaHostRegister(base_ptr, region.total_size_bytes, 0)
+    result = torch.cuda.cudart().cudaHostRegister(base_ptr, region.total_size_bytes, 0)
     if result.value != 0:
-        # cudaHostRegister sets the runtime's last-error state on failure.
-        # Clear it before taking the documented unpinned fallback so a later,
-        # unrelated CUDA operation does not surface this stale error.
-        cudart.cudaGetLastError()
-        logger.warning(
-            "cudaHostRegister failed for rank=%d (code=%d) — "
-            "transfers will still work but may be slower (unpinned DMA)",
-            rank,
-            result,
+        raise RuntimeError(
+            "cudaHostRegister failed for the KV offload mmap creator: "
+            f"rank={rank}, code={result.value}"
         )
-    else:
-        logger.debug(
-            "cudaHostRegister rank=%d %.2f GB",
-            rank,
-            region.total_size_bytes / 1e9,
-        )
-        region.is_pinned = True
+    logger.debug(
+        "cudaHostRegister rank=%d %.2f GB",
+        rank,
+        region.total_size_bytes / 1e9,
+    )
+    region.is_pinned = True
 
 
 def _new_descriptor_buffers(
