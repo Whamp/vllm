@@ -196,6 +196,7 @@ if TYPE_CHECKING:
     VLLM_SPARSE_DECODE_MAXNREG: int = 0
     VLLM_SPARSE_DENSE_QUERY_BLOCK: int = -1
     VLLM_SPARSE_DENSE_QUERY_BLOCK_DECODE: int = -1
+    VLLM_DSV4_FLASH_MLA_DECODE: bool = False
     VLLM_MARLIN_FP8_DEQUANT_BF16: bool = False
     VLLM_MARLIN_FP8_DEQUANT_EXCLUDE: str = ""
     VLLM_DSPARK_FUSED_MARKOV: bool = True
@@ -1699,6 +1700,9 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # it to next_n to re-derive the result.
     "VLLM_SPARSE_DENSE_QUERY_BLOCK_DECODE": lambda: int(
         os.environ.get("VLLM_SPARSE_DENSE_QUERY_BLOCK_DECODE", "-1")
+    ),
+    "VLLM_DSV4_FLASH_MLA_DECODE": lambda: bool(
+        int(os.getenv("VLLM_DSV4_FLASH_MLA_DECODE", "0"))
     ),
     # On GPUs without native FP8 (where block-quantized FP8 linear layers fall
     # back to weight-only Marlin), dequantize those weights to the model dtype
