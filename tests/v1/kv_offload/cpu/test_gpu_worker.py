@@ -3,6 +3,8 @@
 import random
 import time
 import uuid
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -32,6 +34,29 @@ DEVICE_TYPE = current_platform.device_type
 DEVICES = [f"{DEVICE_TYPE}:0"]
 NUM_MAPPINGS = [3]
 NUM_MAPPINGS_PER_GROUP = [2]
+
+
+def test_pin_mmap_region_clears_failed_cuda_registration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FailedCudaResult(int):
+        value = 1
+
+    cudart = Mock()
+    cudart.cudaHostRegister.return_value = FailedCudaResult(1)
+    region = SimpleNamespace(
+        rank=1,
+        _base=Mock(data_ptr=Mock(return_value=1234)),
+        total_size_bytes=16 * (1 << 30),
+        is_pinned=False,
+    )
+    monkeypatch.setattr(gpu_worker.current_platform, "is_cuda_alike", lambda: True)
+    monkeypatch.setattr(gpu_worker.torch.cuda, "cudart", lambda: cudart)
+
+    gpu_worker.pin_mmap_region(region)
+
+    cudart.cudaGetLastError.assert_called_once_with()
+    assert region.is_pinned is False
 
 
 @pytest.mark.skipif(not current_platform.is_rocm(), reason="ROCm-specific test")

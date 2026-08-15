@@ -133,8 +133,13 @@ def pin_mmap_region(region: SharedOffloadRegion) -> None:
     rank = region.rank
 
     base_ptr = region._base.data_ptr()
-    result = torch.cuda.cudart().cudaHostRegister(base_ptr, region.total_size_bytes, 0)
+    cudart = torch.cuda.cudart()
+    result = cudart.cudaHostRegister(base_ptr, region.total_size_bytes, 0)
     if result.value != 0:
+        # cudaHostRegister sets the runtime's last-error state on failure.
+        # Clear it before taking the documented unpinned fallback so a later,
+        # unrelated CUDA operation does not surface this stale error.
+        cudart.cudaGetLastError()
         logger.warning(
             "cudaHostRegister failed for rank=%d (code=%d) — "
             "transfers will still work but may be slower (unpinned DMA)",
