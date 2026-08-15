@@ -978,6 +978,21 @@ def _get_cached_wo_a_bf16(
     return cached
 
 
+def _apply_dsv4_wo_a_marlin_diagonal(
+    o_ref: torch.Tensor,
+    wo_a: torch.nn.Module,
+    *,
+    n_local_groups: int,
+    o_lora_rank: int,
+) -> torch.Tensor:
+    """Apply one local FP8 Marlin projection and select matching groups."""
+    full_output = wo_a(o_ref.flatten(0, 1))
+    grouped_output = full_output.view(
+        o_ref.shape[0], n_local_groups, n_local_groups, o_lora_rank
+    )
+    return grouped_output.diagonal(dim1=1, dim2=2).movedim(-1, 1)
+
+
 def rocm_inv_rope_einsum(
     rotary_emb: torch.nn.Module,
     o: torch.Tensor,
@@ -996,6 +1011,13 @@ def rocm_inv_rope_einsum(
         o, positions, rotary_emb.cos_sin_cache, rope_head_dim
     )
     o_ref = o_ref.view(o.shape[0], n_local_groups, -1)
+    if envs.VLLM_DSV4_WO_A_MARLIN_DIAGONAL:
+        return _apply_dsv4_wo_a_marlin_diagonal(
+            o_ref,
+            wo_a,
+            n_local_groups=n_local_groups,
+            o_lora_rank=o_lora_rank,
+        )
 
     wo_a_weight = _get_cached_wo_a_bf16(
         wo_a, n_local_groups, o_lora_rank, o_ref.shape[-1]

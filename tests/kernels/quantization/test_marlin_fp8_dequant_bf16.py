@@ -68,3 +68,62 @@ def test_dequant_matches_reference_and_frees_fp8(n, k, scale_dtype):
     x = torch.randn(4, k, dtype=torch.bfloat16)
     out = kernel.apply_weights(layer, x)
     torch.testing.assert_close(out, torch.nn.functional.linear(x, layer.weight))
+
+
+def test_dsv4_marlin_diagonal_packs_bmm_weight(monkeypatch):
+    layer = _make_layer(256, 256, torch.float32)
+    layer.is_bmm = True
+    kernel = object.__new__(MarlinFP8ScaledMMLinearKernel)
+    kernel.block_quant = False
+    kernel.size_k_first = False
+    kernel.marlin_input_dtype = None
+    packed = False
+
+    def prepare(layer, size_k_first, input_dtype):
+        nonlocal packed
+        packed = True
+
+    monkeypatch.setattr(
+        "vllm.model_executor.kernels.linear.scaled_mm.marlin."
+        "prepare_fp8_layer_for_marlin",
+        prepare,
+    )
+    monkeypatch.setattr(
+        "vllm.model_executor.kernels.linear.scaled_mm.marlin."
+        "envs.VLLM_DSV4_WO_A_MARLIN_DIAGONAL",
+        True,
+    )
+
+    kernel.process_weights_after_loading(layer)
+
+    assert packed
+
+
+def test_dsv4_marlin_diagonal_selects_group_outputs():
+    from vllm.v1.attention.ops.rocm_aiter_mla_sparse import (
+        _apply_dsv4_wo_a_marlin_diagonal,
+    )
+
+    n_tokens = 3
+    n_groups = 2
+    hidden_dim = 5
+    output_rank = 4
+    o_ref = torch.randn(n_tokens, n_groups, hidden_dim)
+    weight = torch.randn(n_groups * output_rank, hidden_dim)
+
+    class FakeWoA(torch.nn.Module):
+        def forward(self, x):
+            return torch.nn.functional.linear(x, weight)
+
+    result = _apply_dsv4_wo_a_marlin_diagonal(
+        o_ref,
+        FakeWoA(),
+        n_local_groups=n_groups,
+        o_lora_rank=output_rank,
+    )
+    expected = torch.einsum(
+        "tgd,grd->tgr", o_ref, weight.view(n_groups, output_rank, hidden_dim)
+    )
+
+    assert result.shape == expected.shape
+    torch.testing.assert_close(result, expected)
