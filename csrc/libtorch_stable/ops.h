@@ -47,6 +47,19 @@ torch::stable::Tensor permute_cols(torch::stable::Tensor const& A,
                                    torch::stable::Tensor const& perm);
 
 #ifndef USE_ROCM
+namespace vllm::gguf_dsv4 {
+void gguf_iq2_xxs_raw_matvec(const torch::stable::Tensor& input,
+                             const torch::stable::Tensor& packed_weights,
+                             torch::stable::Tensor& output);
+
+void gguf_iq2_xxs_aligned_matvec(
+    const torch::stable::Tensor& input,
+    const torch::stable::Tensor& aligned_scales,
+    const torch::stable::Tensor& aligned_grid_bytes,
+    const torch::stable::Tensor& aligned_scale_sign_bytes,
+    torch::stable::Tensor& output);
+}  // namespace vllm::gguf_dsv4
+
 bool cutlass_scaled_mm_supports_fp8(int64_t cuda_device_capability);
 bool cutlass_scaled_mm_supports_block_fp8(int64_t cuda_device_capability);
 bool cutlass_group_gemm_supported(int64_t cuda_device_capability);

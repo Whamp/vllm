@@ -32,6 +32,13 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C, ops) {
   ops.def("get_cuda_view_from_cpu_tensor(Tensor cpu_tensor) -> Tensor");
 
 #ifndef USE_ROCM
+  ops.def(
+      "gguf_iq2_xxs_raw_matvec(Tensor input, Tensor packed_weights, "
+      "Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_iq2_xxs_aligned_matvec(Tensor input, Tensor aligned_scales, "
+      "Tensor aligned_grid_bytes, Tensor aligned_scale_sign_bytes, "
+      "Tensor(a!) output) -> ()");
 
   // Note about marlin kernel 'workspace' arguments:
   // Technically these should be mutable since they are modified by the kernel.
@@ -701,6 +708,11 @@ STABLE_TORCH_LIBRARY_IMPL(_C, CUDA, ops) {
   ops.impl("permute_cols", TORCH_BOX(&permute_cols));
 
 #ifndef USE_ROCM
+  ops.impl("gguf_iq2_xxs_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_raw_matvec));
+  ops.impl("gguf_iq2_xxs_aligned_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_aligned_matvec));
+
   // CUTLASS scaled_mm ops
   ops.impl("cutlass_scaled_mm", TORCH_BOX(&cutlass_scaled_mm));
   ops.impl("cutlass_scaled_mm_azp", TORCH_BOX(&cutlass_scaled_mm_azp));
