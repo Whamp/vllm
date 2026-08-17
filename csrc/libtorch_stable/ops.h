@@ -83,6 +83,12 @@ void gguf_iq2_xxs_q8_1_indexed_gate_up(
     const torch::stable::Tensor& up_weights,
     const torch::stable::Tensor& topk_ids, torch::stable::Tensor& gate_output,
     torch::stable::Tensor& up_output);
+
+void gguf_q2_k_q8_1_indexed_down(const torch::stable::Tensor& activation_scales,
+                                 const torch::stable::Tensor& activation_codes,
+                                 const torch::stable::Tensor& down_weights,
+                                 const torch::stable::Tensor& topk_ids,
+                                 torch::stable::Tensor& output);
 }  // namespace vllm::gguf_dsv4
 
 bool cutlass_scaled_mm_supports_fp8(int64_t cuda_device_capability);
