@@ -58,6 +58,31 @@ void gguf_iq2_xxs_aligned_matvec(
     const torch::stable::Tensor& aligned_grid_bytes,
     const torch::stable::Tensor& aligned_scale_sign_bytes,
     torch::stable::Tensor& output);
+
+void gguf_quantize_bf16_to_q8_1(const torch::stable::Tensor& input,
+                                torch::stable::Tensor& output_scales,
+                                torch::stable::Tensor& output_codes);
+
+void gguf_iq2_xxs_q8_1_raw_matvec(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& packed_weights, torch::stable::Tensor& output);
+
+void gguf_iq2_xxs_q8_1_aligned_matvec(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& aligned_weight_scales,
+    const torch::stable::Tensor& aligned_grid_bytes,
+    const torch::stable::Tensor& aligned_scale_sign_bytes,
+    torch::stable::Tensor& output);
+
+void gguf_iq2_xxs_q8_1_indexed_gate_up(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& gate_weights,
+    const torch::stable::Tensor& up_weights,
+    const torch::stable::Tensor& topk_ids, torch::stable::Tensor& gate_output,
+    torch::stable::Tensor& up_output);
 }  // namespace vllm::gguf_dsv4
 
 bool cutlass_scaled_mm_supports_fp8(int64_t cuda_device_capability);

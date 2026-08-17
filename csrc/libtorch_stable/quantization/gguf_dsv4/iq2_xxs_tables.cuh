@@ -9,12 +9,12 @@
 #include <cstdint>
 
 namespace vllm::gguf_dsv4 {
-__device__ __constant__ uint8_t kmask_iq2xs[8] = {1, 2, 4, 8, 16, 32, 64, 128};
+__device__ uint8_t kmask_iq2xs[8] = {1, 2, 4, 8, 16, 32, 64, 128};
 
 // 128-entry sign lookup. Index is a 7-bit pattern of which positions
 // are negative; value is the 8-bit pattern with the 8th bit set to
 // maintain even parity (matches ggml-common.h:503).
-__device__ __constant__ uint8_t ksigns_iq2xs[128] = {
+__device__ uint8_t ksigns_iq2xs[128] = {
     0,   129, 130, 3,   132, 5,   6,   135, 136, 9,   10,  139, 12,  141, 142,
     15,  144, 17,  18,  147, 20,  149, 150, 23,  24,  153, 154, 27,  156, 29,
     30,  159, 160, 33,  34,  163, 36,  165, 166, 39,  40,  169, 170, 43,  172,
@@ -29,7 +29,7 @@ __device__ __constant__ uint8_t ksigns_iq2xs[128] = {
 // 256-entry IQ2_XXS grid: each uint64 holds 8 uint8 quantized values.
 // Indexed by the 8-bit aux8[l] from the encoded super-block.
 // (matches ggml-common.h:550).
-__device__ __constant__ uint64_t iq2xxs_grid[256] = {
+__device__ uint64_t iq2xxs_grid[256] = {
     0x0808080808080808, 0x080808080808082b, 0x0808080808081919,
     0x0808080808082b08, 0x0808080808082b2b, 0x0808080808190819,
     0x0808080808191908, 0x08080808082b0808, 0x08080808082b082b,

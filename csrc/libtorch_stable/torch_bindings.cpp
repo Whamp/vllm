@@ -39,6 +39,22 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C, ops) {
       "gguf_iq2_xxs_aligned_matvec(Tensor input, Tensor aligned_scales, "
       "Tensor aligned_grid_bytes, Tensor aligned_scale_sign_bytes, "
       "Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_quantize_bf16_to_q8_1(Tensor input, Tensor(a!) output_scales, "
+      "Tensor(b!) output_codes) -> ()");
+  ops.def(
+      "gguf_iq2_xxs_q8_1_raw_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor packed_weights, Tensor(a!) output) -> "
+      "()");
+  ops.def(
+      "gguf_iq2_xxs_q8_1_aligned_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor aligned_weight_scales, "
+      "Tensor aligned_grid_bytes, Tensor aligned_scale_sign_bytes, "
+      "Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_iq2_xxs_q8_1_indexed_gate_up(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor gate_weights, Tensor up_weights, "
+      "Tensor topk_ids, Tensor(a!) gate_output, Tensor(b!) up_output) -> ()");
 
   // Note about marlin kernel 'workspace' arguments:
   // Technically these should be mutable since they are modified by the kernel.
@@ -712,6 +728,14 @@ STABLE_TORCH_LIBRARY_IMPL(_C, CUDA, ops) {
            TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_raw_matvec));
   ops.impl("gguf_iq2_xxs_aligned_matvec",
            TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_aligned_matvec));
+  ops.impl("gguf_quantize_bf16_to_q8_1",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_quantize_bf16_to_q8_1));
+  ops.impl("gguf_iq2_xxs_q8_1_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_raw_matvec));
+  ops.impl("gguf_iq2_xxs_q8_1_aligned_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_aligned_matvec));
+  ops.impl("gguf_iq2_xxs_q8_1_indexed_gate_up",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_indexed_gate_up));
 
   // CUTLASS scaled_mm ops
   ops.impl("cutlass_scaled_mm", TORCH_BOX(&cutlass_scaled_mm));
