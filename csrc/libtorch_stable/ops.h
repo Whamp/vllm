@@ -95,6 +95,13 @@ void gguf_iq2_xxs_q8_1_grouped_gate_up(
     torch::stable::Tensor& gate_output, torch::stable::Tensor& up_output,
     int64_t topk);
 
+void gguf_swiglu_weighted_q8_1(const torch::stable::Tensor& gate,
+                               const torch::stable::Tensor& up,
+                               const torch::stable::Tensor& router_weights,
+                               torch::stable::Tensor& output_scales,
+                               torch::stable::Tensor& output_codes,
+                               double clamp_limit);
+
 void gguf_q2_k_q8_1_grouped_down(const torch::stable::Tensor& assignment_scales,
                                  const torch::stable::Tensor& assignment_codes,
                                  const torch::stable::Tensor& down_weights,

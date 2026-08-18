@@ -14,6 +14,7 @@
 
 #include "../../torch_utils.h"
 #include "iq2_xxs_tables.cuh"
+#include "q8_1_utils.cuh"
 
 namespace vllm::gguf_dsv4 {
 namespace {
@@ -130,14 +131,6 @@ __global__ void iq2_xxs_matvec_kernel(
   }
 }
 
-__device__ __forceinline__ float warp_max(float value) {
-#pragma unroll
-  for (int offset = 16; offset > 0; offset >>= 1) {
-    value = fmaxf(value, __shfl_down_sync(0xffffffff, value, offset));
-  }
-  return value;
-}
-
 __global__ void quantize_bf16_to_q8_1_kernel(
     const __nv_bfloat16* __restrict__ input, __half* __restrict__ output_scales,
     int8_t* __restrict__ output_codes, int group_count) {
@@ -150,11 +143,9 @@ __global__ void quantize_bf16_to_q8_1_kernel(
 
   const int element_index = group_index * kIq2GroupElements + lane;
   const float value = __bfloat162float(input[element_index]);
-  const float absolute_max = __shfl_sync(0xffffffff, warp_max(fabsf(value)), 0);
+  const float absolute_max = warp_max_q8_1(fabsf(value));
   const float scale = absolute_max / 127.0f;
-  const int quantized =
-      absolute_max == 0.0f ? 0 : static_cast<int>(roundf(value / scale));
-  output_codes[element_index] = static_cast<int8_t>(quantized);
+  output_codes[element_index] = quantize_q8_1_code(value, absolute_max);
   if (lane == 0) {
     output_scales[group_index] = __float2half_rn(scale);
   }

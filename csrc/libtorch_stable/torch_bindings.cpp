@@ -62,6 +62,10 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C, ops) {
       "Tensor num_tokens_padded, Tensor(a!) gate_output, "
       "Tensor(b!) up_output, int topk) -> ()");
   ops.def(
+      "gguf_swiglu_weighted_q8_1(Tensor gate, Tensor up, "
+      "Tensor router_weights, Tensor(a!) output_scales, "
+      "Tensor(b!) output_codes, float clamp_limit) -> ()");
+  ops.def(
       "gguf_q2_k_q8_1_grouped_down(Tensor assignment_scales, "
       "Tensor assignment_codes, Tensor down_weights, "
       "Tensor sorted_token_ids, Tensor expert_ids, "
@@ -753,6 +757,8 @@ STABLE_TORCH_LIBRARY_IMPL(_C, CUDA, ops) {
            TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_indexed_gate_up));
   ops.impl("gguf_iq2_xxs_q8_1_grouped_gate_up",
            TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_grouped_gate_up));
+  ops.impl("gguf_swiglu_weighted_q8_1",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_swiglu_weighted_q8_1));
   ops.impl("gguf_q2_k_q8_1_grouped_down",
            TORCH_BOX(&vllm::gguf_dsv4::gguf_q2_k_q8_1_grouped_down));
   ops.impl("gguf_q2_k_q8_1_indexed_down",
