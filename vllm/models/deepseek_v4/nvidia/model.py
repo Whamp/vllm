@@ -76,6 +76,9 @@ from vllm.model_executor.models.utils import (
 from vllm.model_executor.utils import set_weight_attrs
 from vllm.models.deepseek_v4.attention import DeepseekV4Attention
 from vllm.models.deepseek_v4.eager_scratch import DeepseekV4EagerScratchPool
+from vllm.models.deepseek_v4.gguf_dsv4_layer_oracle import (
+    build_gguf_dsv4_layer_oracle_recorder,
+)
 from vllm.models.deepseek_v4.nvidia.flashinfer_sparse import (
     DeepseekV4FlashInferMLAAttention,
     DeepseekV4FlashInferSM120Attention,
@@ -1065,6 +1068,13 @@ class DeepseekV4Model(nn.Module, EagleModelMixin):
         self.config = config
         self.quant_config = quant_config
         self.parallel_config = vllm_config.parallel_config
+        self.layer_oracle_recorder = build_gguf_dsv4_layer_oracle_recorder(
+            quantization_method=vllm_config.model_config.quantization,
+            enforce_eager=vllm_config.model_config.enforce_eager,
+            tensor_parallel_rank=get_tensor_model_parallel_rank(),
+            expected_layer_count=config.num_hidden_layers,
+            vocab_size=config.vocab_size,
+        )
         self.use_mega_moe = (
             vllm_config.kernel_config.moe_backend == "deep_gemm_mega_moe"
         )
@@ -1216,6 +1226,10 @@ class DeepseekV4Model(nn.Module, EagleModelMixin):
         x_scales: torch.Tensor | None = None
         aux_hidden_states: list[torch.Tensor] = []
         final_aux_recon: torch.Tensor | None = None  # avoid duplicate mhc_post call
+        record_layer_oracle = self.layer_oracle_recorder is not None and (
+            self.layer_oracle_recorder.matches_forward(input_ids, positions)
+        )
+        final_layer_oracle_recon: torch.Tensor | None = None
         for idx, layer in enumerate(
             islice(self.layers, self.start_layer, self.end_layer),
             start=self.start_layer,
@@ -1229,17 +1243,27 @@ class DeepseekV4Model(nn.Module, EagleModelMixin):
                 residual,
                 x_scales,
             )
-            if idx + 1 in self.aux_hidden_state_layers:
-                # Reconstruct the aux hidden state for draft models
-                aux_recon = mhc_post_tilelang(
+            needs_aux_recon = idx + 1 in self.aux_hidden_state_layers
+            layer_recon: torch.Tensor | None = None
+            if needs_aux_recon or record_layer_oracle:
+                layer_recon = mhc_post_tilelang(
                     hidden_states, residual, post_mix, res_mix, x_scales=x_scales
                 )
-                aux_hidden_states.append(aux_recon.mean(dim=1))
-                final_aux_recon = aux_recon
+            if needs_aux_recon:
+                assert layer_recon is not None
+                aux_hidden_states.append(layer_recon.mean(dim=1))
+                final_aux_recon = layer_recon
+            if record_layer_oracle:
+                assert self.layer_oracle_recorder is not None
+                assert layer_recon is not None
+                self.layer_oracle_recorder.record_layer(idx, layer_recon[-1])
+                final_layer_oracle_recon = layer_recon
         if layer is not None:
-            # Reuse if the last layer was captured as an aux hidden state
+            # Reuse if the last layer was captured for an aux or oracle output.
             if self.end_layer in self.aux_hidden_state_layers:
                 hidden_states = final_aux_recon
+            elif record_layer_oracle:
+                hidden_states = final_layer_oracle_recon
             else:
                 hidden_states = mhc_post_tilelang(
                     hidden_states, residual, post_mix, res_mix, x_scales=x_scales
@@ -1590,6 +1614,12 @@ class DeepseekV4ForCausalLM(
         hidden_states: torch.Tensor,
     ) -> torch.Tensor | None:
         logits = self.logits_processor(self.lm_head, hidden_states)
+        recorder = self.model.layer_oracle_recorder
+        if recorder is not None and recorder.is_capturing:
+            if logits is None:
+                raise ValueError("GGUF DSV4 layer oracle expected output logits")
+            recorder.record_logits(logits)
+            recorder.finish()
         return logits
 
     def forward(
