@@ -522,6 +522,11 @@ class DeepseekV4MegaMoEExperts(nn.Module):
 DeepseekV4MegaMoEExperts.weight_loader.supports_moe_loading = True  # type: ignore[attr-defined]
 
 
+def _deepseek_v4_router_force_fp32_compute(vllm_config: VllmConfig) -> bool:
+    """Use the FP32 fallback router only for a native GGUF diagnostic."""
+    return vllm_config.model_config.quantization == "gguf_dsv4"
+
+
 class DeepseekV4MoE(nn.Module):
     def __init__(
         self,
@@ -569,6 +574,7 @@ class DeepseekV4MoE(nn.Module):
             output_size=config.n_routed_experts,
             bias=False,
             out_dtype=torch.float32,
+            force_fp32_compute=_deepseek_v4_router_force_fp32_compute(vllm_config),
             prefix=f"{prefix}.gate",
         )
 
