@@ -67,8 +67,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--iterations", type=int, default=5000)
     parser.add_argument("--warmup", type=int, default=2500)
+    parser.add_argument("--token-counts", default="1,2,4")
     parser.add_argument("--output")
     args = parser.parse_args()
+    token_counts = tuple(int(value) for value in args.token_counts.split(","))
+    if not token_counts or any(value <= 0 for value in token_counts):
+        raise ValueError("Q8 wo_a token counts must be positive integers")
 
     local_groups, output_rank = 2, 1024
     input_columns = 4096
@@ -84,7 +88,7 @@ def main() -> None:
 
     wo_a = PreparedWoA()
     results = []
-    for token_count in (1, 2, 4):
+    for token_count in token_counts:
         inputs = torch.randn(
             token_count,
             local_groups,
@@ -140,6 +144,7 @@ def main() -> None:
         },
         "iterations": args.iterations,
         "warmup": args.warmup,
+        "token_counts": token_counts,
         "raw_weight_bytes": raw.numel(),
         "prepared_weight_scale_bytes": prepared.weight.nbytes + prepared.scales.nbytes,
         "results": results,

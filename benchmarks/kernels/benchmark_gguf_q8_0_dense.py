@@ -82,8 +82,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--iterations", type=int, default=5000)
     parser.add_argument("--warmup", type=int, default=2500)
+    parser.add_argument("--token-counts", default="1,2,4")
     parser.add_argument("--output")
     args = parser.parse_args()
+    token_counts = tuple(int(value) for value in args.token_counts.split(","))
+    if not token_counts or any(value <= 0 for value in token_counts):
+        raise ValueError("Dense Q8 token counts must be positive integers")
 
     results = []
     for shape in DECODE_DENSE_Q8_SHAPES:
@@ -94,7 +98,7 @@ def main() -> None:
             scale_dtype=torch.bfloat16,
         )
         token_results = []
-        for token_count in (1, 2, 4):
+        for token_count in token_counts:
             inputs = torch.randn(
                 token_count,
                 shape.input_columns,
@@ -130,6 +134,7 @@ def main() -> None:
         "capability": list(torch.cuda.get_device_capability()),
         "iterations": args.iterations,
         "warmup": args.warmup,
+        "token_counts": token_counts,
         "results": results,
     }
     rendered = json.dumps(report, indent=2)
