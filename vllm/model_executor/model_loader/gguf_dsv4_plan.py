@@ -137,17 +137,17 @@ def _ffn_rules(prefix: str, layer: str) -> dict[str, RuleSpec]:
     shared_gate_up = f"{prefix}.ffn.shared_experts.gate_up_proj.weight_raw"
     rules = {
         "ffn_gate_exps.weight": (
-            f"{prefix}.ffn.experts.gate_raw",
+            f"{prefix}.ffn.experts.routed_experts.gate_raw",
             GGUFShardKind.OUTPUT_ROWS,
             None,
         ),
         "ffn_up_exps.weight": (
-            f"{prefix}.ffn.experts.up_raw",
+            f"{prefix}.ffn.experts.routed_experts.up_raw",
             GGUFShardKind.OUTPUT_ROWS,
             None,
         ),
         "ffn_down_exps.weight": (
-            f"{prefix}.ffn.experts.down_raw",
+            f"{prefix}.ffn.experts.routed_experts.down_raw",
             GGUFShardKind.INPUT_BLOCKS,
             None,
         ),

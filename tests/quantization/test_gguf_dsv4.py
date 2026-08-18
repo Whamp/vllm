@@ -11,6 +11,7 @@ from vllm.model_executor.layers.quantization.gguf_dsv4 import (
     GGUFDSV4MoEMethod,
     GGUFDSV4QuantConfig,
 )
+from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead
 
 
 def _empty_module(module_type):
@@ -23,6 +24,7 @@ def test_gguf_dsv4_quant_config_selects_only_native_surfaces() -> None:
     assert get_quantization_config("gguf_dsv4") is GGUFDSV4QuantConfig
     config = GGUFDSV4QuantConfig()
     linear = _empty_module(LinearBase)
+    lm_head = _empty_module(ParallelLMHead)
     experts = _empty_module(RoutedExperts)
     experts.moe_config = object()
 
@@ -34,6 +36,7 @@ def test_gguf_dsv4_quant_config_selects_only_native_surfaces() -> None:
         config.get_quant_method(linear, "model.layers.0.ffn.gate"),
         UnquantizedLinearMethod,
     )
+    assert isinstance(config.get_quant_method(lm_head, "lm_head"), GGUFDSV4LinearMethod)
     assert isinstance(
         config.get_quant_method(experts, "model.layers.0.ffn.experts"),
         GGUFDSV4MoEMethod,

@@ -84,10 +84,16 @@ class GGUFDSV4QuantConfig(QuantizationConfig):
     def get_quant_method(
         self, layer: torch.nn.Module, prefix: str
     ) -> QuantizeMethodBase | None:
+        from vllm.model_executor.layers.vocab_parallel_embedding import (
+            ParallelLMHead,
+        )
+
         if isinstance(layer, RoutedExperts):
             return GGUFDSV4MoEMethod(self, layer.moe_config)
+        if isinstance(layer, ParallelLMHead):
+            return GGUFDSV4LinearMethod()
         if isinstance(layer, LinearBase):
-            if prefix == "lm_head" or prefix.endswith(_Q8_LINEAR_SUFFIXES):
+            if prefix.endswith(_Q8_LINEAR_SUFFIXES):
                 return GGUFDSV4LinearMethod()
             return UnquantizedLinearMethod()
         return None

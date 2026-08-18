@@ -93,7 +93,7 @@ def test_gguf_dsv4_plan_maps_expert_coordinates_and_fused_slots() -> None:
     by_source = {item.source_name: item for item in plan}
 
     gate = by_source["blk.0.ffn_gate_exps.weight"]
-    assert gate.target_name == "model.layers.0.ffn.experts.gate_raw"
+    assert gate.target_name == "model.layers.0.ffn.experts.routed_experts.gate_raw"
     assert len(gate.spans) == 1
     assert gate.spans[0].source_offset == 512 * 1056
     assert gate.spans[0].target_offset == 0
@@ -102,7 +102,7 @@ def test_gguf_dsv4_plan_maps_expert_coordinates_and_fused_slots() -> None:
     assert gate.spans[0].target_stride == 512 * 1056
 
     down = by_source["blk.0.ffn_down_exps.weight"]
-    assert down.target_name == "model.layers.0.ffn.experts.down_raw"
+    assert down.target_name == "model.layers.0.ffn.experts.routed_experts.down_raw"
     assert len(down.spans) == 1
     assert down.spans[0].source_offset == 1 + 2 * 84
     assert down.spans[0].nbytes == 2 * 84
