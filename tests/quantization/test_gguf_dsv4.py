@@ -11,6 +11,9 @@ from vllm.model_executor.layers.quantization.gguf_dsv4 import (
     GGUFDSV4MoEMethod,
     GGUFDSV4QuantConfig,
 )
+from vllm.model_executor.layers.quantization.gguf_dsv4.config import (
+    _should_use_indexed_gguf_dsv4_experts,
+)
 from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead
 
 
@@ -18,6 +21,16 @@ def _empty_module(module_type):
     module = object.__new__(module_type)
     torch.nn.Module.__init__(module)
     return module
+
+
+def test_gguf_dsv4_indexed_expert_dispatch_override(monkeypatch) -> None:
+    monkeypatch.delenv("VLLM_GGUF_DSV4_FORCE_INDEXED_EXPERTS", raising=False)
+    assert _should_use_indexed_gguf_dsv4_experts(127)
+    assert not _should_use_indexed_gguf_dsv4_experts(128)
+
+    monkeypatch.setenv("VLLM_GGUF_DSV4_FORCE_INDEXED_EXPERTS", "1")
+    assert _should_use_indexed_gguf_dsv4_experts(128)
+    assert _should_use_indexed_gguf_dsv4_experts(366)
 
 
 def test_gguf_dsv4_quant_config_selects_only_native_surfaces() -> None:

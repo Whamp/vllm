@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 """Quantization ownership for native DeepSeek V4 GGUF weights."""
 
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -39,6 +40,14 @@ _Q2_BLOCK_ELEMENTS = 256
 _Q2_BLOCK_BYTES = 84
 _Q8_BLOCK_ELEMENTS = 32
 _Q8_BLOCK_BYTES = 34
+
+
+def _should_use_indexed_gguf_dsv4_experts(token_count: int) -> bool:
+    """Select indexed experts below the normal threshold or for a diagnostic."""
+    return (
+        token_count < _GROUPED_EXPERT_MIN_TOKENS
+        or os.getenv("VLLM_GGUF_DSV4_FORCE_INDEXED_EXPERTS") == "1"
+    )
 
 
 @dataclass(frozen=True)
@@ -257,7 +266,7 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
         )
         up_output = torch.empty_like(gate_output)
         torch.ops._C.gguf_quantize_bf16_to_q8_1(hidden_states, gate_scales, gate_codes)
-        if token_count < _GROUPED_EXPERT_MIN_TOKENS:
+        if _should_use_indexed_gguf_dsv4_experts(token_count):
             torch.ops._C.gguf_iq2_xxs_q8_1_indexed_gate_up(
                 gate_scales,
                 gate_codes,
