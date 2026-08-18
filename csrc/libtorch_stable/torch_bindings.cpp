@@ -56,6 +56,17 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C, ops) {
       "Tensor activation_codes, Tensor gate_weights, Tensor up_weights, "
       "Tensor topk_ids, Tensor(a!) gate_output, Tensor(b!) up_output) -> ()");
   ops.def(
+      "gguf_iq2_xxs_q8_1_grouped_gate_up(Tensor token_scales, "
+      "Tensor token_codes, Tensor gate_weights, Tensor up_weights, "
+      "Tensor sorted_token_ids, Tensor expert_ids, "
+      "Tensor num_tokens_padded, Tensor(a!) gate_output, "
+      "Tensor(b!) up_output, int topk) -> ()");
+  ops.def(
+      "gguf_q2_k_q8_1_grouped_down(Tensor assignment_scales, "
+      "Tensor assignment_codes, Tensor down_weights, "
+      "Tensor sorted_token_ids, Tensor expert_ids, "
+      "Tensor num_tokens_padded, Tensor(a!) output) -> ()");
+  ops.def(
       "gguf_q2_k_q8_1_indexed_down(Tensor activation_scales, "
       "Tensor activation_codes, Tensor down_weights, Tensor topk_ids, "
       "Tensor(a!) output) -> ()");
@@ -740,6 +751,10 @@ STABLE_TORCH_LIBRARY_IMPL(_C, CUDA, ops) {
            TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_aligned_matvec));
   ops.impl("gguf_iq2_xxs_q8_1_indexed_gate_up",
            TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_indexed_gate_up));
+  ops.impl("gguf_iq2_xxs_q8_1_grouped_gate_up",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_grouped_gate_up));
+  ops.impl("gguf_q2_k_q8_1_grouped_down",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_q2_k_q8_1_grouped_down));
   ops.impl("gguf_q2_k_q8_1_indexed_down",
            TORCH_BOX(&vllm::gguf_dsv4::gguf_q2_k_q8_1_indexed_down));
 

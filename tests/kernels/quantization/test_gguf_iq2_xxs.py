@@ -391,3 +391,133 @@ def test_gguf_iq2_xxs_ops_replay_in_cuda_graph() -> None:
     torch.accelerator.synchronize()
     torch.testing.assert_close(aligned_output, raw_output, rtol=0, atol=0)
     torch.testing.assert_close(q8_aligned_output, q8_raw_output, rtol=0, atol=0)
+
+
+def test_gguf_iq2_xxs_grouped_gate_up_matches_indexed_and_replays() -> None:
+    import vllm._moe_C_stable_libtorch  # noqa: F401
+
+    from vllm.model_executor.layers.fused_moe.moe_align_block_size import (
+        moe_align_block_size,
+    )
+
+    token_count, topk = 16, 2
+    expert_count, output_rows, input_columns = 4, 16, 256
+    gate_pairs = [
+        _make_iq2_xxs_weights(output_rows, input_columns, seed=5000 + expert)
+        for expert in range(expert_count)
+    ]
+    up_pairs = [
+        _make_iq2_xxs_weights(output_rows, input_columns, seed=6000 + expert)
+        for expert in range(expert_count)
+    ]
+    gate = np.stack([pair[0] for pair in gate_pairs])
+    up = np.stack([pair[0] for pair in up_pairs])
+    gate_dequantized = np.stack([pair[1] for pair in gate_pairs])
+    up_dequantized = np.stack([pair[1] for pair in up_pairs])
+    topk_ids = torch.tensor(
+        [
+            [token % expert_count, (token + 1) % expert_count]
+            for token in range(token_count)
+        ],
+        device="cuda",
+        dtype=torch.int32,
+    )
+    activations = torch.randn(
+        token_count, input_columns, device="cuda", dtype=torch.bfloat16
+    )
+    expected_scales, expected_codes = _quantize_q8_1_reference(activations)
+    scales, codes = _quantize_q8_1(activations)
+    gate_weights = torch.from_numpy(gate).cuda()
+    up_weights = torch.from_numpy(up).cuda()
+    indexed_gate = torch.empty(
+        token_count, topk, output_rows, device="cuda", dtype=torch.float32
+    )
+    indexed_up = torch.empty_like(indexed_gate)
+    torch.ops._C.gguf_iq2_xxs_q8_1_indexed_gate_up(
+        scales,
+        codes,
+        gate_weights,
+        up_weights,
+        topk_ids,
+        indexed_gate,
+        indexed_up,
+    )
+    sorted_ids, expert_ids, num_tokens_padded = moe_align_block_size(
+        topk_ids=topk_ids,
+        block_size=8,
+        num_experts=expert_count,
+    )
+    grouped_gate = torch.empty_like(indexed_gate)
+    grouped_up = torch.empty_like(indexed_up)
+    torch.ops._C.gguf_iq2_xxs_q8_1_grouped_gate_up(
+        scales,
+        codes,
+        gate_weights,
+        up_weights,
+        sorted_ids,
+        expert_ids,
+        num_tokens_padded,
+        grouped_gate,
+        grouped_up,
+        topk,
+    )
+    torch.accelerator.synchronize()
+    dequantized_activations = (
+        expected_codes.reshape(token_count, input_columns // 32, 32).astype(np.float32)
+        * expected_scales[:, :, None].astype(np.float32)
+    ).reshape(token_count, input_columns)
+    expected_gate = np.empty((token_count, topk, output_rows), dtype=np.float32)
+    expected_up = np.empty_like(expected_gate)
+    topk_ids_cpu = topk_ids.cpu().numpy()
+    for token in range(token_count):
+        for slot in range(topk):
+            expert = int(topk_ids_cpu[token, slot])
+            expected_gate[token, slot] = (
+                dequantized_activations[token] @ gate_dequantized[expert].T
+            )
+            expected_up[token, slot] = (
+                dequantized_activations[token] @ up_dequantized[expert].T
+            )
+    torch.testing.assert_close(
+        grouped_gate,
+        torch.from_numpy(expected_gate).cuda(),
+        rtol=2e-3,
+        atol=2e-3,
+    )
+    torch.testing.assert_close(
+        grouped_up,
+        torch.from_numpy(expected_up).cuda(),
+        rtol=2e-3,
+        atol=2e-3,
+    )
+    for grouped, indexed in ((grouped_gate, indexed_gate), (grouped_up, indexed_up)):
+        error = (grouped - indexed).flatten()
+        reference = indexed.flatten()
+        assert error.square().mean().sqrt() / reference.square().mean().sqrt() < 0.01
+        assert error.abs().mean() / reference.abs().mean() < 0.01
+        assert error.abs().max() / reference.abs().max() < 0.025
+        assert (
+            torch.nn.functional.cosine_similarity(grouped.flatten(), reference, dim=0)
+            > 0.9999
+        )
+
+    grouped_gate_before_replay = grouped_gate.clone()
+    grouped_up_before_replay = grouped_up.clone()
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        torch.ops._C.gguf_iq2_xxs_q8_1_grouped_gate_up(
+            scales,
+            codes,
+            gate_weights,
+            up_weights,
+            sorted_ids,
+            expert_ids,
+            num_tokens_padded,
+            grouped_gate,
+            grouped_up,
+            topk,
+        )
+    graph.replay()
+    torch.accelerator.synchronize()
+    torch.testing.assert_close(grouped_gate, grouped_gate_before_replay, rtol=0, atol=0)
+    torch.testing.assert_close(grouped_up, grouped_up_before_replay, rtol=0, atol=0)

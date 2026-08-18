@@ -53,6 +53,58 @@ def run_indexed_gate_up_pipeline(
     )
 
 
+def run_grouped_gate_up_pipeline(
+    activations,
+    scales,
+    codes,
+    gate_weights,
+    up_weights,
+    sorted_ids,
+    expert_ids,
+    num_tokens_padded,
+    gate_output,
+    up_output,
+    topk,
+) -> None:
+    """Quantize one token batch and run block-8 grouped IQ2 gate plus up."""
+    torch.ops._C.gguf_quantize_bf16_to_q8_1(activations, scales, codes)
+    torch.ops._C.gguf_iq2_xxs_q8_1_grouped_gate_up(
+        scales,
+        codes,
+        gate_weights,
+        up_weights,
+        sorted_ids,
+        expert_ids,
+        num_tokens_padded,
+        gate_output,
+        up_output,
+        topk,
+    )
+
+
+def run_grouped_down_pipeline(
+    activations,
+    scales,
+    codes,
+    down_weights,
+    sorted_ids,
+    expert_ids,
+    num_tokens_padded,
+    output,
+) -> None:
+    """Quantize routed activations and run block-8 grouped Q2_K down."""
+    torch.ops._C.gguf_quantize_bf16_to_q8_1(activations, scales, codes)
+    torch.ops._C.gguf_q2_k_q8_1_grouped_down(
+        scales,
+        codes,
+        down_weights,
+        sorted_ids,
+        expert_ids,
+        num_tokens_padded,
+        output,
+    )
+
+
 def run_indexed_down_pipeline(
     activations, scales, codes, down_weights, topk_ids, output
 ) -> None:
@@ -72,6 +124,21 @@ def capture_pipeline(operation) -> torch.cuda.CUDAGraph:
     return graph
 
 
+def time_cuda_operation(operation, iterations: int, warmup: int) -> float:
+    """Return mean CUDA-event time for a possibly allocating operation."""
+    for _ in range(warmup):
+        operation()
+    torch.accelerator.synchronize()
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+    start.record()
+    for _ in range(iterations):
+        operation()
+    end.record()
+    torch.accelerator.synchronize()
+    return start.elapsed_time(end) / iterations
+
+
 def time_graph(graph: torch.cuda.CUDAGraph, iterations: int, warmup: int) -> float:
     for _ in range(warmup):
         graph.replay()
@@ -87,6 +154,12 @@ def time_graph(graph: torch.cuda.CUDAGraph, iterations: int, warmup: int) -> flo
 
 
 def main() -> None:
+    import vllm._moe_C_stable_libtorch  # noqa: F401
+
+    from vllm.model_executor.layers.fused_moe.moe_align_block_size import (
+        moe_align_block_size,
+    )
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--iterations", type=int, default=500)
     parser.add_argument("--warmup", type=int, default=250)
@@ -177,18 +250,83 @@ def main() -> None:
                 down_output,
             )
 
+            sorted_ids, expert_ids, num_tokens_padded = moe_align_block_size(
+                topk_ids=topk_ids,
+                block_size=8,
+                num_experts=EXPERT_COUNT,
+            )
+            grouped_gate_output = torch.empty_like(gate_output)
+            grouped_up_output = torch.empty_like(up_output)
+            grouped_down_output = torch.empty_like(down_output)
+
+            alignment_operation = partial(
+                moe_align_block_size,
+                topk_ids=topk_ids,
+                block_size=8,
+                num_experts=EXPERT_COUNT,
+            )
+
+            grouped_gate_up_pipeline = partial(
+                run_grouped_gate_up_pipeline,
+                gate_activations,
+                gate_scales,
+                gate_codes,
+                gate_weights,
+                up_weights,
+                sorted_ids,
+                expert_ids,
+                num_tokens_padded,
+                grouped_gate_output,
+                grouped_up_output,
+                TOPK,
+            )
+            grouped_down_pipeline = partial(
+                run_grouped_down_pipeline,
+                down_activations,
+                down_scales,
+                down_codes,
+                down_weights,
+                sorted_ids,
+                expert_ids,
+                num_tokens_padded,
+                grouped_down_output,
+            )
             gate_graph = capture_pipeline(gate_up_pipeline)
+            grouped_gate_graph = capture_pipeline(grouped_gate_up_pipeline)
             down_graph = capture_pipeline(down_pipeline)
+            grouped_down_graph = capture_pipeline(grouped_down_pipeline)
+            alignment_ms = time_cuda_operation(
+                alignment_operation, args.iterations, args.warmup
+            )
             gate_ms = time_graph(gate_graph, args.iterations, args.warmup)
+            grouped_gate_ms = time_graph(
+                grouped_gate_graph, args.iterations, args.warmup
+            )
             down_ms = time_graph(down_graph, args.iterations, args.warmup)
+            grouped_down_ms = time_graph(
+                grouped_down_graph, args.iterations, args.warmup
+            )
             results.append(
                 {
                     "routing": routing,
                     "tokens": token_count,
+                    "alignment_ms": alignment_ms,
                     "gate_up_graph_ms": gate_ms,
+                    "grouped_gate_up_graph_ms": grouped_gate_ms,
+                    "grouped_gate_up_speedup": gate_ms / grouped_gate_ms,
                     "down_graph_ms": down_ms,
+                    "grouped_down_graph_ms": grouped_down_ms,
+                    "grouped_down_speedup": down_ms / grouped_down_ms,
                     "expert_graph_ms": gate_ms + down_ms,
                     "expert_ms_per_token": (gate_ms + down_ms) / token_count,
+                    "grouped_expert_graph_ms": grouped_gate_ms + grouped_down_ms,
+                    "grouped_expert_with_alignment_ms": grouped_gate_ms
+                    + grouped_down_ms
+                    + alignment_ms,
+                    "grouped_expert_ms_per_token": (
+                        grouped_gate_ms + grouped_down_ms + alignment_ms
+                    )
+                    / token_count,
                 }
             )
 
