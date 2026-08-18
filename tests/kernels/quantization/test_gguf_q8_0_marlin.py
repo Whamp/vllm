@@ -143,10 +143,8 @@ def _normalized_output_errors(output: torch.Tensor, reference: torch.Tensor):
     }
 
 
-@pytest.mark.skipif(not current_platform.is_cuda(), reason="Marlin requires CUDA")
-@pytest.mark.parametrize("token_count", [1, 4])
-def test_gguf_q8_0_marlin_matches_dequantized_reference(token_count: int):
-    output_rows, input_columns = 256, 256
+def _assert_gguf_q8_0_marlin_matches_reference(token_count: int, input_columns: int):
+    output_rows = 256
     raw, dequantized, bf16_scale_dequantized = _make_q8_0_weights(
         output_rows, input_columns
     )
@@ -170,6 +168,20 @@ def test_gguf_q8_0_marlin_matches_dequantized_reference(token_count: int):
     assert original_errors["normalized_mae"] <= 0.01
     assert original_errors["max_ratio"] <= 0.025
     assert original_errors["cosine"] >= 0.9999
+
+
+@pytest.mark.skipif(not current_platform.is_cuda(), reason="Marlin requires CUDA")
+@pytest.mark.parametrize("token_count", [1, 4])
+def test_gguf_q8_0_marlin_matches_dequantized_reference(token_count: int):
+    _assert_gguf_q8_0_marlin_matches_reference(token_count, input_columns=256)
+
+
+@pytest.mark.skipif(not current_platform.is_cuda(), reason="Marlin requires CUDA")
+@pytest.mark.parametrize("input_columns", [512, 1024, 2048, 4096])
+def test_gguf_q8_0_marlin_covers_deepseek_dense_input_widths(input_columns: int):
+    _assert_gguf_q8_0_marlin_matches_reference(
+        token_count=1, input_columns=input_columns
+    )
 
 
 @pytest.mark.skipif(not current_platform.is_cuda(), reason="Marlin requires CUDA")
