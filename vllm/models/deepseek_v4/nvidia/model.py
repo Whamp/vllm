@@ -729,6 +729,25 @@ class DeepseekV4MoE(nn.Module):
         if self.gate.tid2eid is not None and input_ids is None:
             raise ValueError("DeepSeek V4 hash MoE routing requires input_ids.")
 
+        layer_oracle_recorder = getattr(self, "layer_oracle_recorder", None)
+        if layer_oracle_recorder is not None and layer_oracle_recorder.is_capturing:
+            router_logits, _ = self.gate(hidden_states)
+            _, route_ids = fused_topk_bias(
+                hidden_states=hidden_states,
+                gating_output=router_logits,
+                scoring_func=self.scoring_func,
+                e_score_correction_bias=self.gate.e_score_correction_bias.data
+                if self.gate.e_score_correction_bias is not None
+                else None,
+                topk=self.n_activated_experts,
+                renormalize=self.renormalize,
+                indices_type=self.hash_indices_dtype,
+                input_tokens=input_ids,
+                hash_indices_table=self.gate.tid2eid,
+                routed_scaling_factor=self.routed_scaling_factor,
+            )
+            layer_oracle_recorder.record_routes(self.layer_oracle_index, route_ids)
+
         if not self.use_mega_moe:
             return self._forward_fused_moe(hidden_states, input_ids)
 
@@ -1153,6 +1172,9 @@ class DeepseekV4Model(nn.Module, EagleModelMixin):
                 if isinstance(layer, DeepseekV4DecoderLayer):
                     layer.layer_oracle_recorder = self.layer_oracle_recorder
                     layer.layer_oracle_index = layer_index
+                    if isinstance(layer.ffn, DeepseekV4MoE):
+                        layer.ffn.layer_oracle_recorder = self.layer_oracle_recorder
+                        layer.ffn.layer_oracle_index = layer_index
 
         if get_pp_group().is_last_rank:
             self.norm = RMSNorm(config.hidden_size, self.rms_norm_eps)

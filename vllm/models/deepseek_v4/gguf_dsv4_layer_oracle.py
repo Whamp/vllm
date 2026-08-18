@@ -81,6 +81,7 @@ class GgufDsv4LayerOracleRecorder:
         self._capturing = False
         self._finished = False
         self._attention_layer_entries: dict[int, dict[str, object]] = {}
+        self._route_entries: dict[int, dict[str, object]] = {}
         self._layer_entries: dict[int, dict[str, object]] = {}
         self._logits_entry: dict[str, object] | None = None
 
@@ -173,6 +174,34 @@ class GgufDsv4LayerOracleRecorder:
             _LayerBoundaryCapture("attention", layer_index, final_token_state)
         )
 
+    def record_routes(self, layer_index: int, route_ids: torch.Tensor) -> None:
+        """Record final-token routed expert IDs in selection order."""
+        if not self.is_capturing:
+            raise ValueError("GGUF DSV4 layer oracle is not capturing a forward")
+        if layer_index in self._route_entries:
+            raise ValueError(
+                f"GGUF DSV4 layer oracle duplicate routes layer {layer_index}"
+            )
+        if not 0 <= layer_index < self.expected_layer_count:
+            raise ValueError(
+                f"GGUF DSV4 layer oracle routes layer index out of range: {layer_index}"
+            )
+        saved_routes = route_ids.detach().reshape(-1, route_ids.shape[-1])[-1]
+        saved_routes = saved_routes.to(device="cpu", dtype=torch.int32).contiguous()
+        relative_path = f"routes-layer-{layer_index:03d}.pt"
+        destination = self.output_dir / relative_path
+        temporary = destination.with_suffix(".pt.tmp")
+        torch.save(saved_routes, temporary)
+        payload = temporary.read_bytes()
+        os.replace(temporary, destination)
+        self._route_entries[layer_index] = {
+            "layer": layer_index,
+            "path": relative_path,
+            "shape": list(saved_routes.shape),
+            "size": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+
     def record_layer(self, layer_index: int, final_token_state: torch.Tensor) -> None:
         """Record reconstructed HC state after the layer FFN."""
         self._record_layer_boundary(
@@ -209,12 +238,19 @@ class GgufDsv4LayerOracleRecorder:
         """Publish a manifest only after every expected layer has been recorded."""
         expected_layers = set(range(self.expected_layer_count))
         actual_attention_layers = set(self._attention_layer_entries)
+        actual_route_layers = set(self._route_entries)
         actual_layers = set(self._layer_entries)
         if actual_attention_layers != expected_layers:
             raise ValueError(
                 "GGUF DSV4 layer oracle expected "
                 f"{self.expected_layer_count} recorded attention layers, got "
                 f"{len(actual_attention_layers)}"
+            )
+        if actual_route_layers != expected_layers:
+            raise ValueError(
+                "GGUF DSV4 layer oracle expected "
+                f"{self.expected_layer_count} recorded route layers, got "
+                f"{len(actual_route_layers)}"
             )
         if actual_layers != expected_layers:
             raise ValueError(
@@ -230,6 +266,9 @@ class GgufDsv4LayerOracleRecorder:
             "attention_layers": [
                 self._attention_layer_entries[index]
                 for index in sorted(actual_attention_layers)
+            ],
+            "routes": [
+                self._route_entries[index] for index in sorted(actual_route_layers)
             ],
             "layers": [self._layer_entries[index] for index in sorted(actual_layers)],
             "logits": self._logits_entry,
