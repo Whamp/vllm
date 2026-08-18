@@ -522,6 +522,13 @@ class DeepseekV4MegaMoEExperts(nn.Module):
 DeepseekV4MegaMoEExperts.weight_loader.supports_moe_loading = True  # type: ignore[attr-defined]
 
 
+def _deepseek_v4_router_params_dtype(vllm_config: VllmConfig) -> torch.dtype | None:
+    """Preserve source FP16 router weights for native GGUF checkpoints."""
+    if vllm_config.model_config.quantization == "gguf_dsv4":
+        return torch.float16
+    return None
+
+
 class DeepseekV4MoE(nn.Module):
     def __init__(
         self,
@@ -569,6 +576,7 @@ class DeepseekV4MoE(nn.Module):
             output_size=config.n_routed_experts,
             bias=False,
             out_dtype=torch.float32,
+            params_dtype=_deepseek_v4_router_params_dtype(vllm_config),
             prefix=f"{prefix}.gate",
         )
 

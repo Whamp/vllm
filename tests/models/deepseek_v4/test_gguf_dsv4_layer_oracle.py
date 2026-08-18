@@ -3,6 +3,7 @@
 
 import hashlib
 import json
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -17,6 +18,18 @@ from vllm.models.deepseek_v4.gguf_dsv4_layer_oracle import (
 
 def _write_token_ids(path, token_ids=(128000, 123, 456)):
     path.write_text("\n".join(str(token_id) for token_id in token_ids) + "\n")
+
+
+def test_gguf_dsv4_router_preserves_source_fp16_weights():
+    gguf_config = SimpleNamespace(
+        model_config=SimpleNamespace(quantization="gguf_dsv4")
+    )
+    fp8_config = SimpleNamespace(model_config=SimpleNamespace(quantization="fp8"))
+
+    assert (
+        deepseek_v4_model._deepseek_v4_router_params_dtype(gguf_config) == torch.float16
+    )
+    assert deepseek_v4_model._deepseek_v4_router_params_dtype(fp8_config) is None
 
 
 def test_layer_oracle_is_disabled_without_output_directory(monkeypatch):
