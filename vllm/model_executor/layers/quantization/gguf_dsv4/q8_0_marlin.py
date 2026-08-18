@@ -11,6 +11,7 @@ import torch
 
 GGUF_Q8_0_BLOCK_ELEMENTS = 32
 GGUF_Q8_0_BLOCK_BYTES = 34
+_GGUF_Q8_REPACK_ROWS_PER_CHUNK = 2048
 
 
 def _load_gguf_q8_marlin_utils() -> ModuleType:
@@ -47,28 +48,47 @@ def unpack_gguf_q8_0_to_gptq(
         )
 
     output_rows = raw_weights.shape[0]
-    blocks = raw_weights.reshape(output_rows, block_count, GGUF_Q8_0_BLOCK_BYTES)
-    q8_scales = (
-        blocks[:, :, :2]
-        .contiguous()
-        .view(torch.float16)
-        .reshape(output_rows, block_count)
+    packed_weights = torch.empty(
+        input_columns // 4,
+        output_rows,
+        dtype=torch.int32,
+        device=raw_weights.device,
     )
-    signed_codes = (
-        blocks[:, :, 2:]
-        .contiguous()
-        .view(torch.int8)
-        .reshape(output_rows, input_columns)
+    q8_scales = torch.empty(
+        block_count,
+        output_rows,
+        dtype=scale_dtype,
+        device=raw_weights.device,
     )
-    unsigned_codes_kn = (signed_codes.to(torch.int16) + 128).to(torch.int64).T
-    code_groups = unsigned_codes_kn.reshape(input_columns // 4, 4, output_rows)
-    packed_weights = (
-        code_groups[:, 0]
-        | (code_groups[:, 1] << 8)
-        | (code_groups[:, 2] << 16)
-        | (code_groups[:, 3] << 24)
-    ).to(torch.int32)
-    return packed_weights.contiguous(), q8_scales.T.to(scale_dtype).contiguous()
+    for first_row in range(0, output_rows, _GGUF_Q8_REPACK_ROWS_PER_CHUNK):
+        last_row = min(first_row + _GGUF_Q8_REPACK_ROWS_PER_CHUNK, output_rows)
+        row_count = last_row - first_row
+        blocks = raw_weights[first_row:last_row].reshape(
+            row_count, block_count, GGUF_Q8_0_BLOCK_BYTES
+        )
+        chunk_scales = (
+            blocks[:, :, :2]
+            .contiguous()
+            .view(torch.float16)
+            .reshape(row_count, block_count)
+        )
+        q8_scales[:, first_row:last_row] = chunk_scales.T.to(scale_dtype)
+        signed_codes = (
+            blocks[:, :, 2:]
+            .contiguous()
+            .view(torch.int8)
+            .reshape(row_count, input_columns)
+        )
+        unsigned_codes = signed_codes.to(torch.int32) + 128
+        code_groups = unsigned_codes.reshape(row_count, input_columns // 4, 4)
+        packed_chunk = (
+            code_groups[:, :, 0]
+            | (code_groups[:, :, 1] << 8)
+            | (code_groups[:, :, 2] << 16)
+            | (code_groups[:, :, 3] << 24)
+        )
+        packed_weights[:, first_row:last_row] = packed_chunk.T
+    return packed_weights, q8_scales
 
 
 @dataclass(frozen=True)
