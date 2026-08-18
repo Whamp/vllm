@@ -50,6 +50,7 @@ class LoadConfig:
     - "runai_streamer_sharded" will load weights from pre-sharded checkpoint
       files using Run:ai Model Streamer.
     - "bitsandbytes" will load the weights using bitsandbytes quantization.
+    - "gguf_dsv4" loads the checksum-pinned native DeepSeek V4 GGUF layout.
     - "sharded_state" will load weights from pre-sharded checkpoint files,
       supporting efficient loading of tensor-parallel models.
     - "mistral" will load weights from consolidated safetensors files used by

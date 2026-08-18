@@ -12,6 +12,7 @@ from vllm.model_executor.model_loader.base_loader import BaseModelLoader
 from vllm.model_executor.model_loader.bitsandbytes_loader import BitsAndBytesModelLoader
 from vllm.model_executor.model_loader.default_loader import DefaultModelLoader
 from vllm.model_executor.model_loader.dummy_loader import DummyModelLoader
+from vllm.model_executor.model_loader.gguf_dsv4 import GGUFDSV4ModelLoader
 from vllm.model_executor.model_loader.modelexpress_loader import (
     ModelExpressModelLoader,
 )
@@ -33,6 +34,7 @@ logger = init_logger(__name__)
 LoadFormats = Literal[
     "auto",
     "hf",
+    "gguf_dsv4",
     "bitsandbytes",
     "dummy",
     "fastsafetensors",
@@ -50,6 +52,7 @@ LoadFormats = Literal[
 _LOAD_FORMAT_TO_MODEL_LOADER: dict[str, type[BaseModelLoader]] = {
     "auto": DefaultModelLoader,
     "hf": DefaultModelLoader,
+    "gguf_dsv4": GGUFDSV4ModelLoader,
     "bitsandbytes": BitsAndBytesModelLoader,
     "dummy": DummyModelLoader,
     "fastsafetensors": DefaultModelLoader,
@@ -154,6 +157,7 @@ __all__ = [
     "ModelExpressModelLoader",
     "DefaultModelLoader",
     "DummyModelLoader",
+    "GGUFDSV4ModelLoader",
     "RunaiModelStreamerLoader",
     "ShardedStateLoader",
     "TensorizerLoader",

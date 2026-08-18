@@ -34,6 +34,7 @@ QuantizationMethods = Literal[
     "mxfp4",
     "gpt_oss_mxfp4",
     "deepseek_v4_fp8",
+    "gguf_dsv4",
     "online",
     # Below are online quant shorthand names (see vllm.config.quantization).
     # Listed here as strings to avoid a circular import; kept in sync with
@@ -125,6 +126,7 @@ def get_quantization_config(quantization: str) -> type[QuantizationConfig]:
     from .fbgemm_fp8 import FBGEMMFp8Config
     from .fp8 import Fp8Config
     from .fp_quant import FPQuantConfig
+    from .gguf_dsv4 import GGUFDSV4QuantConfig
     from .humming import HummingConfig
     from .inc import INCConfig
     from .modelopt import (
@@ -162,6 +164,7 @@ def get_quantization_config(quantization: str) -> type[QuantizationConfig]:
         "mxfp4": Mxfp4Config,
         "gpt_oss_mxfp4": GptOssMxfp4Config,
         "deepseek_v4_fp8": DeepseekV4FP8Config,
+        "gguf_dsv4": GGUFDSV4QuantConfig,
         "humming": HummingConfig,
         "online": OnlineQuantizationConfig,
         # MiniMax-style checkpoints tag `quant_method: "mxfp8"`; load with the
