@@ -1031,6 +1031,14 @@ class DeepseekV4DecoderLayer(nn.Module):
         # attn_norm is fused into mhc_pre_tilelang / mhc_fused_post_pre above.
         x = self.attn(positions, x, None)
         x, x_scales = self._hoisted_all_reduce(x)
+        layer_oracle_recorder = getattr(self, "layer_oracle_recorder", None)
+        if layer_oracle_recorder is not None and layer_oracle_recorder.is_capturing:
+            attention_recon = mhc_post_tilelang(
+                x, residual, post_mix, res_mix, x_scales=x_scales
+            )
+            layer_oracle_recorder.record_attention_layer(
+                self.layer_oracle_index, attention_recon[-1]
+            )
 
         ffn_norm_weight = self.ffn_norm.weight.data
         ffn_norm_eps = self.ffn_norm.variance_epsilon
@@ -1140,6 +1148,11 @@ class DeepseekV4Model(nn.Module, EagleModelMixin):
             ),
             prefix=f"{prefix}.layers",
         )
+        if self.layer_oracle_recorder is not None:
+            for layer_index, layer in enumerate(self.layers):
+                if isinstance(layer, DeepseekV4DecoderLayer):
+                    layer.layer_oracle_recorder = self.layer_oracle_recorder
+                    layer.layer_oracle_index = layer_index
 
         if get_pp_group().is_last_rank:
             self.norm = RMSNorm(config.hidden_size, self.rms_norm_eps)

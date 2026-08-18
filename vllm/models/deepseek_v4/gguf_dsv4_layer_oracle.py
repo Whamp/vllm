@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
@@ -22,6 +23,13 @@ GGUF_DSV4_LAYER_ORACLE_TOKEN_IDS_FILE: Final = (
     "VLLM_GGUF_DSV4_LAYER_ORACLE_TOKEN_IDS_FILE"
 )
 _GGUF_DSV4_LAYER_ORACLE_FORMAT: Final = "gguf-dsv4-layer-oracle-v1"
+
+
+@dataclass(frozen=True)
+class _LayerBoundaryCapture:
+    boundary_name: str
+    layer_index: int
+    final_token_state: torch.Tensor
 
 
 def _read_gguf_dsv4_layer_oracle_token_ids(
@@ -72,6 +80,7 @@ class GgufDsv4LayerOracleRecorder:
         self.expected_layer_count = expected_layer_count
         self._capturing = False
         self._finished = False
+        self._attention_layer_entries: dict[int, dict[str, object]] = {}
         self._layer_entries: dict[int, dict[str, object]] = {}
         self._logits_entry: dict[str, object] | None = None
 
@@ -109,35 +118,66 @@ class GgufDsv4LayerOracleRecorder:
         self._capturing = True
         return True
 
-    def record_layer(self, layer_index: int, final_token_state: torch.Tensor) -> None:
-        """Record one reconstructed final-token HC state as contiguous float32."""
-        if not self._capturing or self._finished:
+    def _record_layer_boundary(self, capture: _LayerBoundaryCapture) -> None:
+        boundary_name = capture.boundary_name
+        layer_index = capture.layer_index
+        final_token_state = capture.final_token_state
+        if boundary_name == "attention":
+            entries = self._attention_layer_entries
+            filename_prefix = "attention-layer"
+        elif boundary_name == "post-FFN":
+            entries = self._layer_entries
+            filename_prefix = "layer"
+        else:
+            raise ValueError(
+                f"GGUF DSV4 layer oracle unknown boundary: {boundary_name}"
+            )
+        if not self.is_capturing:
             raise ValueError("GGUF DSV4 layer oracle is not capturing a forward")
-        if layer_index in self._layer_entries:
-            raise ValueError(f"GGUF DSV4 layer oracle duplicate layer {layer_index}")
+        if layer_index in entries:
+            raise ValueError(
+                f"GGUF DSV4 layer oracle duplicate {boundary_name} layer {layer_index}"
+            )
         if not 0 <= layer_index < self.expected_layer_count:
             raise ValueError(
-                f"GGUF DSV4 layer oracle layer index out of range: {layer_index}"
+                f"GGUF DSV4 layer oracle {boundary_name} layer index out of range: "
+                f"{layer_index}"
             )
 
         saved_state = final_token_state.detach().to(device="cpu", dtype=torch.float32)
         saved_state = saved_state.contiguous()
         if not torch.isfinite(saved_state).all():
-            raise ValueError(f"GGUF DSV4 layer oracle non-finite layer {layer_index}")
+            raise ValueError(
+                f"GGUF DSV4 layer oracle non-finite {boundary_name} layer {layer_index}"
+            )
 
-        relative_path = f"layer-{layer_index:03d}.pt"
+        relative_path = f"{filename_prefix}-{layer_index:03d}.pt"
         destination = self.output_dir / relative_path
         temporary = destination.with_suffix(".pt.tmp")
         torch.save(saved_state, temporary)
         payload = temporary.read_bytes()
         os.replace(temporary, destination)
-        self._layer_entries[layer_index] = {
+        entries[layer_index] = {
             "layer": layer_index,
             "path": relative_path,
             "shape": list(saved_state.shape),
             "size": len(payload),
             "sha256": hashlib.sha256(payload).hexdigest(),
         }
+
+    def record_attention_layer(
+        self, layer_index: int, final_token_state: torch.Tensor
+    ) -> None:
+        """Record reconstructed HC state after attention and before the FFN."""
+        self._record_layer_boundary(
+            _LayerBoundaryCapture("attention", layer_index, final_token_state)
+        )
+
+    def record_layer(self, layer_index: int, final_token_state: torch.Tensor) -> None:
+        """Record reconstructed HC state after the layer FFN."""
+        self._record_layer_boundary(
+            _LayerBoundaryCapture("post-FFN", layer_index, final_token_state)
+        )
 
     def record_logits(self, logits: torch.Tensor) -> None:
         """Record the final-token vocabulary logits after output projection."""
@@ -168,7 +208,14 @@ class GgufDsv4LayerOracleRecorder:
     def finish(self) -> None:
         """Publish a manifest only after every expected layer has been recorded."""
         expected_layers = set(range(self.expected_layer_count))
+        actual_attention_layers = set(self._attention_layer_entries)
         actual_layers = set(self._layer_entries)
+        if actual_attention_layers != expected_layers:
+            raise ValueError(
+                "GGUF DSV4 layer oracle expected "
+                f"{self.expected_layer_count} recorded attention layers, got "
+                f"{len(actual_attention_layers)}"
+            )
         if actual_layers != expected_layers:
             raise ValueError(
                 "GGUF DSV4 layer oracle expected "
@@ -180,6 +227,10 @@ class GgufDsv4LayerOracleRecorder:
             "format": _GGUF_DSV4_LAYER_ORACLE_FORMAT,
             "token_ids": list(self.token_ids),
             "token_ids_sha256": self.token_ids_sha256,
+            "attention_layers": [
+                self._attention_layer_entries[index]
+                for index in sorted(actual_attention_layers)
+            ],
             "layers": [self._layer_entries[index] for index in sorted(actual_layers)],
             "logits": self._logits_entry,
         }
