@@ -82,9 +82,21 @@ def test_gguf_dsv4_loader_verifies_and_loads_exact_targets(
         lambda: 1,
     )
     model = _LoaderFixtureModel()
+    import vllm.model_executor.model_loader.gguf_dsv4 as loader_module
 
+    verify_calls = 0
+    real_verify = loader_module.verify_gguf_sha256
+
+    def counting_verify(*args, **kwargs):
+        nonlocal verify_calls
+        verify_calls += 1
+        return real_verify(*args, **kwargs)
+
+    monkeypatch.setattr(loader_module, "verify_gguf_sha256", counting_verify)
+    loader.download_model(model_config=None)
     loader.load_weights(model, model_config=None)
 
+    assert verify_calls == 1
     assert bytes(model.model.layers[0].attn.fused_wqa_wkv.weight_raw.tolist()) == (
         quantized
     )

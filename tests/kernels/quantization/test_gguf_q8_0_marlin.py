@@ -5,6 +5,9 @@ import numpy as np
 import pytest
 import torch
 
+from vllm.model_executor.layers.quantization.gguf_dsv4 import (
+    GGUFDSV4LinearMethod,
+)
 from vllm.model_executor.layers.quantization.gguf_dsv4.q8_0_marlin import (
     apply_gguf_q8_0_marlin,
     prepare_gguf_q8_0_marlin,
@@ -182,6 +185,37 @@ def test_gguf_q8_0_marlin_covers_deepseek_dense_input_widths(input_columns: int)
     _assert_gguf_q8_0_marlin_matches_reference(
         token_count=1, input_columns=input_columns
     )
+
+
+@pytest.mark.skipif(not current_platform.is_cuda(), reason="Marlin requires CUDA")
+def test_gguf_q8_linear_method_replaces_raw_storage_and_executes():
+    output_rows, input_columns = 256, 256
+    raw, _, bf16_scale_dequantized = _make_q8_0_weights(output_rows, input_columns)
+    method = GGUFDSV4LinearMethod()
+    layer = torch.nn.Module()
+    with torch.device("cuda"):
+        method.create_weights(
+            layer,
+            input_size_per_partition=input_columns,
+            output_partition_sizes=[output_rows],
+            input_size=input_columns,
+            output_size=output_rows,
+            params_dtype=torch.bfloat16,
+            weight_loader=lambda *args, **kwargs: None,
+        )
+    layer.weight_raw.copy_(raw.cuda())
+
+    method.process_weights_after_loading(layer)
+
+    assert not hasattr(layer, "weight_raw")
+    assert layer.weight.nbytes + layer.weight_scale.nbytes == raw.nbytes
+    inputs = torch.randn(4, input_columns, device="cuda", dtype=torch.bfloat16)
+    output = method.apply(layer, inputs)
+    reference = inputs.float() @ bf16_scale_dequantized.cuda().T
+    errors = _normalized_output_errors(output, reference)
+    assert errors["nrmse"] <= 0.005
+    assert errors["normalized_mae"] <= 0.005
+    assert errors["max_ratio"] <= 0.01
 
 
 @pytest.mark.skipif(not current_platform.is_cuda(), reason="Marlin requires CUDA")

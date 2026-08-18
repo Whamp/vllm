@@ -69,6 +69,7 @@ class GGUFDSV4ModelLoader(BaseModelLoader):
         if self.max_source_chunk_bytes <= 0:
             raise ValueError("GGUF DSv4 max_source_chunk_bytes must be positive")
         self._index: GGUFIndex | None = None
+        self._verified_sha256: str | None = None
 
     @staticmethod
     def _required(config: dict[str, Any], key: str):
@@ -94,10 +95,13 @@ class GGUFDSV4ModelLoader(BaseModelLoader):
         return self._index
 
     def _verify_hash_once(self) -> str:
+        if self._verified_sha256 is not None:
+            return self._verified_sha256
         if not dist.is_initialized():
-            return verify_gguf_sha256(
+            self._verified_sha256 = verify_gguf_sha256(
                 self.gguf_path, expected_sha256=self.expected_sha256
             )
+            return self._verified_sha256
         rank = dist.get_rank()
         result: list[tuple[str, str] | None] = [None]
         if rank == 0:
@@ -113,6 +117,7 @@ class GGUFDSV4ModelLoader(BaseModelLoader):
         status, value = result[0]
         if status != "ok":
             raise ValueError(f"GGUF rank-0 identity verification failed: {value}")
+        self._verified_sha256 = value
         return value
 
     def download_model(self, model_config: ModelConfig) -> None:
