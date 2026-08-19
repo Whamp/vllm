@@ -23,8 +23,9 @@ def _reset_route_stats(monkeypatch, tmp_path):
     route_stats.reset_for_tests()
 
 
-def _enable(monkeypatch, tmp_path):
+def _enable(monkeypatch, tmp_path, ring=True):
     monkeypatch.setattr(route_stats, "_STATS_DIR", str(tmp_path))
+    monkeypatch.setattr(route_stats, "_RING_ENABLED", ring)
     route_stats.reset_for_tests()
 
 
@@ -37,14 +38,18 @@ def test_disabled_by_default_is_noop(tmp_path):
 
 
 def test_layer_index_parsing_and_histogram(monkeypatch, tmp_path):
-    _enable(monkeypatch, tmp_path)
+    _enable(monkeypatch, tmp_path, ring=False)
     layer0 = _FakeLayer("model.layers.0.mlp.experts.routed_experts")
     layer7 = _FakeLayer("model.layers.7.mlp.experts.routed_experts")
     route_stats.record_routes(layer0, torch.tensor([[1, 2, 3, 4, 5, 6]]))
     route_stats.record_routes(layer0, torch.tensor([[1, 2, 3, 4, 5, 6]]))
     route_stats.record_routes(layer7, torch.arange(42, dtype=torch.int32).reshape(7, 6))
+    # Histogram-only mode allocates no ring buffers.
+    state = route_stats._STATE
+    assert state is not None
+    assert all(stats.ring is None for stats in state.layers.values())
     written = route_stats.maybe_flush(force=True)
-    assert len(written) == 2  # forced flush writes hist and ring
+    assert len(written) == 1  # ring disabled: only the histogram snapshot
     hist_path = next(p for p in written if p.name.startswith("hist-"))
     payload = torch.load(hist_path, weights_only=True)
     assert payload["layers"] == [0, 7]
@@ -81,7 +86,7 @@ def test_ring_records_only_decode_scale_forwards(monkeypatch, tmp_path):
 
 
 def test_flush_throttle(monkeypatch, tmp_path):
-    _enable(monkeypatch, tmp_path)
+    _enable(monkeypatch, tmp_path, ring=False)
     layer = _FakeLayer("model.layers.0.mlp.experts.routed_experts")
     route_stats.record_routes(layer, torch.tensor([[1, 2, 3, 4, 5, 6]]))
     first = route_stats.maybe_flush()
@@ -89,9 +94,9 @@ def test_flush_throttle(monkeypatch, tmp_path):
     state = route_stats._STATE
     assert state is not None
     state.last_hist_flush -= route_stats._HIST_FLUSH_INTERVAL_S
-    state.last_ring_flush -= route_stats._RING_FLUSH_INTERVAL_S
     second = route_stats.maybe_flush()
-    assert len(second) == 2
+    assert len(second) == 1
+    assert second[0].name.startswith("hist-")
     third = route_stats.maybe_flush()
     assert third == []
     # Atomic writes leave no temporaries behind.

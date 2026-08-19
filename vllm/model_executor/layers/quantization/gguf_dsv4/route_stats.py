@@ -9,7 +9,8 @@ free.
 When enabled, each routed-expert forward records, using CUDA-graph-safe ops
 on persistent device buffers:
 
-* a per-layer visit histogram (one ``[n_experts]`` int64 tensor per layer), and
+* a per-layer visit histogram (one ``[n_experts]`` int64 tensor per layer),
+  and, only when ``VLLM_GGUF_DSV4_ROUTE_STATS_RING=1`` is also set,
 * a per-layer decode ring (``[RING_SIZE, 4, top_k]`` int32, initialized to
   -1) holding the raw ``topk_ids`` rows of decode-scale forwards
   (``M <= _MAX_DECODE_ROWS``) in arrival order.
@@ -39,6 +40,7 @@ from pathlib import Path
 import torch
 
 _STATS_DIR = os.environ.get("VLLM_GGUF_DSV4_ROUTE_STATS_DIR")
+_RING_ENABLED = os.environ.get("VLLM_GGUF_DSV4_ROUTE_STATS_RING") == "1"
 
 RING_SIZE = 8192
 """Decode-ring slots per layer; ~108 s of decode at 76 tok/s per layer."""
@@ -59,15 +61,19 @@ class _LayerStats:
 
     __slots__ = ("hist", "ring", "pos")
 
-    def __init__(self, device: torch.device, n_experts: int, top_k: int):
+    def __init__(self, device: torch.device, n_experts: int, top_k: int, ring: bool):
         self.hist = torch.zeros(n_experts, dtype=torch.int64, device=device)
-        self.ring = torch.full(
-            (RING_SIZE, _MAX_DECODE_ROWS, top_k),
-            -1,
-            dtype=torch.int32,
-            device=device,
-        )
-        self.pos = torch.zeros((), dtype=torch.int64, device=device)
+        if ring:
+            self.ring = torch.full(
+                (RING_SIZE, _MAX_DECODE_ROWS, top_k),
+                -1,
+                dtype=torch.int32,
+                device=device,
+            )
+            self.pos = torch.zeros((), dtype=torch.int64, device=device)
+        else:
+            self.ring = None
+            self.pos = None
 
 
 class _State:
@@ -166,7 +172,7 @@ def record_routes(layer: object, topk_ids: torch.Tensor) -> None:
                 f"GGUF DSv4 route stats first saw layer {index} during "
                 "CUDA-graph capture; buffers must be allocated eagerly"
             )
-        stats = _LayerStats(state.device, state.n_experts, state.top_k)
+        stats = _LayerStats(state.device, state.n_experts, state.top_k, _RING_ENABLED)
         state.layers[index] = stats
     flat = ids.reshape(-1).to(torch.int64)
     ones = (
@@ -175,12 +181,12 @@ def record_routes(layer: object, topk_ids: torch.Tensor) -> None:
         else torch.ones(flat.numel(), dtype=torch.int64, device=state.device)
     )
     stats.hist.index_add_(0, flat, ones)
-    if rows <= _MAX_DECODE_ROWS and top_k == state.top_k:
+    if stats.ring is not None and rows <= _MAX_DECODE_ROWS and top_k == state.top_k:
         state.stage.fill_(-1)
         state.stage[0, :rows].copy_(ids)
         stats.pos.add_(1)
         slot = (stats.pos % RING_SIZE).reshape(1)
-        stats.ring.index_put_((slot,), state.stage)
+        stats.ring.index_copy_(0, slot, state.stage)
     if not capturing:
         maybe_flush()
 
@@ -232,16 +238,20 @@ def maybe_flush(force: bool = False) -> list[Path]:
         written.append(
             _write_snapshot(state, payload, f"hist-{state.hist_flush_count:05d}")
         )
-    if force or now - state.last_ring_flush >= _RING_FLUSH_INTERVAL_S:
+    ring_layers = [i for i in ordered if state.layers[i].ring is not None]
+    if ring_layers and (force or now - state.last_ring_flush >= _RING_FLUSH_INTERVAL_S):
         state.last_ring_flush = now
         state.ring_flush_count += 1
         payload = {
             **base,
             "ring_flush_index": state.ring_flush_count,
-            "ring": torch.stack([state.layers[i].ring.detach().cpu() for i in ordered]),
-            "ring_pos": torch.stack(
-                [state.layers[i].pos.detach().cpu() for i in ordered]
+            "ring": torch.stack(
+                [state.layers[i].ring.detach().cpu() for i in ring_layers]
             ),
+            "ring_pos": torch.stack(
+                [state.layers[i].pos.detach().cpu() for i in ring_layers]
+            ),
+            "ring_layers": ring_layers,
         }
         written.append(
             _write_snapshot(state, payload, f"ring-{state.ring_flush_count:05d}")
