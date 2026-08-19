@@ -30,6 +30,9 @@ from vllm.model_executor.layers.quantization.gguf_dsv4.q8_0_marlin import (
     apply_gguf_q8_0_marlin,
     prepare_gguf_q8_0_marlin,
 )
+from vllm.model_executor.layers.quantization.gguf_dsv4.route_stats import (
+    record_routes,
+)
 from vllm.model_executor.utils import set_weight_attrs
 
 _GROUPED_EXPERT_MIN_TOKENS = 128
@@ -359,6 +362,7 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
             raise ValueError(
                 "GGUF DSv4 folds router weights after gate/up, not on input"
             )
+        record_routes(layer, topk_ids)
         original_shape = x.shape
         hidden_states = x.reshape(-1, x.shape[-1])
         gate_up = self._run_gate_up(layer, hidden_states, topk_ids)
