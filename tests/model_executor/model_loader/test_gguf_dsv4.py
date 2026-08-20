@@ -12,6 +12,9 @@ from vllm.model_executor.model_loader.gguf_dsv4 import (
     classify_gguf_dsv4_tensor,
     parse_gguf_index,
 )
+from vllm.model_executor.model_loader.gguf_dsv4_profile import (
+    GGUFDSV4SourceProfile,
+)
 
 
 def _gguf_string(value: str) -> bytes:
@@ -64,6 +67,35 @@ def test_gguf_tensor_entry_supports_unsloth_dynamic_types(
     dims = (block_elements, 3)
 
     assert GGUFTensorEntry.compute_nbytes(type_id, dims) == 3 * block_bytes
+
+
+def test_gguf_dsv4_source_profile_binds_exact_quantized_types() -> None:
+    entries = (
+        GGUFTensorEntry("blk.0.ffn_gate_exps.weight", 19, (4096, 2048, 256), 0),
+        GGUFTensorEntry("blk.0.ffn_down_exps.weight", 18, (2048, 4096, 256), 1),
+        GGUFTensorEntry("blk.0.ffn_norm.weight", 0, (4096,), 2),
+    )
+
+    profile = GGUFDSV4SourceProfile.from_entries(entries)
+
+    assert dict(profile.source_types) == {
+        "blk.0.ffn_down_exps.weight": "IQ3_XXS",
+        "blk.0.ffn_gate_exps.weight": "IQ1_S",
+    }
+    assert profile.sha256 == (
+        "f952a4b8695c72c7c8299065cea84a525d10c64e1eeaea904a15bb9936c39fe0"
+    )
+    assert profile.require_type("blk.0.ffn_gate_exps.weight") == "IQ1_S"
+
+
+def test_gguf_dsv4_source_profile_rejects_mismatched_config_digest() -> None:
+    config = {
+        "source_quant_types": {"blk.0.ffn_gate_exps.weight": "IQ1_M"},
+        "source_quant_types_sha256": "0" * 64,
+    }
+
+    with pytest.raises(ValueError, match="profile SHA-256 mismatch"):
+        GGUFDSV4SourceProfile.from_config(config)
 
 
 def test_parse_gguf_index_reads_bounded_v3_directory(tmp_path: Path) -> None:
@@ -137,6 +169,35 @@ def test_gguf_dsv4_plan_maps_expert_coordinates_and_fused_slots() -> None:
     assert q_a.target_name == "model.layers.0.attn.fused_wqa_wkv.weight_raw"
     assert q_a.spans[0].target_offset == 0
     assert kv.spans[0].target_offset == q_a.target_nbytes
+
+
+def test_gguf_dsv4_profiled_plan_separates_mixed_quantized_targets() -> None:
+    entries = (
+        GGUFTensorEntry("token_embd.weight", 12, (4096, 129280), 0),
+        GGUFTensorEntry("blk.0.attn_q_a.weight", 13, (4096, 1024), 1),
+        GGUFTensorEntry("blk.0.attn_kv.weight", 8, (4096, 512), 2),
+        GGUFTensorEntry("blk.0.ffn_gate_shexp.weight", 13, (4096, 2048), 3),
+        GGUFTensorEntry("blk.0.ffn_up_shexp.weight", 13, (4096, 2048), 4),
+        GGUFTensorEntry("blk.2.attn_compressor_kv.weight", 8, (4096, 512), 5),
+        GGUFTensorEntry("blk.2.attn_compressor_gate.weight", 8, (4096, 512), 6),
+    )
+
+    plan = build_gguf_dsv4_load_plan(
+        entries,
+        tp_rank=0,
+        tp_size=4,
+        profiled_quantization=True,
+    )
+    targets = {item.source_name: item.target_name for item in plan}
+
+    assert targets["token_embd.weight"] == "model.embed_tokens.weight_raw"
+    assert targets["blk.0.attn_q_a.weight"].endswith("weight_raw_0")
+    assert targets["blk.0.attn_kv.weight"].endswith("weight_raw_1")
+    assert targets["blk.0.ffn_gate_shexp.weight"].endswith("weight_raw_0")
+    assert targets["blk.0.ffn_up_shexp.weight"].endswith("weight_raw_1")
+    assert targets["blk.2.attn_compressor_kv.weight"].endswith("weight_raw_0")
+    assert targets["blk.2.attn_compressor_gate.weight"].endswith("weight_raw_1")
+    assert all(item.spans[0].target_offset == 0 for item in plan)
 
 
 def _expected_dsv4_tensor_names() -> list[str]:

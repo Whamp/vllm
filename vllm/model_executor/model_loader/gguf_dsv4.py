@@ -33,6 +33,9 @@ from vllm.model_executor.model_loader.gguf_dsv4_plan import (
     build_gguf_dsv4_load_plan,
     classify_gguf_dsv4_tensor,
 )
+from vllm.model_executor.model_loader.gguf_dsv4_profile import (
+    GGUFDSV4SourceProfile,
+)
 
 __all__ = [
     "GGUFByteSpan",
@@ -68,6 +71,16 @@ class GGUFDSV4ModelLoader(BaseModelLoader):
         if self.expected_tensor_count <= 0:
             raise ValueError("GGUF DSv4 aggregate tensor_count must be positive")
         self.shard_specs = self._parse_shard_specs(extra)
+        raw_profile_sha256 = extra.get("source_quant_types_sha256")
+        if len(self.shard_specs) > 1 and raw_profile_sha256 is None:
+            raise ValueError(
+                "GGUF DSv4 split config requires source_quant_types_sha256"
+            )
+        self.expected_source_profile_sha256 = (
+            self._validate_sha256(raw_profile_sha256)
+            if raw_profile_sha256 is not None
+            else None
+        )
         self.max_source_chunk_bytes = int(
             extra.get("max_source_chunk_bytes", 64 * 1024 * 1024)
         )
@@ -152,6 +165,15 @@ class GGUFDSV4ModelLoader(BaseModelLoader):
                 )
             indexes.append(index)
         self._validate_split_indexes(tuple(indexes))
+        entries = tuple(entry for index in indexes for entry in index.tensors)
+        if self.expected_source_profile_sha256 is not None:
+            profile = GGUFDSV4SourceProfile.from_entries(entries)
+            if profile.sha256 != self.expected_source_profile_sha256:
+                raise ValueError(
+                    "GGUF source quant profile SHA-256 mismatch: "
+                    f"expected {self.expected_source_profile_sha256}, "
+                    f"computed {profile.sha256}"
+                )
         self._indexes = tuple(indexes)
         return self._indexes
 
@@ -181,6 +203,23 @@ class GGUFDSV4ModelLoader(BaseModelLoader):
                     f"GGUF shard {split_number} split.tensors.count does not match "
                     "the aggregate tensor count"
                 )
+
+    def _validate_model_source_profile(self, model_config: ModelConfig) -> None:
+        if self.expected_source_profile_sha256 is None:
+            return
+        model_arch_config = getattr(model_config, "model_arch_config", None)
+        quantization_config = getattr(model_arch_config, "quantization_config", None)
+        if not isinstance(quantization_config, dict):
+            raise ValueError(
+                "GGUF DSv4 split artifact requires a model quantization profile"
+            )
+        model_profile_sha256 = quantization_config.get("source_quant_types_sha256")
+        if model_profile_sha256 != self.expected_source_profile_sha256:
+            raise ValueError(
+                "GGUF DSv4 model/artifact source profile mismatch: "
+                f"model={model_profile_sha256!r}, "
+                f"artifact={self.expected_source_profile_sha256}"
+            )
 
     def _verify_hashes_once(self) -> tuple[str, ...]:
         if self._verified_sha256 is not None:
@@ -219,12 +258,12 @@ class GGUFDSV4ModelLoader(BaseModelLoader):
         return digests
 
     def download_model(self, model_config: ModelConfig) -> None:
-        del model_config
+        self._validate_model_source_profile(model_config)
         self._read_and_validate_indexes()
         self._verify_hashes_once()
 
     def load_weights(self, model: nn.Module, model_config: ModelConfig) -> None:
-        del model_config
+        self._validate_model_source_profile(model_config)
         indexes = self._read_and_validate_indexes()
         self._verify_hashes_once()
         entries = tuple(entry for index in indexes for entry in index.tensors)
@@ -235,6 +274,7 @@ class GGUFDSV4ModelLoader(BaseModelLoader):
             entries,
             tp_rank=get_tensor_model_parallel_rank(),
             tp_size=get_tensor_model_parallel_world_size(),
+            profiled_quantization=self.expected_source_profile_sha256 is not None,
         )
         parameters = dict(model.named_parameters())
         loaded_sources = set()

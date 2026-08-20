@@ -5,6 +5,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+import regex as re
 import torch
 
 from vllm.model_executor.layers.fused_moe import (
@@ -30,15 +31,19 @@ from vllm.model_executor.layers.quantization.gguf_dsv4.q8_0_marlin import (
     apply_gguf_q8_0_marlin,
     prepare_gguf_q8_0_marlin,
 )
+from vllm.model_executor.model_loader.gguf_dsv4_index import (
+    GGUF_TYPE_SPECS_BY_NAME,
+    GGUFTypeSpec,
+)
+from vllm.model_executor.model_loader.gguf_dsv4_profile import (
+    GGUFDSV4SourceProfile,
+)
 from vllm.model_executor.utils import set_weight_attrs
 
 _GROUPED_EXPERT_MIN_TOKENS = 128
-_IQ2_BLOCK_ELEMENTS = 256
-_IQ2_BLOCK_BYTES = 66
-_Q2_BLOCK_ELEMENTS = 256
-_Q2_BLOCK_BYTES = 84
 _Q8_BLOCK_ELEMENTS = 32
 _Q8_BLOCK_BYTES = 34
+_LAYER_PREFIX_PATTERN = re.compile(r"(?:^|\.)layers\.(\d+)(?:\.|$)")
 
 
 @dataclass(frozen=True)
@@ -57,9 +62,35 @@ _Q8_LINEAR_SUFFIXES = (
     ".ffn.shared_experts.down_proj",
 )
 
+_PROFILED_LINEAR_SOURCE_SUFFIXES = {
+    ".attn.fused_wqa_wkv": ("attn_q_a.weight", "attn_kv.weight"),
+    ".attn.wq_b": ("attn_q_b.weight",),
+    ".attn.wo_a": ("attn_output_a.weight",),
+    ".attn.wo_b": ("attn_output_b.weight",),
+    ".attn.indexer.wq_b": ("indexer.attn_q_b.weight",),
+    ".attn.indexer.weights_proj": ("indexer.proj.weight",),
+    ".attn.compressor.fused_wkv_wgate": (
+        "attn_compressor_kv.weight",
+        "attn_compressor_gate.weight",
+    ),
+    ".attn.indexer.compressor.fused_wkv_wgate": (
+        "indexer_compressor_kv.weight",
+        "indexer_compressor_gate.weight",
+    ),
+    ".ffn.shared_experts.gate_up_proj": (
+        "ffn_gate_shexp.weight",
+        "ffn_up_shexp.weight",
+    ),
+    ".ffn.shared_experts.down_proj": ("ffn_down_shexp.weight",),
+}
+
 
 class GGUFDSV4QuantConfig(QuantizationConfig):
-    """Select native GGUF methods only for routed experts and Q8 linears."""
+    """Select native GGUF methods from an identity-bound source-type profile."""
+
+    def __init__(self, source_profile: GGUFDSV4SourceProfile | None = None) -> None:
+        super().__init__()
+        self.source_profile = source_profile
 
     @classmethod
     def get_name(cls):
@@ -79,17 +110,79 @@ class GGUFDSV4QuantConfig(QuantizationConfig):
 
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> "GGUFDSV4QuantConfig":
-        return cls()
+        if "source_quant_types" not in config:
+            return cls()
+        return cls(GGUFDSV4SourceProfile.from_config(config))
+
+    @staticmethod
+    def _layer_index(prefix: str) -> int:
+        match = _LAYER_PREFIX_PATTERN.search(prefix)
+        if match is None:
+            raise ValueError(f"GGUF DSv4 layer prefix has no layer index: {prefix}")
+        return int(match.group(1))
+
+    def _routed_source_types(self, prefix: str) -> tuple[str, str]:
+        if self.source_profile is None:
+            return "IQ2_XXS", "Q2_K"
+        layer_index = self._layer_index(prefix)
+        source_prefix = f"blk.{layer_index}.ffn"
+        gate_type = self.source_profile.require_type(
+            f"{source_prefix}_gate_exps.weight"
+        )
+        up_type = self.source_profile.require_type(f"{source_prefix}_up_exps.weight")
+        if up_type != gate_type:
+            raise ValueError(
+                f"GGUF DSv4 layer {layer_index} gate/up types differ: "
+                f"{gate_type} != {up_type}"
+            )
+        down_type = self.source_profile.require_type(
+            f"{source_prefix}_down_exps.weight"
+        )
+        return gate_type, down_type
+
+    def _linear_source_types(self, prefix: str) -> tuple[str, ...] | None:
+        if self.source_profile is None:
+            return None
+        if prefix == "model.embed_tokens":
+            return (self.source_profile.require_type("token_embd.weight"),)
+        if prefix == "lm_head":
+            return (self.source_profile.require_type("output.weight"),)
+        for runtime_suffix, source_suffixes in _PROFILED_LINEAR_SOURCE_SUFFIXES.items():
+            if prefix.endswith(runtime_suffix):
+                layer_index = self._layer_index(prefix)
+                return tuple(
+                    self.source_profile.require_type(
+                        f"blk.{layer_index}.{source_suffix}"
+                    )
+                    for source_suffix in source_suffixes
+                )
+        return None
 
     def get_quant_method(
         self, layer: torch.nn.Module, prefix: str
     ) -> QuantizeMethodBase | None:
         from vllm.model_executor.layers.vocab_parallel_embedding import (
             ParallelLMHead,
+            VocabParallelEmbedding,
         )
 
         if isinstance(layer, RoutedExperts):
-            return GGUFDSV4MoEMethod(self, layer.moe_config)
+            gate_type, down_type = self._routed_source_types(prefix)
+            return GGUFDSV4MoEMethod(
+                self,
+                layer.moe_config,
+                gate_type_name=gate_type,
+                down_type_name=down_type,
+            )
+        if self.source_profile is not None and isinstance(
+            layer, (LinearBase, VocabParallelEmbedding)
+        ):
+            source_types = self._linear_source_types(prefix)
+            if source_types is not None:
+                return GGUFDSV4LinearMethod(
+                    source_type_names=source_types,
+                    profiled_quantization=True,
+                )
         if isinstance(layer, ParallelLMHead):
             return GGUFDSV4LinearMethod()
         if isinstance(layer, LinearBase):
@@ -100,7 +193,27 @@ class GGUFDSV4QuantConfig(QuantizationConfig):
 
 
 class GGUFDSV4LinearMethod(LinearMethodBase):
-    """Own raw Q8_0 rows until one byte-neutral load-time Marlin repack."""
+    """Own exact profiled GGUF rows and dispatch their native linear kernels."""
+
+    def __init__(
+        self,
+        source_type_names: tuple[str, ...] = ("Q8_0",),
+        *,
+        profiled_quantization: bool = False,
+    ) -> None:
+        self.source_type_specs = tuple(
+            self._require_linear_type(type_name) for type_name in source_type_names
+        )
+        self.profiled_quantization = profiled_quantization
+
+    @staticmethod
+    def _require_linear_type(type_name: str) -> GGUFTypeSpec:
+        try:
+            return GGUF_TYPE_SPECS_BY_NAME[type_name]
+        except KeyError as error:
+            raise ValueError(
+                f"GGUF DSv4 linear uses unsupported type {type_name}"
+            ) from error
 
     def create_weights(
         self,
@@ -112,16 +225,52 @@ class GGUFDSV4LinearMethod(LinearMethodBase):
         params_dtype: torch.dtype,
         **extra_weight_attrs,
     ) -> None:
-        if input_size_per_partition % _Q8_BLOCK_ELEMENTS:
-            raise ValueError("GGUF Q8 linear input partition must be divisible by 32")
+        if self.profiled_quantization:
+            if len(self.source_type_specs) != len(output_partition_sizes):
+                raise ValueError(
+                    "GGUF DSv4 profiled linear source/partition count mismatch: "
+                    f"{len(self.source_type_specs)} != {len(output_partition_sizes)}"
+                )
+        elif self.source_type_specs != (GGUF_TYPE_SPECS_BY_NAME["Q8_0"],):
+            raise ValueError("GGUF DSv4 legacy linear must use Q8_0")
         output_size_per_partition = sum(output_partition_sizes)
-        row_bytes = input_size_per_partition // _Q8_BLOCK_ELEMENTS * _Q8_BLOCK_BYTES
-        weight_raw = torch.nn.Parameter(
-            torch.empty(output_size_per_partition, row_bytes, dtype=torch.uint8),
-            requires_grad=False,
-        )
-        layer.register_parameter("weight_raw", weight_raw)
-        set_weight_attrs(weight_raw, extra_weight_attrs)
+        if self.profiled_quantization:
+            for partition_index, (type_spec, output_rows) in enumerate(
+                zip(self.source_type_specs, output_partition_sizes, strict=True)
+            ):
+                if input_size_per_partition % type_spec.block_elements:
+                    raise ValueError(
+                        f"GGUF {type_spec.name} linear input partition must be "
+                        f"divisible by {type_spec.block_elements}"
+                    )
+                row_bytes = (
+                    input_size_per_partition
+                    // type_spec.block_elements
+                    * type_spec.block_bytes
+                )
+                parameter_name = (
+                    "weight_raw"
+                    if len(self.source_type_specs) == 1
+                    else f"weight_raw_{partition_index}"
+                )
+                weight_raw = torch.nn.Parameter(
+                    torch.empty(output_rows, row_bytes, dtype=torch.uint8),
+                    requires_grad=False,
+                )
+                layer.register_parameter(parameter_name, weight_raw)
+                set_weight_attrs(weight_raw, extra_weight_attrs)
+        else:
+            if input_size_per_partition % _Q8_BLOCK_ELEMENTS:
+                raise ValueError(
+                    "GGUF Q8 linear input partition must be divisible by 32"
+                )
+            row_bytes = input_size_per_partition // _Q8_BLOCK_ELEMENTS * _Q8_BLOCK_BYTES
+            weight_raw = torch.nn.Parameter(
+                torch.empty(output_size_per_partition, row_bytes, dtype=torch.uint8),
+                requires_grad=False,
+            )
+            layer.register_parameter("weight_raw", weight_raw)
+            set_weight_attrs(weight_raw, extra_weight_attrs)
         layer.input_size = input_size
         layer.output_size = output_size
         layer.input_size_per_partition = input_size_per_partition
@@ -130,12 +279,24 @@ class GGUFDSV4LinearMethod(LinearMethodBase):
         layer.params_dtype = params_dtype
 
     def process_weights_after_loading(self, layer: torch.nn.Module) -> None:
+        if any(type_spec.name != "Q8_0" for type_spec in self.source_type_specs):
+            return
+        if self.profiled_quantization and len(self.source_type_specs) > 1:
+            raw_parameters = [
+                getattr(layer, f"weight_raw_{partition_index}")
+                for partition_index in range(len(self.source_type_specs))
+            ]
+            weight_raw = torch.cat(raw_parameters, dim=0).contiguous()
+            for partition_index in range(len(self.source_type_specs)):
+                delattr(layer, f"weight_raw_{partition_index}")
+        else:
+            weight_raw = layer.weight_raw
+            delattr(layer, "weight_raw")
         prepared = prepare_gguf_q8_0_marlin(
-            layer.weight_raw,
+            weight_raw,
             input_columns=layer.input_size_per_partition,
             scale_dtype=layer.params_dtype,
         )
-        delattr(layer, "weight_raw")
         layer.register_parameter(
             "weight",
             torch.nn.Parameter(prepared.weight, requires_grad=False),
@@ -154,7 +315,14 @@ class GGUFDSV4LinearMethod(LinearMethodBase):
         bias: torch.Tensor | None = None,
     ) -> torch.Tensor:
         if bias is not None:
-            raise ValueError("GGUF Q8 linear does not support bias")
+            raise ValueError("GGUF DSv4 linear does not support bias")
+        if any(type_spec.name != "Q8_0" for type_spec in self.source_type_specs):
+            type_names = ",".join(
+                type_spec.name for type_spec in self.source_type_specs
+            )
+            raise RuntimeError(
+                f"GGUF DSv4 linear execution is not registered for {type_names}"
+            )
         prepared = GGUFQ8MarlinWeights(
             weight=layer.weight,
             scales=layer.weight_scale,
@@ -165,13 +333,37 @@ class GGUFDSV4LinearMethod(LinearMethodBase):
         )
         return apply_gguf_q8_0_marlin(x, prepared)
 
+    def embedding(self, layer: torch.nn.Module, input_: torch.Tensor) -> torch.Tensor:
+        type_names = ",".join(type_spec.name for type_spec in self.source_type_specs)
+        raise RuntimeError(
+            f"GGUF DSv4 embedding execution is not registered for {type_names}"
+        )
+
 
 class GGUFDSV4MoEMethod(FusedMoEMethodBase):
-    """Execute all 256 raw GGUF experts with TP-sharded intermediate widths."""
+    """Execute all 256 profiled GGUF experts with TP-sharded widths."""
 
-    def __init__(self, quant_config: GGUFDSV4QuantConfig, moe: FusedMoEConfig) -> None:
+    def __init__(
+        self,
+        quant_config: GGUFDSV4QuantConfig,
+        moe: FusedMoEConfig,
+        *,
+        gate_type_name: str = "IQ2_XXS",
+        down_type_name: str = "Q2_K",
+    ) -> None:
         super().__init__(moe)
         self.quant_config = quant_config
+        self.gate_type_spec = self._require_expert_type(gate_type_name)
+        self.down_type_spec = self._require_expert_type(down_type_name)
+
+    @staticmethod
+    def _require_expert_type(type_name: str) -> GGUFTypeSpec:
+        try:
+            return GGUF_TYPE_SPECS_BY_NAME[type_name]
+        except KeyError as error:
+            raise ValueError(
+                f"GGUF DSv4 experts use unsupported type {type_name}"
+            ) from error
 
     @property
     def topk_indices_dtype(self) -> torch.dtype | None:
@@ -197,13 +389,25 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
     ) -> None:
         del num_experts, params_dtype
         global_num_experts = int(extra_weight_attrs.pop("global_num_experts"))
-        if hidden_size % _IQ2_BLOCK_ELEMENTS:
-            raise ValueError("GGUF IQ2 hidden size must be divisible by 256")
-        if intermediate_size_per_partition % _Q2_BLOCK_ELEMENTS:
-            raise ValueError("GGUF Q2 intermediate partition must be divisible by 256")
-        gate_row_bytes = hidden_size // _IQ2_BLOCK_ELEMENTS * _IQ2_BLOCK_BYTES
+        if hidden_size % self.gate_type_spec.block_elements:
+            raise ValueError(
+                f"GGUF {self.gate_type_spec.name} hidden size must be divisible by "
+                f"{self.gate_type_spec.block_elements}"
+            )
+        if intermediate_size_per_partition % self.down_type_spec.block_elements:
+            raise ValueError(
+                f"GGUF {self.down_type_spec.name} intermediate partition must be "
+                f"divisible by {self.down_type_spec.block_elements}"
+            )
+        gate_row_bytes = (
+            hidden_size
+            // self.gate_type_spec.block_elements
+            * self.gate_type_spec.block_bytes
+        )
         down_row_bytes = (
-            intermediate_size_per_partition // _Q2_BLOCK_ELEMENTS * _Q2_BLOCK_BYTES
+            intermediate_size_per_partition
+            // self.down_type_spec.block_elements
+            * self.down_type_spec.block_bytes
         )
         for name in ("gate_raw", "up_raw"):
             parameter = torch.nn.Parameter(
@@ -257,6 +461,11 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
         )
         up_output = torch.empty_like(gate_output)
         torch.ops._C.gguf_quantize_bf16_to_q8_1(hidden_states, gate_scales, gate_codes)
+        if self.gate_type_spec.name != "IQ2_XXS":
+            raise RuntimeError(
+                f"GGUF DSv4 {self.gate_type_spec.name} gate/up execution is not "
+                "registered"
+            )
         if token_count < _GROUPED_EXPERT_MIN_TOKENS:
             torch.ops._C.gguf_iq2_xxs_q8_1_indexed_gate_up(
                 gate_scales,
@@ -325,6 +534,10 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
             device=hidden_states.device,
             dtype=torch.float32,
         )
+        if self.down_type_spec.name != "Q2_K":
+            raise RuntimeError(
+                f"GGUF DSv4 {self.down_type_spec.name} down execution is not registered"
+            )
         if gate_up.schedule is None:
             torch.ops._C.gguf_q2_k_q8_1_indexed_down(
                 down_scales,
