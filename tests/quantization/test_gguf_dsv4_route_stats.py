@@ -29,6 +29,18 @@ def _enable(monkeypatch, tmp_path, ring=True):
     route_stats.reset_for_tests()
 
 
+def test_route_stats_histogram_flush_interval_env(monkeypatch):
+    name = "VLLM_GGUF_DSV4_ROUTE_STATS_HIST_FLUSH_SECONDS"
+    monkeypatch.delenv(name, raising=False)
+    assert route_stats._read_route_stats_interval_seconds(name, 300.0) == 300.0
+    monkeypatch.setenv(name, "5")
+    assert route_stats._read_route_stats_interval_seconds(name, 300.0) == 5.0
+    for invalid in ("0", "-1", "nan", "not-a-number"):
+        monkeypatch.setenv(name, invalid)
+        with pytest.raises(ValueError, match="GGUF DSv4 route stats invalid interval"):
+            route_stats._read_route_stats_interval_seconds(name, 300.0)
+
+
 def test_disabled_by_default_is_noop(tmp_path):
     layer = _FakeLayer("model.layers.0.mlp.experts.routed_experts")
     route_stats.record_routes(layer, torch.zeros((1, 6), dtype=torch.int32))

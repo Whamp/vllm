@@ -31,6 +31,7 @@ why this is a time-boxed diagnostic build, not a permanent fixture.
 from __future__ import annotations
 
 import atexit
+import math
 import os
 import re
 import time
@@ -50,7 +51,30 @@ _MAX_DECODE_ROWS = 4
 histogram but not the decode ring, keeping the ring a decode-scale sequence.
 Production decode forwards have at most max_num_seqs=2 rows."""
 
-_HIST_FLUSH_INTERVAL_S = 300.0
+
+def _read_route_stats_interval_seconds(name: str, default: float) -> float:
+    """Read one positive finite route-stats flush interval in seconds."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        value = float(raw)
+    except ValueError as error:
+        raise ValueError(
+            f"GGUF DSv4 route stats invalid interval {name}={raw!r}: "
+            "expected positive finite seconds"
+        ) from error
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(
+            f"GGUF DSv4 route stats invalid interval {name}={raw!r}: "
+            "expected positive finite seconds"
+        )
+    return value
+
+
+_HIST_FLUSH_INTERVAL_S = _read_route_stats_interval_seconds(
+    "VLLM_GGUF_DSV4_ROUTE_STATS_HIST_FLUSH_SECONDS", 300.0
+)
 _RING_FLUSH_INTERVAL_S = 1800.0
 
 _LAYER_RE = re.compile(r"layers\.(\d+)\.")
