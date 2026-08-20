@@ -4,6 +4,7 @@
 
 import copy
 import hashlib
+import json
 import math
 import os
 from collections import defaultdict
@@ -33,6 +34,7 @@ from vllm.v1.kv_cache_interface import (
     SlidingWindowMLASpec,
     SlidingWindowSpec,
     UniformTypeKVCacheSpecs,
+    get_kv_cache_spec_kind,
 )
 from vllm.v1.kv_cache_spec_registry import KVCacheSpecRegistry
 from vllm.v1.request import Request
@@ -988,6 +990,229 @@ def _pool_bytes_per_block(
     group_size = max(len(g.layer_names) for g in kv_cache_groups)
     page_size = get_uniform_page_size([g.kv_cache_spec for g in kv_cache_groups])
     return page_size * group_size
+
+
+def get_kv_cache_physical_allocation_bytes(
+    kv_cache_config: KVCacheConfig,
+) -> int:
+    """Return unique physical bytes requested for KV cache backing tensors."""
+    packed_tensors = [
+        tensor for tensor in kv_cache_config.kv_cache_tensors if tensor.block_stride > 0
+    ]
+    unpacked_bytes = sum(
+        tensor.size
+        for tensor in kv_cache_config.kv_cache_tensors
+        if tensor.block_stride == 0
+    )
+    if not packed_tensors:
+        return unpacked_bytes
+
+    packed_sizes = {tensor.size for tensor in packed_tensors}
+    assert len(packed_sizes) == 1, (
+        "Packed KV cache tensors must alias one equally sized backing allocation."
+    )
+    return unpacked_bytes + packed_sizes.pop()
+
+
+def _kv_cache_context_scaling(spec: KVCacheSpec) -> str:
+    if isinstance(spec, SlidingWindowSpec):
+        return "sliding_window"
+    if isinstance(spec, ChunkedLocalAttentionSpec):
+        return "chunk_window"
+    if isinstance(spec, FullAttentionSpec):
+        return "model_length"
+    return "spec_defined"
+
+
+def _kv_cache_inflight_reserved_pages(
+    vllm_config: VllmConfig, spec: KVCacheSpec
+) -> int:
+    if not isinstance(spec, (SlidingWindowSpec, ChunkedLocalAttentionSpec)):
+        return 0
+    with_inflight = spec.max_admission_blocks_per_request(
+        max_in_flight_tokens=vllm_config.max_in_flight_tokens,
+        max_model_len=vllm_config.model_config.max_model_len,
+    )
+    without_inflight = spec.max_admission_blocks_per_request(
+        max_in_flight_tokens=0,
+        max_model_len=vllm_config.model_config.max_model_len,
+    )
+    return with_inflight - without_inflight
+
+
+def _build_kv_cache_spec_allocation_report(
+    vllm_config: VllmConfig,
+    spec: KVCacheSpec,
+    layer_names: list[str],
+) -> dict[str, Any]:
+    storage_block_size = spec.storage_block_size
+    real_page_size_bytes = getattr(spec, "real_page_size_bytes", None)
+    physical_row_bytes = (
+        real_page_size_bytes // storage_block_size
+        if isinstance(real_page_size_bytes, int)
+        and storage_block_size > 0
+        and real_page_size_bytes % storage_block_size == 0
+        else None
+    )
+    semantic_head_size = getattr(spec, "semantic_head_size", None) or getattr(
+        spec, "head_size", None
+    )
+    dtype = getattr(spec, "dtype", None)
+    semantic_row_bytes = (
+        getattr(spec, "num_kv_heads", 1) * semantic_head_size * get_dtype_size(dtype)
+        if semantic_head_size is not None and dtype is not None
+        else None
+    )
+    max_request_bytes = spec.max_memory_usage_bytes(vllm_config)
+    max_request_pages = cdiv(max_request_bytes, spec.page_size_bytes)
+    inflight_reserved_pages = _kv_cache_inflight_reserved_pages(vllm_config, spec)
+    kv_quant_mode = getattr(spec, "kv_quant_mode", None)
+    page_padding_bytes = (
+        spec.page_size_bytes - real_page_size_bytes
+        if isinstance(real_page_size_bytes, int)
+        else None
+    )
+
+    return {
+        "type": type(spec).__name__,
+        "kind": get_kv_cache_spec_kind(spec).value,
+        "layer_names": layer_names,
+        "layer_count": len(layer_names),
+        "context_scaling": _kv_cache_context_scaling(spec),
+        "block_size": spec.block_size,
+        "storage_block_size": storage_block_size,
+        "compress_ratio": getattr(spec, "compress_ratio", 1),
+        "semantic_head_size": semantic_head_size,
+        "semantic_row_bytes": semantic_row_bytes,
+        "dtype": str(dtype).removeprefix("torch.") if dtype is not None else None,
+        "cache_dtype": getattr(spec, "cache_dtype_str", None),
+        "kv_quant_mode": kv_quant_mode.name.lower()
+        if kv_quant_mode is not None
+        else None,
+        "sliding_window": getattr(spec, "sliding_window", None),
+        "declared_physical_row_bytes": getattr(spec, "physical_row_bytes", None),
+        "physical_row_bytes": physical_row_bytes,
+        "real_page_size_bytes": real_page_size_bytes,
+        "page_size_bytes": spec.page_size_bytes,
+        "page_padding_bytes": page_padding_bytes,
+        "max_request_pages": max_request_pages,
+        "max_request_bytes_per_layer": max_request_bytes,
+        "inflight_reserved_pages": inflight_reserved_pages,
+        "inflight_reserved_bytes_per_layer": (
+            inflight_reserved_pages * spec.page_size_bytes
+        ),
+    }
+
+
+def build_kv_cache_allocation_report(
+    vllm_config: VllmConfig,
+    kv_cache_config: KVCacheConfig,
+    available_memory: int,
+) -> dict[str, Any]:
+    """Build deterministic per-spec and per-group KV cache byte accounting."""
+    allocated_bytes = get_kv_cache_physical_allocation_bytes(kv_cache_config)
+    packed = any(tensor.block_stride > 0 for tensor in kv_cache_config.kv_cache_tensors)
+    if packed:
+        layout = "packed"
+    elif len(kv_cache_config.kv_cache_tensors) == 1:
+        layout = "single"
+    else:
+        layout = "per_layer_or_shared"
+
+    bytes_per_block = (
+        allocated_bytes // kv_cache_config.num_blocks
+        if kv_cache_config.num_blocks > 0
+        else 0
+    )
+    logical_bytes_by_scaling = {
+        "model_length": 0,
+        "sliding_window": 0,
+        "chunk_window": 0,
+        "spec_defined": 0,
+    }
+    logical_inflight_reserved_bytes = 0
+    group_reports: list[dict[str, Any]] = []
+
+    for group_id, group in enumerate(kv_cache_config.kv_cache_groups):
+        group_spec = group.kv_cache_spec
+        if isinstance(group_spec, UniformTypeKVCacheSpecs):
+            per_layer_specs = group_spec.kv_cache_specs
+            layer_tuple_count = group_spec.get_num_layer_tuples()
+        else:
+            per_layer_specs = {
+                layer_name: group_spec for layer_name in group.layer_names
+            }
+            layer_tuple_count = len(group.layer_names)
+
+        grouped_spec_reports: dict[str, dict[str, Any]] = {}
+        group_bytes_per_block = 0
+        for layer_name in group.layer_names:
+            spec = per_layer_specs[layer_name]
+            base_report = _build_kv_cache_spec_allocation_report(vllm_config, spec, [])
+            report_key = json.dumps(base_report, sort_keys=True)
+            if report_key not in grouped_spec_reports:
+                grouped_spec_reports[report_key] = base_report
+            grouped_report = grouped_spec_reports[report_key]
+            grouped_report["layer_names"].append(layer_name)
+            grouped_report["layer_count"] += 1
+            group_bytes_per_block += spec.page_size_bytes
+            scaling = grouped_report["context_scaling"]
+            logical_bytes_by_scaling[scaling] += grouped_report[
+                "max_request_bytes_per_layer"
+            ]
+            logical_inflight_reserved_bytes += grouped_report[
+                "inflight_reserved_bytes_per_layer"
+            ]
+
+        group_max_request_pages = cdiv(
+            group_spec.max_memory_usage_bytes(vllm_config),
+            group_spec.page_size_bytes,
+        )
+        group_reports.append(
+            {
+                "group_id": group_id,
+                "layer_names": group.layer_names,
+                "layer_count": len(group.layer_names),
+                "layer_tuple_count": layer_tuple_count,
+                "page_sizes_bytes": sorted(
+                    {spec.page_size_bytes for spec in per_layer_specs.values()}
+                ),
+                "bytes_per_block": group_bytes_per_block,
+                "packed_tail_bytes_per_block": (
+                    bytes_per_block - group_bytes_per_block if packed else 0
+                ),
+                "max_request_pages": group_max_request_pages,
+                "max_request_bytes_in_shared_pool": (
+                    group_max_request_pages * bytes_per_block
+                ),
+                "specs": list(grouped_spec_reports.values()),
+            }
+        )
+
+    logical_bytes_by_scaling["total"] = sum(logical_bytes_by_scaling.values())
+    return {
+        "schema_version": 1,
+        "layout": layout,
+        "pool": {
+            "available_bytes": available_memory,
+            "allocated_bytes": allocated_bytes,
+            "unallocated_bytes": available_memory - allocated_bytes,
+            "num_blocks": kv_cache_config.num_blocks,
+            "bytes_per_block": bytes_per_block,
+        },
+        "scheduler": {
+            "max_model_len": vllm_config.model_config.max_model_len,
+            "max_num_seqs": vllm_config.scheduler_config.max_num_seqs,
+            "max_num_batched_tokens": (
+                vllm_config.scheduler_config.max_num_batched_tokens
+            ),
+            "max_concurrent_batches": vllm_config.max_concurrent_batches,
+            "max_in_flight_tokens": vllm_config.max_in_flight_tokens,
+        },
+        "groups": group_reports,
+        "logical_max_request_bytes": logical_bytes_by_scaling,
+        "logical_inflight_reserved_bytes": logical_inflight_reserved_bytes,
+    }
 
 
 def get_num_blocks(
@@ -2239,6 +2464,21 @@ def get_kv_cache_configs(
                 max_concurrency,
             )
 
+    allocation_reports = [
+        {
+            "worker_index": worker_index,
+            **build_kv_cache_allocation_report(
+                vllm_config, kv_cache_config, available_memory_one_worker
+            ),
+        }
+        for worker_index, (kv_cache_config, available_memory_one_worker) in enumerate(
+            zip(kv_cache_configs, available_memory)
+        )
+    ]
+    logger.info(
+        "KV cache allocation report: %s",
+        json.dumps({"workers": allocation_reports}, sort_keys=True),
+    )
     return kv_cache_configs
 
 
