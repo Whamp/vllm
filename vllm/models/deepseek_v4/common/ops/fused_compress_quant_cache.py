@@ -27,7 +27,69 @@ import torch
 from vllm.triton_utils import tl, triton
 from vllm.v1.attention.ops.fp8_sm80 import _encode_e4m3fn_u8
 
-from .fused_indexer_q import _fp32x2_to_fp4x2
+from .fused_indexer_q import _fp32x2_to_fp4x2, _fp32x2_to_fp4x2_software
+
+
+@triton.jit
+def _store_sparse_ds_mla_nope(
+    normed,
+    value_ptr,
+    scale_ptr,
+    HEAD_SIZE: tl.constexpr,
+    ROPE_HEAD_DIM: tl.constexpr,
+    TRITON_BLOCK_SIZE: tl.constexpr,
+    QUANT_BLOCK: tl.constexpr,
+    FP8_MAX: tl.constexpr,
+    USE_FP4_CACHE: tl.constexpr,
+):
+    """Store the quantized NoPE section and its segregated UE8M0 scales."""
+    NOPE_HEAD_DIM: tl.constexpr = HEAD_SIZE - ROPE_HEAD_DIM
+    N_QUANT_BLOCKS: tl.constexpr = TRITON_BLOCK_SIZE // QUANT_BLOCK
+    N_NOPE_BLOCKS: tl.constexpr = NOPE_HEAD_DIM // QUANT_BLOCK
+    quant_input = normed.to(tl.bfloat16).to(tl.float32)
+    quant_2d = tl.reshape(quant_input, (N_QUANT_BLOCKS, QUANT_BLOCK))
+
+    if USE_FP4_CACHE:
+        block_absmax = tl.maximum(tl.max(tl.abs(quant_2d), axis=1), 6.0 * (2**-126))
+        exponents = tl.ceil(tl.log2(block_absmax * (1.0 / 6.0)))
+        exponents = tl.minimum(tl.maximum(exponents, -127.0), 127.0)
+        inv_scale = tl.reshape(tl.exp2(-exponents), (N_QUANT_BLOCKS, 1))
+        pairs = tl.reshape(
+            quant_2d * inv_scale,
+            (N_QUANT_BLOCKS, QUANT_BLOCK // 2, 2),
+        )
+        even, odd = tl.split(pairs)
+        packed = tl.reshape(
+            _fp32x2_to_fp4x2_software(even, odd),
+            (TRITON_BLOCK_SIZE // 2,),
+        )
+        packed_offset = tl.arange(0, TRITON_BLOCK_SIZE // 2)
+        tl.store(
+            value_ptr + packed_offset,
+            packed,
+            mask=packed_offset < NOPE_HEAD_DIM // 2,
+        )
+    else:
+        block_absmax = tl.maximum(tl.max(tl.abs(quant_2d), axis=1), 1e-4)
+        exponents = tl.ceil(tl.log2(block_absmax * (1.0 / FP8_MAX)))
+        inv_scale = tl.reshape(tl.exp2(-exponents), (N_QUANT_BLOCKS, 1))
+        quantized = tl.reshape(
+            _encode_e4m3fn_u8(tl.clamp(quant_2d * inv_scale, -FP8_MAX, FP8_MAX)),
+            (TRITON_BLOCK_SIZE,),
+        )
+        value_offset = tl.arange(0, TRITON_BLOCK_SIZE)
+        tl.store(
+            value_ptr + value_offset,
+            quantized,
+            mask=value_offset < NOPE_HEAD_DIM,
+        )
+
+    scale_idx = tl.arange(0, N_QUANT_BLOCKS)
+    encoded = tl.maximum(tl.minimum(exponents + 127.0, 255.0), 0.0).to(tl.uint8)
+    tl.store(
+        scale_ptr + scale_idx,
+        tl.where(scale_idx < N_NOPE_BLOCKS, encoded, 0),
+    )
 
 
 def _sparse_attn_num_warps(compress_ratio: int, overlap: bool) -> int:
@@ -112,6 +174,7 @@ def compress_norm_rope_store_triton(
         TOKEN_STRIDE=token_stride,
         SCALE_DIM=scale_dim,
         KV_BLOCK_STRIDE=kv_cache.stride(0),
+        **({"USE_FP4_CACHE": use_fp4_cache} if head_dim == 512 else {}),
         num_warps=num_warps,
         **pdl_kwargs,
     )
@@ -155,8 +218,9 @@ def _fused_kv_compress_norm_rope_insert_sparse_attn(
     TOKEN_STRIDE: tl.constexpr,  # 576 for DeepseekV4
     SCALE_DIM: tl.constexpr,  # 8 for DeepseekV4 (7 real + 1 pad)
     KV_BLOCK_STRIDE: tl.constexpr,
+    USE_FP4_CACHE: tl.constexpr,
 ):
-    """Fused compress → RMSNorm → FP8 quant (nope) → RoPE → bf16 store (rope).
+    """Fused compress → RMSNorm → quantized NoPE + BF16 RoPE store.
 
     One program per token; early-exits for non-boundary positions.
 
@@ -235,7 +299,7 @@ def _fused_kv_compress_norm_rope_insert_sparse_attn(
     kv_pos_in_block = kv_slot_idx % kv_cache_block_size
 
     cache_block_ptr = k_cache_ptr + kv_block_idx.to(tl.int64) * KV_BLOCK_STRIDE
-    fp8_ptr = cache_block_ptr + kv_pos_in_block * TOKEN_STRIDE
+    value_ptr = cache_block_ptr + kv_pos_in_block * TOKEN_STRIDE
     scale_ptr = (
         cache_block_ptr
         + kv_cache_block_size * TOKEN_STRIDE
@@ -245,38 +309,17 @@ def _fused_kv_compress_norm_rope_insert_sparse_attn(
     NOPE_HEAD_DIM: tl.constexpr = HEAD_SIZE - ROPE_HEAD_DIM  # 448
     HALF_ROPE: tl.constexpr = ROPE_HEAD_DIM // 2  # 32
 
-    # FP8 UE8M0 quant: cast fp32 → bf16 → fp32 before quant to match reference.
-    N_QUANT_BLOCKS: tl.constexpr = TRITON_BLOCK_SIZE // QUANT_BLOCK
-    N_NOPE_BLOCKS: tl.constexpr = NOPE_HEAD_DIM // QUANT_BLOCK  # 7
-    INV_FP8_MAX: tl.constexpr = 1.0 / FP8_MAX
-
-    quant_input = normed.to(tl.bfloat16).to(tl.float32)
-    quant_2d = tl.reshape(quant_input, (N_QUANT_BLOCKS, QUANT_BLOCK))
-    abs_2d = tl.abs(quant_2d)
-    block_absmax = tl.max(abs_2d, axis=1)  # [N_QUANT_BLOCKS] fp32
-    block_absmax = tl.maximum(block_absmax, 1e-4)
-
-    raw_scales = block_absmax * INV_FP8_MAX
-    exponents = tl.ceil(tl.log2(raw_scales))
-    inv_scales = tl.exp2(-exponents)
-    inv_scales_col = tl.reshape(inv_scales, (N_QUANT_BLOCKS, 1))
-    x_scaled = quant_2d * inv_scales_col
-    x_clamped = tl.clamp(x_scaled, -FP8_MAX, FP8_MAX)
-    x_uint8 = _encode_e4m3fn_u8(x_clamped)
-    x_uint8_flat = tl.reshape(x_uint8, (TRITON_BLOCK_SIZE,))
-
-    nope_mask = block < NOPE_HEAD_DIM
-    tl.store(fp8_ptr + block, x_uint8_flat, mask=nope_mask)
-
-    scale_idx = tl.arange(0, N_QUANT_BLOCKS)
-    encoded = exponents + 127.0
-    encoded = tl.maximum(tl.minimum(encoded, 255.0), 0.0)
-    tl.store(
-        scale_ptr + scale_idx,
-        encoded.to(tl.uint8),
-        mask=scale_idx < N_NOPE_BLOCKS,
+    _store_sparse_ds_mla_nope(
+        normed,
+        value_ptr,
+        scale_ptr,
+        HEAD_SIZE=HEAD_SIZE,
+        ROPE_HEAD_DIM=ROPE_HEAD_DIM,
+        TRITON_BLOCK_SIZE=TRITON_BLOCK_SIZE,
+        QUANT_BLOCK=QUANT_BLOCK,
+        FP8_MAX=FP8_MAX,
+        USE_FP4_CACHE=USE_FP4_CACHE,
     )
-    tl.store(scale_ptr + N_NOPE_BLOCKS, tl.zeros((), dtype=tl.uint8))
 
     # Register-based GPT-J RoPE in fp32.
     NUM_PAIRS: tl.constexpr = TRITON_BLOCK_SIZE // 2
@@ -299,8 +342,11 @@ def _fused_kv_compress_norm_rope_insert_sparse_attn(
     new_odd = odd * cos_v + even * sin_v
     result = tl.interleave(new_even, new_odd)  # [TRITON_BLOCK_SIZE] fp32
 
-    # Store rotated rope portion as bf16 into the cache's bf16 area.
-    bf16_ptr = (fp8_ptr + NOPE_HEAD_DIM).to(tl.pointer_type(tl.bfloat16))
+    # Store rotated RoPE after the packed NoPE section.
+    NOPE_DATA_BYTES: tl.constexpr = (
+        NOPE_HEAD_DIM // 2 if USE_FP4_CACHE else NOPE_HEAD_DIM
+    )
+    bf16_ptr = (value_ptr + NOPE_DATA_BYTES).to(tl.pointer_type(tl.bfloat16))
     rope_local = block - NOPE_HEAD_DIM
     is_rope = (block >= NOPE_HEAD_DIM) & mask
     tl.store(bf16_ptr + rope_local, result.to(tl.bfloat16), mask=is_rope)
@@ -426,10 +472,9 @@ def _finalize_norm_rope_quant_store_sparse_attn(
     TOKEN_STRIDE: tl.constexpr,
     SCALE_DIM: tl.constexpr,
     KV_BLOCK_STRIDE: tl.constexpr,
+    USE_FP4_CACHE: tl.constexpr,
 ):
-    """Stage 2: read compressed_kv[512] from scratch buffer, then
-    RMSNorm + FP8 quant (nope) + RoPE + bf16 store
-    """
+    """Stage 2: read compressed_kv[512], then norm, RoPE, and cache store."""
     token_idx = tl.program_id(0)
     slot_id = tl.load(slot_mapping_ptr + token_idx)
     if slot_id < 0:
@@ -455,7 +500,7 @@ def _finalize_norm_rope_quant_store_sparse_attn(
     kv_block_idx = kv_slot_idx // kv_cache_block_size
     kv_pos_in_block = kv_slot_idx % kv_cache_block_size
     cache_block_ptr = k_cache_ptr + kv_block_idx.to(tl.int64) * KV_BLOCK_STRIDE
-    fp8_ptr = cache_block_ptr + kv_pos_in_block * TOKEN_STRIDE
+    value_ptr = cache_block_ptr + kv_pos_in_block * TOKEN_STRIDE
     scale_ptr = (
         cache_block_ptr
         + kv_cache_block_size * TOKEN_STRIDE
@@ -464,30 +509,17 @@ def _finalize_norm_rope_quant_store_sparse_attn(
 
     NOPE_HEAD_DIM: tl.constexpr = HEAD_SIZE - ROPE_HEAD_DIM
     HALF_ROPE: tl.constexpr = ROPE_HEAD_DIM // 2
-    N_QUANT_BLOCKS: tl.constexpr = TRITON_BLOCK_SIZE // QUANT_BLOCK
-    N_NOPE_BLOCKS: tl.constexpr = NOPE_HEAD_DIM // QUANT_BLOCK
-    INV_FP8_MAX: tl.constexpr = 1.0 / FP8_MAX
-
-    quant_input = normed.to(tl.bfloat16).to(tl.float32)
-    quant_2d = tl.reshape(quant_input, (N_QUANT_BLOCKS, QUANT_BLOCK))
-    block_absmax = tl.maximum(tl.max(tl.abs(quant_2d), axis=1), 1e-4)
-    raw_scales = block_absmax * INV_FP8_MAX
-    exponents = tl.ceil(tl.log2(raw_scales))
-    inv_scales = tl.exp2(-exponents)
-    x_scaled = quant_2d * tl.reshape(inv_scales, (N_QUANT_BLOCKS, 1))
-    x_clamped = tl.clamp(x_scaled, -FP8_MAX, FP8_MAX)
-    x_uint8 = tl.reshape(
-        _encode_e4m3fn_u8(x_clamped),
-        (TRITON_BLOCK_SIZE,),
+    _store_sparse_ds_mla_nope(
+        normed,
+        value_ptr,
+        scale_ptr,
+        HEAD_SIZE=HEAD_SIZE,
+        ROPE_HEAD_DIM=ROPE_HEAD_DIM,
+        TRITON_BLOCK_SIZE=TRITON_BLOCK_SIZE,
+        QUANT_BLOCK=QUANT_BLOCK,
+        FP8_MAX=FP8_MAX,
+        USE_FP4_CACHE=USE_FP4_CACHE,
     )
-    tl.store(fp8_ptr + block, x_uint8, mask=block < NOPE_HEAD_DIM)
-
-    scale_idx = tl.arange(0, N_QUANT_BLOCKS)
-    encoded = tl.maximum(tl.minimum(exponents + 127.0, 255.0), 0.0)
-    tl.store(
-        scale_ptr + scale_idx, encoded.to(tl.uint8), mask=scale_idx < N_NOPE_BLOCKS
-    )
-    tl.store(scale_ptr + N_NOPE_BLOCKS, tl.zeros((), dtype=tl.uint8))
 
     NUM_PAIRS: tl.constexpr = TRITON_BLOCK_SIZE // 2
     NOPE_PAIRS: tl.constexpr = NOPE_HEAD_DIM // 2
@@ -503,7 +535,10 @@ def _finalize_norm_rope_quant_store_sparse_attn(
     new_even = even * cos_v - odd * sin_v
     new_odd = odd * cos_v + even * sin_v
     result = tl.interleave(new_even, new_odd)
-    bf16_ptr = (fp8_ptr + NOPE_HEAD_DIM).to(tl.pointer_type(tl.bfloat16))
+    NOPE_DATA_BYTES: tl.constexpr = (
+        NOPE_HEAD_DIM // 2 if USE_FP4_CACHE else NOPE_HEAD_DIM
+    )
+    bf16_ptr = (value_ptr + NOPE_DATA_BYTES).to(tl.pointer_type(tl.bfloat16))
     rope_local = block - NOPE_HEAD_DIM
     is_rope = (block >= NOPE_HEAD_DIM) & mask
     tl.store(bf16_ptr + rope_local, result.to(tl.bfloat16), mask=is_rope)
@@ -526,6 +561,7 @@ def _launch_two_stage_sparse_attn_compressor(
     quant_block: int,
     token_stride: int,
     scale_dim: int,
+    use_fp4_cache: bool,
     head_dim: int,
     rope_head_dim: int,
     num_actual: int,
@@ -573,6 +609,7 @@ def _launch_two_stage_sparse_attn_compressor(
         TOKEN_STRIDE=token_stride,
         SCALE_DIM=scale_dim,
         KV_BLOCK_STRIDE=kv_cache.stride(0),
+        USE_FP4_CACHE=use_fp4_cache,
     )
 
 
@@ -628,6 +665,7 @@ def compress_norm_rope_store_two_stage_triton(
             quant_block=quant_block,
             token_stride=token_stride,
             scale_dim=scale_dim,
+            use_fp4_cache=use_fp4_cache,
             head_dim=head_dim,
             rope_head_dim=rope_head_dim,
             num_actual=num_prefills,
