@@ -20,7 +20,18 @@ from vllm.model_executor.model_loader.gguf_dsv4_plan import (
     GGUFTensorLoadPlan,
 )
 
-_QUANTIZED_GGUF_TYPES = {"Q8_0", "Q2_K", "IQ2_XXS"}
+_QUANTIZED_GGUF_TYPES = {
+    "Q8_0",
+    "Q2_K",
+    "Q4_K",
+    "Q5_K",
+    "Q6_K",
+    "IQ1_S",
+    "IQ1_M",
+    "IQ2_XXS",
+    "IQ3_XXS",
+    "MXFP4",
+}
 _SOURCE_TORCH_DTYPES = {
     "F32": torch.float32,
     "F16": torch.float16,
