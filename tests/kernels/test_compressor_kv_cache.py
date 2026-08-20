@@ -584,23 +584,7 @@ def _reference_kv_compress_norm_rope(
 
 @pytest.mark.parametrize("num_tokens", [1, 7, 32])
 @pytest.mark.parametrize("kv_block_size", [16, 32])
-@pytest.mark.parametrize(
-    "use_fp4",
-    [
-        False,
-        # The MXFP4 kernel emits Blackwell-only PTX
-        # (cvt.rn.satfinite.e2m1x2.f32); ptxas exits 255 on older archs.
-        # Production double-gates this path at SM100
-        # (nvidia/model.py use_fp4_indexer_cache validation).
-        pytest.param(
-            True,
-            marks=pytest.mark.skipif(
-                not current_platform.has_device_capability(100),
-                reason="MXFP4 indexer cache kernel requires SM100+",
-            ),
-        ),
-    ],
-)
+@pytest.mark.parametrize("use_fp4", [False, True])
 def test_fused_kv_insert_indexer(num_tokens: int, kv_block_size: int, use_fp4: bool):
     """Fused K compress+norm+rope+quant+insert for the indexer KV cache."""
     HEAD_DIM = 128
@@ -685,6 +669,11 @@ def test_fused_kv_insert_indexer(num_tokens: int, kv_block_size: int, use_fp4: b
         TOKEN_STRIDE=TOKEN_STRIDE,
         SCALE_DIM=SCALE_DIM,
         KV_BLOCK_STRIDE=kv_cache.stride(0),
+        **(
+            {"USE_SOFTWARE_E2M1": not current_platform.has_device_capability(100)}
+            if use_fp4
+            else {}
+        ),
         num_warps=1,
     )
 
@@ -717,6 +706,22 @@ def test_fused_kv_insert_indexer(num_tokens: int, kv_block_size: int, use_fp4: b
             assert torch.equal(scale_actual, scale[i]), (
                 f"token {i}: ue8m0 {scale_actual.tolist()} != {scale[i].tolist()}"
             )
+
+        gathered_values = torch.empty_like(k_quant)
+        gathered_scales = torch.empty_like(scale)
+        gather_block_table = torch.arange(
+            kv_n_blocks, dtype=torch.int32, device=device
+        ).unsqueeze(0)
+        cu_seq_lens = torch.tensor([0, num_tokens], dtype=torch.int32, device=device)
+        ops.cp_gather_indexer_k_quant_cache(
+            kv_cache.view(kv_n_blocks, kv_block_size, TOKEN_STRIDE + SCALE_DIM),
+            gathered_values,
+            gathered_scales,
+            gather_block_table,
+            cu_seq_lens,
+        )
+        assert torch.equal(gathered_values, k_quant)
+        assert torch.equal(gathered_scales, scale)
 
     else:
         k_quant = k_quant.view(torch.uint8)

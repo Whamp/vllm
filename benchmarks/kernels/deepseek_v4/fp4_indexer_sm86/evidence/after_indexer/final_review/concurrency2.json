@@ -1,0 +1,183 @@
+{
+  "concurrency": 2,
+  "max_tokens": 512,
+  "measured": [
+    {
+      "aggregate_tps": 122.27352501462173,
+      "per_stream_tps": [
+        61.23718687817026,
+        61.14331330844472
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.360932728974149
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.37376930192113
+        }
+      ],
+      "run": 100,
+      "wall_s": 8.3746665508952
+    },
+    {
+      "aggregate_tps": 122.21605908375064,
+      "per_stream_tps": [
+        61.11216060300008,
+        61.306592416756736
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.378037937916815
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.35146726993844
+        }
+      ],
+      "run": 101,
+      "wall_s": 8.378604314988479
+    },
+    {
+      "aggregate_tps": 122.25764719136194,
+      "per_stream_tps": [
+        61.132899614542495,
+        61.32768942247778
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.375195733038709
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.348594326991588
+        }
+      ],
+      "run": 102,
+      "wall_s": 8.375754184089601
+    },
+    {
+      "aggregate_tps": 122.3630698706864,
+      "per_stream_tps": [
+        61.375487430701305,
+        61.18923026488209
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.342092607868835
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.367485549068078
+        }
+      ],
+      "run": 103,
+      "wall_s": 8.36853799992241
+    },
+    {
+      "aggregate_tps": 122.3870185237015,
+      "per_stream_tps": [
+        61.39123193370046,
+        61.200676738994446
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.339953180169687
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.365920562995598
+        }
+      ],
+      "run": 104,
+      "wall_s": 8.36690044705756
+    }
+  ],
+  "model": "deepseek-v4-flash-0731-gguf-tp",
+  "schema_version": 1,
+  "summary": {
+    "aggregate_tps_cv": 0.0005937137808186243,
+    "aggregate_tps_mean": 122.29946393682444,
+    "per_stream_tps_mean": 61.24164686116704
+  },
+  "warmups": [
+    {
+      "aggregate_tps": 91.04350465739785,
+      "per_stream_tps": [
+        45.53113225096207,
+        45.59890762074766
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 11.24505310296081
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 11.228339157998562
+        }
+      ],
+      "run": 0,
+      "wall_s": 11.247370186960325
+    },
+    {
+      "aggregate_tps": 122.2674092101187,
+      "per_stream_tps": [
+        61.32859374239666,
+        61.14039959501961
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.34847122291103
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.374168363166973
+        }
+      ],
+      "run": 1,
+      "wall_s": 8.375085450941697
+    },
+    {
+      "aggregate_tps": 122.26287107765438,
+      "per_stream_tps": [
+        61.13669016090302,
+        61.33185091111312
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.374676461098716
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.34802785818465
+        }
+      ],
+      "run": 2,
+      "wall_s": 8.375396315939724
+    }
+  ]
+}

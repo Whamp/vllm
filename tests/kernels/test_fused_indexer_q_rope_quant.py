@@ -24,7 +24,6 @@ from vllm.model_executor.layers.quantization.utils.fp8_utils import (
     per_token_group_quant_fp8,
 )
 from vllm.models.deepseek_v4.common.ops import fused_indexer_q_rope_quant
-from vllm.platforms import current_platform
 from vllm.utils.import_utils import is_cutedsl_supported
 
 HEAD_DIM = 128
@@ -127,23 +126,7 @@ def _reference(
 
 @pytest.mark.parametrize("num_tokens", [1, 7, 32, 257, 1023])
 @pytest.mark.parametrize("cache_dtype", [torch.float32, torch.bfloat16])
-@pytest.mark.parametrize(
-    "use_fp4",
-    [
-        False,
-        # The MXFP4 kernel emits Blackwell-only PTX
-        # (cvt.rn.satfinite.e2m1x2.f32); ptxas exits 255 on older archs.
-        # Production double-gates this path at SM100 (nvidia/model.py
-        # use_fp4_indexer_cache validation), same as the compressor suite.
-        pytest.param(
-            True,
-            marks=pytest.mark.skipif(
-                not current_platform.has_device_capability(100),
-                reason="MXFP4 indexer q kernel requires SM100+",
-            ),
-        ),
-    ],
-)
+@pytest.mark.parametrize("use_fp4", [False, True])
 @pytest.mark.parametrize("use_cutedsl", [False, True])
 @torch.inference_mode()
 def test_fused_indexer_q_rope_quant_matches_unfused(
@@ -241,3 +224,69 @@ def test_fused_indexer_q_rope_quant_matches_unfused(
         f"weights mismatch: max abs diff "
         f"{(weights_ref - weights_fused).abs().max().item()}"
     )
+
+
+def test_fused_indexer_mxfp4_is_cuda_graph_deterministic():
+    num_tokens = 7
+    device = "cuda"
+    torch.manual_seed(13)
+    q = torch.randn(num_tokens, N_HEAD, HEAD_DIM, dtype=torch.bfloat16, device=device)
+    positions = torch.randint(
+        0, MAX_POS, (num_tokens,), dtype=torch.int64, device=device
+    )
+    cos_sin_cache = torch.randn(MAX_POS, ROPE_DIM, device=device)
+    weights = torch.randn(num_tokens, N_HEAD, dtype=torch.bfloat16, device=device)
+    q_ref, weights_ref = _reference(
+        positions,
+        q,
+        cos_sin_cache,
+        weights,
+        HEAD_DIM**-0.5,
+        N_HEAD**-0.5,
+        use_fp4=True,
+    )
+    q_values_ref, q_scales_ref = q_ref
+    output_buffers = (
+        torch.empty_like(q_values_ref),
+        torch.empty_like(q_scales_ref)
+        .view(torch.uint8)
+        .reshape(num_tokens, N_HEAD, -1),
+        torch.empty_like(weights_ref),
+    )
+
+    with mock.patch(
+        "vllm.models.deepseek_v4.common.ops.fused_indexer_q.is_cutedsl_supported",
+        return_value=False,
+    ):
+        fused_indexer_q_rope_quant(
+            positions,
+            q,
+            cos_sin_cache,
+            weights,
+            HEAD_DIM**-0.5,
+            N_HEAD**-0.5,
+            use_fp4=True,
+            output_buffers=output_buffers,
+        )
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph):
+            graph_outputs = fused_indexer_q_rope_quant(
+                positions,
+                q,
+                cos_sin_cache,
+                weights,
+                HEAD_DIM**-0.5,
+                N_HEAD**-0.5,
+                use_fp4=True,
+                output_buffers=output_buffers,
+            )
+
+    graph.replay()
+    outputs = (*graph_outputs[0], graph_outputs[1])
+    first_replay = tuple(output.clone() for output in outputs)
+    graph.replay()
+    for output, first in zip(outputs, first_replay):
+        torch.testing.assert_close(output, first, atol=0, rtol=0)
+    assert torch.equal(outputs[0], q_values_ref)
+    assert torch.equal(outputs[1], q_scales_ref)
+    assert torch.equal(outputs[2], weights_ref)

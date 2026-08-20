@@ -2475,7 +2475,7 @@ def get_kv_cache_configs(
             zip(kv_cache_configs, available_memory)
         )
     ]
-    logger.info(
+    logger.debug(
         "KV cache allocation report: %s",
         json.dumps({"workers": allocation_reports}, sort_keys=True),
     )
