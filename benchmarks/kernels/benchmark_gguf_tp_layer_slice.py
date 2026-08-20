@@ -314,7 +314,10 @@ class GGUFDecoderLayerSlice:
 
 
 def capture_and_time_slice(
-    layer_slice: GGUFDecoderLayerSlice, iterations: int, warmup: int
+    layer_slice: GGUFDecoderLayerSlice,
+    iterations: int,
+    warmup: int,
+    profile: bool = False,
 ) -> tuple[float, torch.Tensor]:
     """Capture one static layer shape and return rank-local event timing."""
     for _ in range(3):
@@ -332,6 +335,10 @@ def capture_and_time_slice(
         graph.replay()
     torch.accelerator.synchronize()
     dist.barrier()
+    if profile:
+        torch.cuda.cudart().cudaProfilerStart()
+        torch.cuda.nvtx.range_push("gguf_tp_decode_layer_slice_replays")
+    dist.barrier()
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
     start.record()
@@ -339,6 +346,10 @@ def capture_and_time_slice(
         graph.replay()
     end.record()
     torch.accelerator.synchronize()
+    dist.barrier()
+    if profile:
+        torch.cuda.nvtx.range_pop()
+        torch.cuda.cudart().cudaProfilerStop()
     dist.barrier()
     elapsed_ms = start.elapsed_time(end) / iterations
     if not torch.isfinite(graph_output).all():
@@ -351,6 +362,11 @@ def main() -> None:
     parser.add_argument("--decode-iterations", type=int, default=2000)
     parser.add_argument("--prefill-iterations", type=int, default=100)
     parser.add_argument("--warmup", type=int, default=50)
+    parser.add_argument(
+        "--profile-decode",
+        action="store_true",
+        help="Bracket only indexed-decode graph replays with cudaProfilerStart/Stop",
+    )
     parser.add_argument("--output-dir", required=True)
     args = parser.parse_args()
 
@@ -368,7 +384,10 @@ def main() -> None:
     ):
         layer_slice = GGUFDecoderLayerSlice(token_count, grouped, weights, device)
         elapsed_ms, output = capture_and_time_slice(
-            layer_slice, iterations, args.warmup
+            layer_slice,
+            iterations,
+            args.warmup,
+            profile=args.profile_decode and token_count == 1,
         )
         if not torch.isfinite(output).all():
             raise RuntimeError("GGUF TP4 layer slice produced non-finite output")
