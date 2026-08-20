@@ -12,6 +12,7 @@ from vllm.forward_context import get_forward_context
 from vllm.model_executor.layers.attention_layer_base import AttentionLayerBase
 from vllm.model_executor.layers.layernorm import RMSNorm
 from vllm.model_executor.layers.linear import MergedColumnParallelLinear
+from vllm.models.deepseek_v4.cache_layout import get_deepseek_v4_cache_layout
 from vllm.models.deepseek_v4.common.ops.fused_compress_quant_cache import (
     compress_norm_rope_store_triton,
     compress_norm_rope_store_two_stage_triton,
@@ -190,17 +191,19 @@ class CompressorStateCache(torch.nn.Module, AttentionLayerBase):
             raise ValueError(f"Invalid compress ratio: {compress_ratio}")
 
     def get_kv_cache_spec(self, vllm_config: VllmConfig) -> KVCacheSpec:
-        # fp8_ds_mla is the UE8M0 paged layout and needs 576B alignment. Plain
-        # full-cache rows share state pages with contiguous KV pages, so padding
-        # would break page matching.
-        uses_fp8_ds_mla_layout = vllm_config.cache_config.cache_dtype == "fp8_ds_mla"
+        cache_dtype = vllm_config.cache_config.cache_dtype
+        layout = (
+            get_deepseek_v4_cache_layout(cache_dtype)
+            if cache_dtype in ("fp8_ds_mla", "fp4_ds_mla")
+            else None
+        )
         return SlidingWindowMLASpec(  # only has one vector instead of K + V
             block_size=self.block_size,
             num_kv_heads=1,
             head_size=self.state_dim,
             dtype=self.dtype,
             sliding_window=self.sliding_window,
-            alignment=576 if uses_fp8_ds_mla_layout else 512,
+            alignment=layout.block_alignment if layout is not None else 512,
         )
 
     def forward(self): ...
@@ -239,7 +242,10 @@ class DeepseekCompressor(nn.Module):
         self.rotate = rotate
         self.prefix = prefix
         self.k_cache_prefix = k_cache_prefix
-        self.use_fp4_cache = use_fp4_cache
+        cache_dtype = vllm_config.cache_config.cache_dtype
+        self.use_fp4_cache = use_fp4_cache or (
+            head_dim == 512 and cache_dtype == "fp4_ds_mla"
+        )
         self.eager_scratch_pool = eager_scratch_pool
 
         config = vllm_config.model_config.hf_config
@@ -307,12 +313,16 @@ class DeepseekCompressor(nn.Module):
         )
 
         if self.head_dim == 512:
-            assert not use_fp4_cache, (
-                "MXFP4 cache is only supported for indexer (head=128)"
-            )
-            self._quant_block = 64
-            self._token_stride = self.nope_head_dim + self.rope_head_dim * 2
-            self._scale_dim = self.nope_head_dim // 64 + 1  # 7 real + 1 pad
+            if self.use_fp4_cache:
+                layout = get_deepseek_v4_cache_layout("fp4_ds_mla")
+                self._quant_block = layout.quant_group_size
+                self._token_stride = layout.token_data_bytes
+                self._scale_dim = layout.scale_bytes
+            else:
+                layout = get_deepseek_v4_cache_layout("fp8_ds_mla")
+                self._quant_block = layout.quant_group_size
+                self._token_stride = layout.token_data_bytes
+                self._scale_dim = layout.scale_bytes
         elif self.head_dim == 128:
             if use_fp4_cache:
                 self._quant_block = MXFP4_BLOCK_SIZE
@@ -420,7 +430,7 @@ class DeepseekCompressor(nn.Module):
         # cutedsl (head=512) accepts the full-cache flags; triton (indexer/AMD)
         # does not, so the two callables have different signatures.
         compress_norm_rope_store_fn: Any
-        if is_cutedsl_supported() and self.head_dim == 512:
+        if is_cutedsl_supported() and self.head_dim == 512 and not self.use_fp4_cache:
             from .nvidia.ops.sparse_attn_compress_cutedsl import (
                 compress_norm_rope_store_cutedsl,
             )

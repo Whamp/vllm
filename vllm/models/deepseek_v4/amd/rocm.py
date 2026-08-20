@@ -626,20 +626,21 @@ class DeepseekV4ROCMAiterMLAAttention(DeepseekV4Attention):
         attn_metadata = forward_context.attn_metadata
 
         if attn_metadata is None:
-            # Warmup dummy run: no real metadata. Reserve the same bf16
-            # gather workspace _forward_prefill would; the dequantize / topk
-            # / sparse_fwd kernels are skipped this step.
-            swa_only = self.compress_ratio <= 1
-            N = (
-                0
-                if swa_only
-                else (self.max_model_len + self.compress_ratio - 1)
-                // self.compress_ratio
-            )
-            M = N + self.window_size + self.max_num_batched_tokens
-            current_workspace_manager().get_simultaneous(
-                ((self.PREFILL_CHUNK_SIZE, M, q.shape[-1]), torch.bfloat16),
-            )
+            # Warmup dummy run: no real metadata. Reserve the same BF16 gather
+            # workspace used by the Triton prefill path. Native paged-cache
+            # prefill implementations do not materialize this workspace.
+            if not self._uses_native_sparse_prefill():
+                swa_only = self.compress_ratio <= 1
+                N = (
+                    0
+                    if swa_only
+                    else (self.max_model_len + self.compress_ratio - 1)
+                    // self.compress_ratio
+                )
+                M = N + self.window_size + self.max_num_batched_tokens
+                current_workspace_manager().get_simultaneous(
+                    ((self.PREFILL_CHUNK_SIZE, M, q.shape[-1]), torch.bfloat16),
+                )
             output.zero_()
             return
 
@@ -681,6 +682,9 @@ class DeepseekV4ROCMAiterMLAAttention(DeepseekV4Attention):
                 swa_only=swa_only,
                 output=output[:num_decode_tokens],
             )
+
+    def _uses_native_sparse_prefill(self) -> bool:
+        return False
 
     def _forward_decode(
         self,
@@ -891,6 +895,7 @@ class DeepseekV4ROCMAiterMLAAttention(DeepseekV4Attention):
                     block_size=compressed_block_size,
                     offset=0,
                     use_fnuz=False,
+                    cache_dtype=self.kv_cache_dtype,
                 )
 
             dequantize_and_gather_k_cache(
@@ -901,7 +906,12 @@ class DeepseekV4ROCMAiterMLAAttention(DeepseekV4Attention):
                 block_table=chunk.swa_block_table,
                 block_size=swa_metadata.block_size,
                 offset=N,
-                use_fnuz=current_platform.is_fp8_fnuz(),
+                use_fnuz=(
+                    current_platform.is_fp8_fnuz()
+                    if self.kv_cache_dtype == "fp8_ds_mla"
+                    else False
+                ),
+                cache_dtype=self.kv_cache_dtype,
             )
 
             if block_m:

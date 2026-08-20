@@ -19,7 +19,7 @@ def test_flash_mla_decode_dependency_fails_closed(monkeypatch) -> None:
     monkeypatch.setattr(importlib, "import_module", missing_flash_mla)
 
     with pytest.raises(RuntimeError, match="FlashMLA decode was enabled"):
-        ampere_sparse.load_ampere_flash_mla_decode()
+        ampere_sparse.load_ampere_flash_mla_decode("fp8_ds_mla")
 
 
 def test_flash_mla_decode_dependency_requires_fp8_operator(monkeypatch) -> None:
@@ -30,7 +30,7 @@ def test_flash_mla_decode_dependency_requires_fp8_operator(monkeypatch) -> None:
     )
 
     with pytest.raises(RuntimeError, match="sparse_mla_decode_fp8"):
-        ampere_sparse.load_ampere_flash_mla_decode()
+        ampere_sparse.load_ampere_flash_mla_decode("fp8_ds_mla")
 
 
 def test_flash_mla_decode_dependency_returns_operator(monkeypatch) -> None:
@@ -41,7 +41,49 @@ def test_flash_mla_decode_dependency_returns_operator(monkeypatch) -> None:
         lambda name: SimpleNamespace(sparse_mla_decode_fp8=expected),
     )
 
-    assert ampere_sparse.load_ampere_flash_mla_decode() is expected
+    assert ampere_sparse.load_ampere_flash_mla_decode("fp8_ds_mla") is expected
+
+
+def test_flash_mla_decode_loads_fp4_operator(monkeypatch) -> None:
+    expected = Mock()
+    monkeypatch.setattr(
+        importlib,
+        "import_module",
+        lambda name: SimpleNamespace(sparse_mla_decode_fp4=expected),
+    )
+
+    assert ampere_sparse.load_ampere_flash_mla_decode("fp4_ds_mla") is expected
+
+
+def test_flash_mla_prefill_loads_fp4_operator(monkeypatch) -> None:
+    expected = Mock()
+    monkeypatch.setattr(
+        importlib,
+        "import_module",
+        lambda name: SimpleNamespace(sparse_mla_prefill_fp4=expected),
+    )
+
+    assert ampere_sparse.load_ampere_flash_mla_prefill("fp4_ds_mla") is expected
+
+
+def test_flash_mla_prefill_rejects_fp8_cache() -> None:
+    with pytest.raises(ValueError, match="supports fp4_ds_mla"):
+        ampere_sparse.load_ampere_flash_mla_prefill("fp8_ds_mla")
+
+
+def test_fp4_cache_requires_native_flash_mla_decode(monkeypatch) -> None:
+    monkeypatch.setattr(ampere_sparse.envs, "VLLM_DSV4_FLASH_MLA_DECODE", False)
+    layer = object.__new__(ampere_sparse.DeepseekV4AmpereMLAAttention)
+    torch.nn.Module.__init__(layer)
+    layer.kv_cache_dtype = "fp4_ds_mla"
+    monkeypatch.setattr(
+        ampere_sparse.DeepseekV4ROCMAiterMLAAttention,
+        "__init__",
+        lambda self, *args, **kwargs: None,
+    )
+
+    with pytest.raises(ValueError, match="requires native AppMana FlashMLA"):
+        ampere_sparse.DeepseekV4AmpereMLAAttention.__init__(layer)
 
 
 def test_flash_mla_decode_is_opt_in(monkeypatch) -> None:
@@ -51,6 +93,7 @@ def test_flash_mla_decode_is_opt_in(monkeypatch) -> None:
 
     layer = object.__new__(ampere_sparse.DeepseekV4AmpereMLAAttention)
     torch.nn.Module.__init__(layer)
+    layer.kv_cache_dtype = "fp8_ds_mla"
     monkeypatch.setattr(
         ampere_sparse.DeepseekV4ROCMAiterMLAAttention,
         "__init__",
@@ -196,13 +239,79 @@ def test_flash_mla_decode_dispatches_c4a_global_indices(monkeypatch) -> None:
     torch.testing.assert_close(output, torch.full_like(output, 2.0))
 
 
-def test_flash_mla_decode_rejects_non_fp8_cache() -> None:
+def test_flash_mla_prefill_dispatches_c4a_global_indices(monkeypatch) -> None:
+    flash_prefill = Mock(return_value=torch.full((2, 64, 512), 4.0))
+    layer = object.__new__(ampere_sparse.DeepseekV4AmpereMLAAttention)
+    torch.nn.Module.__init__(layer)
+    layer._flash_mla_prefill = flash_prefill
+    layer.kv_cache_dtype = "fp4_ds_mla"
+    layer.compress_ratio = 4
+    layer.scale = 0.125
+    layer.attn_sink = None
+    layer.eager_scratch_pool = None
+    layer.topk_indices_buffer = torch.tensor(
+        [[99, 99], [1, 2], [3, -1]], dtype=torch.int32
+    )
+
+    q = torch.zeros((2, 64, 512), dtype=torch.bfloat16)
+    output = torch.empty_like(q)
+    swa_cache = torch.zeros((4, 64, 368), dtype=torch.uint8)
+    compressed_cache = torch.zeros((3, 64, 368), dtype=torch.uint8)
+    swa_indices = torch.tensor([[[4, 5]], [[6, -1]]], dtype=torch.int32)
+    swa_lens = torch.tensor([2, 1], dtype=torch.int32)
+    swa_metadata = SimpleNamespace(
+        num_prefill_tokens=2,
+        num_decode_tokens=1,
+        prefill_swa_indices=swa_indices,
+        prefill_swa_lens=swa_lens,
+        token_to_req_indices=torch.tensor([0, 1, 1], dtype=torch.int32),
+        is_valid_token=torch.tensor([True, True, True]),
+    )
+    attn_metadata = SimpleNamespace(
+        block_size=256,
+        block_table=torch.tensor([[0, 1], [2, 3]], dtype=torch.int32),
+    )
+    global_indices = torch.tensor([[8, 9], [10, -1]], dtype=torch.int32)
+    global_lens = torch.tensor([2, 1], dtype=torch.int32)
+    map_topk = Mock(return_value=(global_indices, global_lens))
+    monkeypatch.setattr(
+        ampere_sparse,
+        "compute_global_topk_indices_and_lens",
+        map_topk,
+    )
+
+    layer._forward_prefill(
+        q=q,
+        positions=torch.tensor([10, 11]),
+        compressed_k_cache=compressed_cache,
+        swa_k_cache=swa_cache,
+        output=output,
+        attn_metadata=attn_metadata,
+        swa_metadata=swa_metadata,
+    )
+
+    torch.testing.assert_close(output, torch.full_like(output, 4.0))
+    map_call = map_topk.call_args.args
+    torch.testing.assert_close(map_call[0], layer.topk_indices_buffer[1:3])
+    torch.testing.assert_close(map_call[1], torch.tensor([1, 1], dtype=torch.int32))
+    assert map_call[2] is attn_metadata.block_table
+    assert map_call[3] == 64
+    call = flash_prefill.call_args.kwargs
+    assert call["q"] is q
+    assert call["swa_cache"] is swa_cache
+    assert call["extra_cache"] is compressed_cache
+    torch.testing.assert_close(call["swa_indices"], swa_indices)
+    torch.testing.assert_close(call["extra_indices"], global_indices)
+    torch.testing.assert_close(call["extra_lens"], global_lens)
+
+
+def test_flash_mla_decode_rejects_unsupported_cache() -> None:
     layer = object.__new__(ampere_sparse.DeepseekV4AmpereMLAAttention)
     torch.nn.Module.__init__(layer)
     layer._flash_mla_decode = Mock()
     layer.kv_cache_dtype = "bfloat16"
 
-    with pytest.raises(ValueError, match="requires fp8_ds_mla"):
+    with pytest.raises(ValueError, match="requires fp8_ds_mla or fp4_ds_mla"):
         layer._forward_decode(
             q=Mock(),
             kv_cache=Mock(),

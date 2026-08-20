@@ -47,6 +47,26 @@ def _fp32x2_to_fp4x2(x_lo, x_hi):
 
 
 @triton.jit
+def _encode_e2m1_software(x):
+    """Software E2M1 round-to-nearest-even for GPUs without native FP4."""
+    magnitude = tl.abs(x)
+    code = (magnitude > 0.25).to(tl.uint8)
+    code = tl.where(magnitude >= 0.75, 2, code)
+    code = tl.where(magnitude > 1.25, 3, code)
+    code = tl.where(magnitude >= 1.75, 4, code)
+    code = tl.where(magnitude > 2.5, 5, code)
+    code = tl.where(magnitude >= 3.5, 6, code)
+    code = tl.where(magnitude > 5.0, 7, code)
+    return code | tl.where(x < 0.0, 0x8, 0x0).to(tl.uint8)
+
+
+@triton.jit
+def _fp32x2_to_fp4x2_software(x_lo, x_hi):
+    """Pack two E2M1 values without Blackwell-only conversion instructions."""
+    return _encode_e2m1_software(x_lo) | (_encode_e2m1_software(x_hi) << 4)
+
+
+@triton.jit
 def _quantize_mxfp4_pair(x_lo, x_hi):
     """Quantize a block of MXFP4_BLOCK_SIZE fp32 values given as two
     interleaved halves (x_lo = values at even positions in the block,

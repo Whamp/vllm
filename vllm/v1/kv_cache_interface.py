@@ -44,6 +44,7 @@ class KVQuantMode(IntEnum):
     INT4_PER_TOKEN_HEAD = 4  # packed 2×int4/byte, RHT + asymmetric zp
     NVFP4 = 5  # packed fp4 data + fp8 block scales
     TURBOQUANT = 6  # Hadamard-rotated Lloyd-Max quant, packed K+V per slot
+    FP4_DS_MLA = 7  # DeepSeek V4 E2M1 NoPE + BF16 RoPE paged layout
 
     @property
     def is_per_token_head(self) -> bool:
@@ -75,6 +76,8 @@ def get_kv_quant_mode(kv_cache_dtype: str) -> KVQuantMode:
         return KVQuantMode.FP8_PER_TOKEN_HEAD
     if kv_cache_dtype == "nvfp4":
         return KVQuantMode.NVFP4
+    if kv_cache_dtype == "fp4_ds_mla":
+        return KVQuantMode.FP4_DS_MLA
     if isinstance(kv_cache_dtype, str) and kv_cache_dtype.startswith("turboquant_"):
         return KVQuantMode.TURBOQUANT
     if isinstance(kv_cache_dtype, str) and kv_cache_dtype.startswith("fp8"):
@@ -393,6 +396,9 @@ class MLAAttentionSpec(FullAttentionSpec):
     alignment: int | None = None  # Default to None for no padding.
     compress_ratio: int = 1  # Default to 1 for no compression.
     model_version: str | None = None
+    # Model-owned physical bytes for custom paged rows whose semantic head size
+    # is not their storage width (for example DeepSeek V4 FP8/FP4 DS-MLA).
+    physical_row_bytes: int | None = None
     # Marks draft groups that flatten a non-causal query block into decode rows.
     non_causal_multi_token_decode: bool = False
 
@@ -406,11 +412,9 @@ class MLAAttentionSpec(FullAttentionSpec):
 
     @property
     def real_page_size_bytes(self) -> int:
+        if self.physical_row_bytes is not None:
+            return self.storage_block_size * self.physical_row_bytes
         if self.cache_dtype_str == "fp8_ds_mla":
-            if self.model_version == "deepseek_v4":
-                # DeepseekV4: 448B NoPE + 128B RoPE + 8B fp8 scale = 584B per token.
-                # head_size stays semantic (512); bytes are determined here.
-                return self.storage_block_size * 584
             # V3.2 main MLA: 656-byte custom layout (kv_lora_rank=512 +
             # qk_rope_head_dim=64, head_size=576). See flashmla_sparse.py.
             return self.block_size * 656
@@ -433,16 +437,18 @@ class MLAAttentionSpec(FullAttentionSpec):
         cache_dtype_str_set = set(spec.cache_dtype_str for spec in specs)
         compress_ratio_set = set(spec.compress_ratio for spec in specs)
         model_version_set = set(spec.model_version for spec in specs)
+        physical_row_bytes_set = set(spec.physical_row_bytes for spec in specs)
         block_stride_set = set(spec.indexes_kv_by_block_stride for spec in specs)
         assert (
             len(cache_dtype_str_set) == 1
             and len(compress_ratio_set) == 1
             and len(model_version_set) == 1
+            and len(physical_row_bytes_set) == 1
             and len(block_stride_set) == 1
         ), (
             "All attention layers in the same KV cache group must use the same "
-            "quantization method, compress ratio, model version, and KV block "
-            "stride indexing."
+            "quantization method, compress ratio, model version, physical row "
+            "size, and KV block stride indexing."
         )
         merged_spec = cls(
             block_size=specs[0].block_size,
@@ -455,6 +461,7 @@ class MLAAttentionSpec(FullAttentionSpec):
             cache_dtype_str=cache_dtype_str_set.pop(),
             compress_ratio=compress_ratio_set.pop(),
             model_version=model_version_set.pop(),
+            physical_row_bytes=physical_row_bytes_set.pop(),
             non_causal_multi_token_decode=any(
                 spec.non_causal_multi_token_decode for spec in specs
             ),
@@ -636,6 +643,9 @@ class SlidingWindowMLASpec(SlidingWindowSpec):
     alignment: int | None = None  # Default to None for no padding.
     compress_ratio: int = 1
     model_version: str | None = None
+    # Model-owned physical bytes for custom paged rows whose semantic head size
+    # is not their storage width (for example DeepSeek V4 FP8/FP4 DS-MLA).
+    physical_row_bytes: int | None = None
 
     def __post_init__(self):
         _apply_alignment_padding(self)
@@ -646,6 +656,8 @@ class SlidingWindowMLASpec(SlidingWindowSpec):
 
     @property
     def real_page_size_bytes(self) -> int:
+        if self.physical_row_bytes is not None:
+            return self.storage_block_size * self.physical_row_bytes
         if self.model_version == "deepseek_v4" and self.cache_dtype_str == "fp8_ds_mla":
             # DeepseekV4 FlashMLA: 448B NoPE + 128B RoPE + 8B fp8 scale = 584B
             # per token. FlashInfer's contiguous bf16/fp8 cache falls through to
@@ -670,18 +682,20 @@ class SlidingWindowMLASpec(SlidingWindowSpec):
         cache_dtype_str_set = set(spec.cache_dtype_str for spec in specs)
         compress_ratio_set = set(spec.compress_ratio for spec in specs)
         model_version_set = set(spec.model_version for spec in specs)
+        physical_row_bytes_set = set(spec.physical_row_bytes for spec in specs)
         sliding_window_set = set(spec.sliding_window for spec in specs)
         block_stride_set = set(spec.indexes_kv_by_block_stride for spec in specs)
         assert (
             len(cache_dtype_str_set) == 1
             and len(compress_ratio_set) == 1
             and len(model_version_set) == 1
+            and len(physical_row_bytes_set) == 1
             and len(sliding_window_set) == 1
             and len(block_stride_set) == 1
         ), (
             "All attention layers in the same KV cache group must use the same "
-            "quantization method, compress ratio, model version, sliding "
-            "window size, and KV block stride indexing."
+            "quantization method, compress ratio, model version, physical row "
+            "size, sliding window size, and KV block stride indexing."
         )
         return cls(
             block_size=specs[0].block_size,
@@ -694,6 +708,7 @@ class SlidingWindowMLASpec(SlidingWindowSpec):
             cache_dtype_str=cache_dtype_str_set.pop(),
             compress_ratio=compress_ratio_set.pop(),
             model_version=model_version_set.pop(),
+            physical_row_bytes=physical_row_bytes_set.pop(),
         )
 
     def is_uniform_with_collection(

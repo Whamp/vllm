@@ -56,6 +56,7 @@ from vllm.model_executor.layers.attention_layer_base import AttentionLayerBase
 from vllm.model_executor.layers.layernorm import RMSNorm
 from vllm.model_executor.layers.quantization import QuantizationConfig
 from vllm.model_executor.models.utils import extract_layer_index
+from vllm.models.deepseek_v4.cache_layout import get_deepseek_v4_cache_layout
 from vllm.models.deepseek_v4.common.rope import build_deepseek_v4_rope
 from vllm.models.deepseek_v4.compressor import DeepseekCompressor
 from vllm.platforms import current_platform
@@ -105,7 +106,7 @@ def _fill_short_context_topk_indices(
 
 
 def _resolve_dsv4_kv_cache_dtype(
-    use_fp8_ds_mla_layout: bool,
+    use_ds_mla_layout: bool,
     kv_cache_dtype: str,
     cache_config: CacheConfig | None,
 ) -> tuple[str, torch.dtype]:
@@ -117,10 +118,13 @@ def _resolve_dsv4_kv_cache_dtype(
     page-size specs pick the 576B per-token slot). Plain-row backends store each
     token's KV row in its element dtype: bf16 or per-tensor FP8 E4M3.
     """
-    if use_fp8_ds_mla_layout:
-        # fp8_ds_mla block format: UE8M0 block-scaled fp8 packed as uint8.
+    if use_ds_mla_layout:
+        if kv_cache_dtype == "fp4_ds_mla":
+            logger.info_once("Using DeepSeek's fp4_ds_mla KV cache format.")
+            return kv_cache_dtype, torch.uint8
+        # FP8 aliases canonicalize to the model-specific UE8M0 layout.
         assert kv_cache_dtype.startswith("fp8"), (
-            f"DeepseekV4 fp8_ds_mla layout only supports fp8 kv-cache, "
+            "DeepSeek V4 DS-MLA layout supports fp8_ds_mla or fp4_ds_mla, "
             f"got {kv_cache_dtype}"
         )
         if kv_cache_dtype != "fp8_ds_mla":
@@ -130,6 +134,8 @@ def _resolve_dsv4_kv_cache_dtype(
             logger.info_once("Using DeepSeek's fp8_ds_mla KV cache format.")
         return kv_cache_dtype, torch.uint8
 
+    if kv_cache_dtype == "fp4_ds_mla":
+        raise ValueError("fp4_ds_mla requires a DeepSeek V4 DS-MLA backend")
     # Plain bf16 / per-tensor fp8 KV row (FlashInfer).
     if kv_cache_dtype.startswith("fp8"):
         return kv_cache_dtype, torch.float8_e4m3fn
@@ -155,7 +161,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
     # = fp8_ds_mla (UE8M0 block-scaled fp8 packed as uint8); False = plain
     # bf16 / per-tensor fp8 KV row. Backends can override the instance hook when
     # a single attention class dispatches across arch-specific layouts.
-    use_fp8_ds_mla_layout: ClassVar[bool] = True
+    use_ds_mla_layout: ClassVar[bool] = True
     # Prefill is processed in fixed-size chunks; this bounds the bf16 kv-gather
     # workspace allocated in _forward_prefill and is also read by the dummy-run
     # path to pre-reserve that workspace.
@@ -189,9 +195,9 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         """Inverse-RoPE + wo_a + wo_b output projection (platform-specific)."""
         raise NotImplementedError
 
-    def _uses_fp8_ds_mla_layout(self) -> bool:
-        """Return whether this instance stores fp8 KV in fp8_ds_mla layout."""
-        return self.use_fp8_ds_mla_layout
+    def _uses_ds_mla_layout(self) -> bool:
+        """Return whether this backend stores model-specific DS-MLA rows."""
+        return self.use_ds_mla_layout
 
     def __init__(
         self,
@@ -358,7 +364,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         # Resolve the kv-cache dtype from this backend's block format. The same
         # resolution drives the SWA cache tensor dtype below.
         self.kv_cache_dtype, self.kv_cache_torch_dtype = _resolve_dsv4_kv_cache_dtype(
-            self._uses_fp8_ds_mla_layout(), cache_config.cache_dtype, cache_config
+            self._uses_ds_mla_layout(), cache_config.cache_dtype, cache_config
         )
 
         self.swa_cache_layer = DeepseekV4SWACache(
@@ -771,14 +777,19 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
 
         # kv is unchanged; attention reads kv solely via swa_kv_cache.
         if cache_dtype == torch.uint8:
-            # fp8_ds_mla UE8M0 paged path. Horizontally fused:
+            # Model-specific FP8/FP4 DS-MLA paged path. Horizontally fused:
             #   Q side:  per-head RMSNorm (no weight) + GPT-J RoPE, zero-filling
             #            the padding head slots.
             #   KV side: GPT-J RoPE + UE8M0 FP8 quant + paged cache insert.
             swa_kv_cache_2d = swa_kv_cache.view(swa_kv_cache.shape[0], -1)
+            use_fp4_cache = self.kv_cache_dtype == "fp4_ds_mla"
             if self.eager_scratch_pool is not None:
                 q_out = self.eager_scratch_pool.q_out(q.shape[0])
-                torch.ops._C.fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert_out(
+                if use_fp4_cache:
+                    insert_out = torch.ops._C.fused_deepseek_v4_qnorm_rope_kv_rope_fp4_quant_insert_out  # noqa: E501
+                else:
+                    insert_out = torch.ops._C.fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert_out  # noqa: E501
+                insert_out(
                     q,
                     kv,
                     q_out,
@@ -791,7 +802,12 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
                     swa_metadata.block_size,
                 )
                 return q_out
-            return torch.ops._C.fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert(
+            insert = (
+                torch.ops._C.fused_deepseek_v4_qnorm_rope_kv_rope_fp4_quant_insert
+                if use_fp4_cache
+                else torch.ops._C.fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert
+            )
+            return insert(
                 q,
                 kv,
                 swa_kv_cache_2d,
@@ -854,19 +870,22 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
             self.compress_ratio <= 1
         ):  # SWA part. Allocated separately as DeepseekV4SWACache.
             return None
-        # fp8_ds_mla is a UE8M0 block-scaled uint8 layout and needs 576B
-        # alignment; plain bf16 / per-tensor fp8 rows use natural element-size
-        # pages.
-        uses_fp8_ds_mla_layout = self.kv_cache_dtype == "fp8_ds_mla"
+        uses_ds_mla_layout = self.kv_cache_dtype in ("fp8_ds_mla", "fp4_ds_mla")
+        layout = (
+            get_deepseek_v4_cache_layout(self.kv_cache_dtype)
+            if uses_ds_mla_layout
+            else None
+        )
         return MLAAttentionSpec(
             block_size=vllm_config.cache_config.block_size,
             num_kv_heads=1,
             head_size=self.head_dim,
-            dtype=torch.uint8 if uses_fp8_ds_mla_layout else self.kv_cache_torch_dtype,
+            dtype=torch.uint8 if uses_ds_mla_layout else self.kv_cache_torch_dtype,
             compress_ratio=self.compress_ratio,
             cache_dtype_str=self.kv_cache_dtype,
-            alignment=576 if uses_fp8_ds_mla_layout else 512,
+            alignment=layout.block_alignment if layout is not None else 512,
             model_version="deepseek_v4",
+            physical_row_bytes=layout.row_bytes if layout is not None else None,
             kv_quant_mode=get_kv_quant_mode(self.kv_cache_dtype),
         )
 

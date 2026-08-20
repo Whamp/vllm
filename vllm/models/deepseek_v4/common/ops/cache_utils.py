@@ -27,11 +27,14 @@ from vllm.model_executor.warmup.jit_warmup_triton_helper import (
     TritonPointerInputVariant,
     TritonWarmupTensor,
 )
+from vllm.models.deepseek_v4.cache_layout import get_deepseek_v4_cache_layout
 from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
 from vllm.utils.import_utils import is_cutedsl_supported
 from vllm.utils.math_utils import next_power_of_2
 from vllm.v1.attention.ops.fp8_sm80 import _decode_fp8_f32, _encode_fp8_u8
+
+from .fused_indexer_q import _fp32x2_to_fp4x2_software
 
 
 @triton.jit
@@ -49,10 +52,12 @@ def quantize_and_insert_k_kernel(
     scale_dim: tl.constexpr,  # 8
     quant_block: tl.constexpr,  # 64 (quantization block size)
     cache_block_size: tl.constexpr,  # 64 (paged cache block size)
-    token_data_size: tl.constexpr,  # 576 bytes per token data
+    token_data_size: tl.constexpr,
+    nope_data_bytes: tl.constexpr,
     block_stride: tl.constexpr,  # total bytes per block (padded)
     fp8_max: tl.constexpr,
-    n_quant_blocks: tl.constexpr,  # 8 (7 real + 1 padding)
+    n_quant_blocks: tl.constexpr,
+    use_fp4: tl.constexpr = False,
     use_fnuz: tl.constexpr = False,
 ):
     """
@@ -98,9 +103,8 @@ def quantize_and_insert_k_kernel(
         cache_block_ptr + cache_block_size * token_data_size + pos_in_block * scale_dim
     )
 
-    # Token data layout: [0:448] fp8, [448:576] bf16
-    token_fp8_ptr = token_data_ptr
-    token_bf16_ptr = token_data_ptr + fp8_dim
+    token_value_ptr = token_data_ptr
+    token_bf16_ptr = token_data_ptr + nope_data_bytes
 
     # ========== Quantize and store FP8 portion (first 448 elements) ==========
     # Using UE8M0 quantization strategy (scale is power of 2, stored as uint8 exponent)
@@ -111,39 +115,38 @@ def quantize_and_insert_k_kernel(
             offsets = qblock_start + tl.arange(0, quant_block)
             mask = offsets < fp8_dim
 
-            # Load bf16 input
-            x = tl.load(input_row_ptr + offsets, mask=mask, other=0.0)
+            x = (
+                tl.load(input_row_ptr + offsets, mask=mask, other=0.0)
+                .to(tl.bfloat16)
+                .to(tl.float32)
+            )
+            block_max = tl.max(tl.abs(x), axis=0)
+            if use_fp4:
+                block_max = tl.maximum(block_max, 6.0 * (2**-126))
+                exponent = tl.ceil(tl.log2(block_max * (1.0 / 6.0)))
+                exponent = tl.minimum(tl.maximum(exponent, -127.0), 127.0)
+                pairs = tl.reshape(x * tl.exp2(-exponent), (quant_block // 2, 2))
+                even, odd = tl.split(pairs)
+                packed = _fp32x2_to_fp4x2_software(even, odd)
+                packed_offset = qblock_idx * (quant_block // 2) + tl.arange(
+                    0, quant_block // 2
+                )
+                tl.store(token_value_ptr + packed_offset, packed)
+            else:
+                block_max = tl.maximum(block_max, 1e-4)
+                exponent = tl.ceil(tl.log2(block_max / fp8_max))
+                x_clamped = tl.clamp(x * tl.exp2(-exponent), -fp8_max, fp8_max)
+                tl.store(
+                    token_value_ptr + offsets,
+                    _encode_fp8_u8(x_clamped, use_fnuz),
+                    mask=mask,
+                )
 
-            # Compute absmax scale (same as CUDA kernel)
-            abs_x = tl.abs(x)
-            block_max = tl.max(abs_x, axis=0)
-            block_max = tl.maximum(block_max, 1e-4)  # Match CUDA: fmaxf(amax, 1e-4)
-
-            # UE8M0: Round scale UP to next power of 2
-            # scale = 2^ceil(log2(block_max / fp8_max))
-            raw_scale = block_max / fp8_max
-            log_scale = tl.log2(raw_scale)
-            exponent = tl.ceil(log_scale)  # Round UP to next integer exponent
-            scale = tl.exp2(exponent)  # scale = 2^exponent (power of 2)
-
-            # Quantize to fp8: fp8_value = bf16_value / scale
-            x_scaled = x / scale
-            x_clamped = tl.clamp(x_scaled, -fp8_max, fp8_max)
-
-            # Convert to fp8 (FNUZ on gfx942, OCP elsewhere) as raw bytes.
-            x_uint8 = _encode_fp8_u8(x_clamped, use_fnuz)
-
-            # Store as uint8 (1 byte each)
-            tl.store(token_fp8_ptr + offsets, x_uint8, mask=mask)
-
-            # UE8M0 scale encoding: stored_value = exponent + 127 (bias)
-            # During dequant: scale = 2^(stored_value - 127)
-            encoded_scale = exponent + 127.0
-            encoded_scale = tl.maximum(tl.minimum(encoded_scale, 255.0), 0.0)
+            encoded_scale = tl.maximum(tl.minimum(exponent + 127.0, 255.0), 0.0)
             tl.store(token_scale_ptr + qblock_idx, encoded_scale.to(tl.uint8))
 
-    # Padding scale at index 7
-    tl.store(token_scale_ptr + 7, tl.zeros((), dtype=tl.uint8))
+    for scale_idx in tl.static_range(n_quant_blocks, scale_dim):
+        tl.store(token_scale_ptr + scale_idx, tl.zeros((), dtype=tl.uint8))
 
     # ========== Store BF16 portion (last 64 elements, no quantization) ==========
     bf16_input_offset = fp8_dim
@@ -163,6 +166,7 @@ def quantize_and_insert_k_cache(
     block_size: int = 64,
     is_ue8m0: bool = True,
     use_fnuz: bool = False,
+    cache_dtype: str = "fp8_ds_mla",
 ):
     """
     Quantize K tensor and insert into paged K cache.
@@ -189,17 +193,21 @@ def quantize_and_insert_k_cache(
     num_tokens = slot_mapping.shape[0]
     block_stride = k_cache.stride(0)  # bytes per block
 
-    TOKEN_FP8_DIM = 448
-    TOKEN_BF16_DIM = 64
-    TOKEN_SCALE_DIM = 8
-    QUANT_BLOCK_SIZE = 64
+    layout = get_deepseek_v4_cache_layout(cache_dtype)
+    use_fp4 = cache_dtype == "fp4_ds_mla"
+    TOKEN_FP8_DIM = layout.nope_dim
+    TOKEN_BF16_DIM = layout.rope_dim
+    TOKEN_SCALE_DIM = layout.scale_bytes
+    QUANT_BLOCK_SIZE = layout.quant_group_size
+    if use_fnuz and use_fp4:
+        raise ValueError("use_fnuz is not valid for fp4_ds_mla")
     if use_fnuz:
         if not current_platform.is_fp8_fnuz():
             raise ValueError("use_fnuz=True requires a platform using FNUZ FP8")
         _, FP8_MAX = get_fp8_min_max()
     else:
         FP8_MAX = torch.finfo(torch.float8_e4m3fn).max
-    TOKEN_DATA_SIZE = TOKEN_FP8_DIM + TOKEN_BF16_DIM * 2
+    TOKEN_DATA_SIZE = layout.token_data_bytes
 
     grid = (num_tokens,)
 
@@ -215,11 +223,24 @@ def quantize_and_insert_k_cache(
         quant_block=QUANT_BLOCK_SIZE,
         cache_block_size=block_size,
         token_data_size=TOKEN_DATA_SIZE,
+        nope_data_bytes=layout.nope_data_bytes,
         block_stride=block_stride,
         fp8_max=FP8_MAX,
-        n_quant_blocks=8,
+        n_quant_blocks=layout.num_scale_groups,
+        use_fp4=use_fp4,
         use_fnuz=use_fnuz,
     )
+
+
+@triton.jit
+def _decode_e2m1_nibble(nibble):
+    magnitude_code = nibble & 0x7
+    magnitude = tl.where(
+        magnitude_code <= 4,
+        magnitude_code.to(tl.float32) * 0.5,
+        tl.where(magnitude_code == 5, 3.0, tl.where(magnitude_code == 6, 4.0, 6.0)),
+    )
+    return tl.where((nibble & 0x8) != 0, -magnitude, magnitude)
 
 
 @triton.jit
@@ -239,11 +260,13 @@ def _dequantize_and_gather_k_kernel(
     scale_dim: tl.constexpr,  # 8
     quant_block: tl.constexpr,  # 64 (quantization block size)
     cache_block_size: tl.constexpr,  # 64 or 128 (paged cache block size)
-    token_data_size: tl.constexpr,  # 576 bytes per token data
+    token_data_size: tl.constexpr,
+    nope_data_bytes: tl.constexpr,
     block_stride: tl.constexpr,  # total bytes per block (padded) int32
     output_dim: tl.constexpr,  # 512
     fp8_max: tl.constexpr,
     fp8_block: tl.constexpr,  # fp8_dim rounded up to a power of two
+    use_fp4: tl.constexpr = False,
     use_fnuz: tl.constexpr = False,
 ):
     batch_idx = tl.program_id(0)
@@ -284,9 +307,8 @@ def _dequantize_and_gather_k_kernel(
             + pos_in_block * scale_dim
         )
 
-        # Token data layout: [0:448] fp8, [448:576] bf16
-        token_fp8_ptr = token_data_ptr
-        token_bf16_ptr = token_data_ptr + fp8_dim
+        token_value_ptr = token_data_ptr
+        token_bf16_ptr = token_data_ptr + nope_data_bytes
 
         # Output pointer for this token (flattened)
         output_row_ptr = out_ptr + batch_idx * out_stride0 + (offset + i) * out_stride1
@@ -300,9 +322,21 @@ def _dequantize_and_gather_k_kernel(
         fp8_offsets = tl.arange(0, fp8_block)
         fp8_mask = fp8_offsets < fp8_dim
 
-        x_uint8 = tl.load(token_fp8_ptr + fp8_offsets, mask=fp8_mask, other=0)
-        # Decode fp8 bytes (FNUZ on gfx942, OCP elsewhere) to f32.
-        x_float = _decode_fp8_f32(x_uint8, use_fnuz)
+        if use_fp4:
+            packed = tl.load(
+                token_value_ptr + fp8_offsets // 2,
+                mask=fp8_mask,
+                other=0,
+            )
+            nibble = tl.where(
+                fp8_offsets % 2 == 0,
+                packed & 0x0F,
+                packed >> 4,
+            )
+            x_float = _decode_e2m1_nibble(nibble)
+        else:
+            x_uint8 = tl.load(token_value_ptr + fp8_offsets, mask=fp8_mask, other=0)
+            x_float = _decode_fp8_f32(x_uint8, use_fnuz)
 
         # UE8M0: scale = 2^(stored_value - 127), one scale per quant_block.
         encoded_scale = tl.load(
@@ -340,13 +374,18 @@ def dequantize_and_gather_k_cache_triton(
     block_size: int,
     offset: int,
     use_fnuz: bool = False,
+    cache_dtype: str = "fp8_ds_mla",
 ) -> None:
-    TOKEN_FP8_DIM = 448
-    TOKEN_BF16_DIM = 64
-    TOKEN_SCALE_DIM = 8
-    QUANT_BLOCK_SIZE = 64
+    layout = get_deepseek_v4_cache_layout(cache_dtype)
+    use_fp4 = cache_dtype == "fp4_ds_mla"
+    if use_fp4 and use_fnuz:
+        raise ValueError("use_fnuz is not valid for fp4_ds_mla")
+    TOKEN_FP8_DIM = layout.nope_dim
+    TOKEN_BF16_DIM = layout.rope_dim
+    TOKEN_SCALE_DIM = layout.scale_bytes
+    QUANT_BLOCK_SIZE = layout.quant_group_size
     FP8_MAX = 448.0
-    TOKEN_DATA_SIZE = TOKEN_FP8_DIM + TOKEN_BF16_DIM * 2
+    TOKEN_DATA_SIZE = layout.token_data_bytes
 
     num_reqs = seq_lens.shape[0]
     # The single wide fp8 tile below requires the quant blocks to tile fp8_dim
@@ -372,10 +411,12 @@ def dequantize_and_gather_k_cache_triton(
         quant_block=QUANT_BLOCK_SIZE,
         cache_block_size=block_size,
         token_data_size=TOKEN_DATA_SIZE,
+        nope_data_bytes=layout.nope_data_bytes,
         block_stride=k_cache.stride(0),
         output_dim=512,
         fp8_max=FP8_MAX,
         fp8_block=triton.next_power_of_2(TOKEN_FP8_DIM),
+        use_fp4=use_fp4,
         use_fnuz=use_fnuz,
     )
 
@@ -394,15 +435,16 @@ def dequantize_and_gather_k_cache(
     block_size: int,
     offset: int,
     use_fnuz: bool = False,
+    cache_dtype: str = "fp8_ds_mla",
 ) -> None:
-    """Dequantize and gather a paged DSv4 K cache.
+    """Dequantize and gather a paged DeepSeek V4 K cache.
 
     ``use_fnuz`` MUST match the encoder of the specific cache being read:
     ``False`` for ``compressed_k_cache`` (Triton encoder is OCP everywhere),
     ``current_platform.is_fp8_fnuz()`` for ``swa_k_cache`` (C++ encoder
     writes FNUZ on gfx942 and OCP on gfx950).
     """
-    if is_cutedsl_supported():
+    if cache_dtype == "fp8_ds_mla" and is_cutedsl_supported():
         # lazily import, otherwise some tests fail due to CUDA driver init failure.
         from vllm.models.deepseek_v4.nvidia.ops.dequant_gather_k_cutedsl import (
             dequantize_and_gather_k_cache_cutedsl,
@@ -422,6 +464,7 @@ def dequantize_and_gather_k_cache(
         block_size,
         offset,
         use_fnuz=use_fnuz,
+        cache_dtype=cache_dtype,
     )
 
 
