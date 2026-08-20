@@ -4,7 +4,8 @@ import logging
 import random
 import time
 import uuid
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
@@ -35,6 +36,42 @@ DEVICE_TYPE = current_platform.device_type
 DEVICES = [f"{DEVICE_TYPE}:0"]
 NUM_MAPPINGS = [3]
 NUM_MAPPINGS_PER_GROUP = [2]
+
+
+def test_pin_mmap_region_fails_closed_on_creator_registration_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FailedCudaResult(int):
+        value = 1
+
+    cudart = Mock()
+    cudart.cudaHostRegister.return_value = FailedCudaResult(1)
+    region = SimpleNamespace(
+        rank=1,
+        is_creator=True,
+        _base=Mock(data_ptr=Mock(return_value=1234)),
+        total_size_bytes=16 * (1 << 30),
+        is_pinned=False,
+    )
+    monkeypatch.setattr(gpu_worker.current_platform, "is_cuda_alike", lambda: True)
+    monkeypatch.setattr(gpu_worker.torch.cuda, "cudart", lambda: cudart)
+
+    with pytest.raises(RuntimeError, match="KV offload mmap creator"):
+        gpu_worker.pin_mmap_region(region)
+
+    assert region.is_pinned is False
+
+
+def test_pin_mmap_region_skips_non_creator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cudart = Mock()
+    region = SimpleNamespace(is_creator=False)
+    monkeypatch.setattr(gpu_worker.torch.cuda, "cudart", lambda: cudart)
+
+    gpu_worker.pin_mmap_region(region)
+
+    cudart.cudaHostRegister.assert_not_called()
 
 
 @pytest.mark.skipif(not current_platform.is_rocm(), reason="ROCm-specific test")

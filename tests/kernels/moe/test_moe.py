@@ -1215,7 +1215,18 @@ def test_fused_marlin_moe_non_gated(
     torch.testing.assert_close(marlin_output, torch_output, atol=1e-1, rtol=0)
 
 
-def _make_humming_indexed_experts(activation: MoEActivation):
+def _make_humming_indexed_experts(
+    activation: MoEActivation,
+    *,
+    weight_schema: Any = None,
+    weight_schemas: dict[str, Any] | None = None,
+    tensor_factory: Callable[..., torch.Tensor] | None = None,
+    top_k: int = 6,
+    num_experts: int = 12,
+    hidden_size: int = 2688,
+    intermediate_size: int = 1856,
+    swiglu_limit: float | None = None,
+):
     pytest.importorskip("humming")
     from vllm.model_executor.layers.fused_moe.experts.fused_humming_moe import (
         HummingIndexedExperts,
@@ -1223,8 +1234,6 @@ def _make_humming_indexed_experts(activation: MoEActivation):
     from vllm.model_executor.layers.quantization.utils import humming_utils
     from vllm.utils import humming
 
-    top_k, num_experts = 6, 12
-    hidden_size, intermediate_size = 2688, 1856
     gate_up_size = intermediate_size * 2 if activation.is_gated else intermediate_size
     num_w13_stacks = 2 if activation.is_gated else 1
     moe_config = make_dummy_moe_config(
@@ -1238,13 +1247,19 @@ def _make_humming_indexed_experts(activation: MoEActivation):
     layer = torch.nn.Module()
     layer.moe_config = moe_config
     layer.params_dtype = torch.bfloat16
+    layer.swiglu_limit = swiglu_limit
 
-    weight_schema = humming.ModeloptNvfp4WeightSchema()
+    weight_schema = weight_schema or humming.ModeloptNvfp4WeightSchema()
     for sublayer_name, shape_n, shape_k, stack_size in (
         ("w13", gate_up_size, hidden_size, num_w13_stacks),
         ("w2", hidden_size, intermediate_size, 1),
     ):
-        tensor_attrs = weight_schema.get_tensors_attrs(
+        sublayer_weight_schema = (
+            weight_schemas.get(sublayer_name, weight_schema)
+            if weight_schemas is not None
+            else weight_schema
+        )
+        tensor_attrs = sublayer_weight_schema.get_tensors_attrs(
             shape_n=shape_n,
             shape_k=shape_k,
             param_dtype=layer.params_dtype,
@@ -1252,21 +1267,31 @@ def _make_humming_indexed_experts(activation: MoEActivation):
             stack_size=stack_size,
         )
         for tensor_name, attrs in tensor_attrs.items():
+            tensor = (
+                tensor_factory(
+                    sublayer_name=sublayer_name,
+                    tensor_name=tensor_name,
+                    attrs=attrs,
+                    shape_n=shape_n,
+                    shape_k=shape_k,
+                    num_experts=num_experts,
+                )
+                if tensor_factory is not None
+                else torch.ones(
+                    attrs["shape"],
+                    dtype=attrs["dtype"],
+                    device="cuda",
+                )
+            )
             layer.register_parameter(
                 f"{sublayer_name}_{tensor_name}",
-                Parameter(
-                    torch.ones(
-                        attrs["shape"],
-                        dtype=attrs["dtype"],
-                        device="cuda",
-                    ),
-                    requires_grad=False,
-                ),
+                Parameter(tensor, requires_grad=False),
             )
 
     humming_utils.convert_to_humming_moe_kernel_format(
         layer,
         weight_schema=weight_schema,
+        weight_schemas=weight_schemas,
         input_schema=humming.HummingInputSchema(a_dtype=humming.dtypes.bfloat16),
     )
 
@@ -1422,6 +1447,167 @@ def test_humming_indexed_writes_supplied_output_buffer():
         )
 
     assert torch.isfinite(output).all()
+
+
+@pytest.mark.skipif(not current_platform.is_cuda(), reason="Requires CUDA")
+@pytest.mark.parametrize(
+    ("w13_group_size", "w2_group_size", "down_bits"),
+    [
+        (128, 128, 2),
+        (256, 128, 2),
+        (512, 256, 2),
+        (512, 512, 2),
+        (512, 128, 4),
+        (512, 256, 4),
+        (512, 512, 4),
+    ],
+    ids=[
+        "w2-g128-g128",
+        "w2-g256-g128",
+        "w2-g512-g256",
+        "w2-g512-g512",
+        "w4-g512-g128",
+        "w4-g512-g256",
+        "w4-g512-g512",
+    ],
+)
+def test_humming_wna16_grouped_indexed_numerical_oracle(
+    w13_group_size, w2_group_size, down_bits
+):
+    from vllm.forward_context import set_forward_context
+    from vllm.utils import humming
+
+    weight_scale = 2**-5
+    swiglu_limit = 10.0
+    weight_schemas = {
+        sublayer_name: humming.CompressedTensorsWeightSchema(
+            format="pack-quantized",
+            type="int",
+            num_bits=bits,
+            strategy="group",
+            symmetric=True,
+            group_size=group_size,
+        )
+        for sublayer_name, bits, group_size in (
+            ("w13", 2, w13_group_size),
+            ("w2", down_bits, w2_group_size),
+        )
+    }
+
+    def make_positive_unit_weights(
+        *,
+        sublayer_name: str,
+        tensor_name: str,
+        attrs: dict[str, Any],
+        shape_n: int,
+        shape_k: int,
+        num_experts: int,
+    ) -> torch.Tensor:
+        if tensor_name == "weight_packed":
+            # Compressed-tensors offsets signed codes into unsigned lanes.
+            # W2 +1 is lane 0b11; W4 +1 is lane 0b1001.
+            packed_positive_one = -1 if sublayer_name == "w13" else -1717986919
+            if sublayer_name == "w2" and down_bits == 2:
+                packed_positive_one = -1
+            return torch.full(
+                attrs["shape"],
+                packed_positive_one,
+                dtype=attrs["dtype"],
+                device="cuda",
+            )
+        if tensor_name == "weight_scale":
+            return torch.full(
+                attrs["shape"],
+                weight_scale,
+                dtype=attrs["dtype"],
+                device="cuda",
+            )
+        assert tensor_name == "weight_shape"
+        return torch.tensor(
+            [[shape_n, shape_k]] * num_experts,
+            dtype=attrs["dtype"],
+            device="cuda",
+        )
+
+    activation = MoEActivation.SILU
+    experts = _make_humming_indexed_experts(
+        activation,
+        weight_schemas=weight_schemas,
+        tensor_factory=make_positive_unit_weights,
+        top_k=2,
+        num_experts=4,
+        hidden_size=512,
+        intermediate_size=512,
+        swiglu_limit=swiglu_limit,
+    )
+    layer = experts.layer
+    for sublayer_name, expected_dtype, expected_group_size in (
+        ("w13", humming.dtypes.uint2, w13_group_size),
+        (
+            "w2",
+            humming.dtypes.uint2 if down_bits == 2 else humming.dtypes.uint4,
+            w2_group_size,
+        ),
+    ):
+        meta = layer.humming_metas[sublayer_name]
+        assert meta.a_dtype == humming.dtypes.bfloat16
+        assert meta.b_dtype == expected_dtype
+        assert meta.weight_scale_group_size == expected_group_size
+
+    num_tokens = 4
+    top_k = experts.moe_config.experts_per_token
+    hidden_size = experts.moe_config.hidden_dim
+    intermediate_size = experts.moe_config.intermediate_size
+    num_experts = experts.moe_config.num_experts
+    workspace13_shape, workspace2_shape, _ = experts.workspace_shapes(
+        M=num_tokens,
+        N=intermediate_size,
+        K=hidden_size,
+        topk=top_k,
+        global_num_experts=num_experts,
+        local_num_experts=num_experts,
+        expert_tokens_meta=None,
+        activation=activation,
+    )
+    dtype = layer.params_dtype
+    workspace13 = torch.empty(workspace13_shape, dtype=dtype, device="cuda")
+    workspace2 = torch.empty(workspace2_shape, dtype=dtype, device="cuda")
+    hidden_states = torch.ones((num_tokens, hidden_size), dtype=dtype, device="cuda")
+    output = torch.full_like(hidden_states, torch.nan)
+    topk_weights = torch.full(
+        (num_tokens, top_k),
+        1 / top_k,
+        dtype=dtype,
+        device="cuda",
+    )
+    topk_ids = torch.zeros((num_tokens, top_k), dtype=torch.int32, device="cuda")
+    unused = torch.empty((num_experts, 0), device="cuda")
+
+    with set_forward_context(None, vllm_config, num_tokens=num_tokens):
+        experts.apply(
+            output=output,
+            hidden_states=hidden_states,
+            w1=unused,
+            w2=unused,
+            topk_weights=topk_weights,
+            topk_ids=topk_ids,
+            activation=activation,
+            global_num_experts=num_experts,
+            expert_map=None,
+            a1q_scale=None,
+            a2_scale=None,
+            workspace13=workspace13,
+            workspace2=workspace2,
+            expert_tokens_meta=None,
+            apply_router_weight_on_input=False,
+        )
+
+    gate_up = hidden_size * weight_scale
+    clamped_gate_up = min(gate_up, swiglu_limit)
+    expected_value = F.silu(torch.tensor(clamped_gate_up)) * clamped_gate_up
+    expected_value *= intermediate_size * weight_scale
+    expected = torch.full_like(output, expected_value.item())
+    torch.testing.assert_close(output, expected, atol=5e-3, rtol=2e-2)
 
 
 @pytest.mark.parametrize("ep_size", [1, 2])

@@ -682,8 +682,9 @@ def test_inc_mxfp4_moe_method_registers_weights_and_builds_kernel(
     monkeypatch.setattr(
         "vllm.model_executor.layers.quantization.inc.schemes.inc_mxfp4_moe."
         "make_mxfp4_moe_quant_config",
-        lambda **kwargs: captured.update({"quant_config_kwargs": kwargs})
-        or expected_quant_config,
+        lambda **kwargs: (
+            captured.update({"quant_config_kwargs": kwargs}) or expected_quant_config
+        ),
     )
     monkeypatch.setattr(
         "vllm.model_executor.layers.quantization.inc.schemes.inc_mxfp4_moe."
@@ -743,10 +744,10 @@ def test_wna16_xpu_moe_routes_to_gptq_moe(monkeypatch) -> None:
     monkeypatch.setattr(
         "vllm.model_executor.layers.quantization.inc.schemes."
         "inc_wna16_scheme._resolve_gptq_moe",
-        lambda layer, layer_config: captured.update(
-            {"layer": layer, "layer_config": layer_config}
-        )
-        or expected_method,
+        lambda layer, layer_config: (
+            captured.update({"layer": layer, "layer_config": layer_config})
+            or expected_method
+        ),
     )
 
     layer = object.__new__(RoutedExperts)
@@ -1247,7 +1248,8 @@ def test_inc_get_quant_method_moe_uses_resolved_scheme(monkeypatch) -> None:
     assert method is sentinel
 
 
-def test_resolve_gptq_moe_falls_back_to_moe_wna16(monkeypatch) -> None:
+@pytest.mark.parametrize("bits", [2, 4])
+def test_resolve_gptq_moe_falls_back_to_moe_wna16(monkeypatch, bits) -> None:
     captured = {}
 
     class DummyMoeConfig:
@@ -1281,7 +1283,7 @@ def test_resolve_gptq_moe_falls_back_to_moe_wna16(monkeypatch) -> None:
     )
 
     layer_config = INCLayerConfig(
-        bits=4,
+        bits=bits,
         group_size=128,
         sym=True,
         packing_format="auto_round:auto_gptq",
@@ -1294,7 +1296,7 @@ def test_resolve_gptq_moe_falls_back_to_moe_wna16(monkeypatch) -> None:
 
     assert captured["from_config"] == {
         "quant_method": "gptq",
-        "bits": 4,
+        "bits": bits,
         "group_size": 128,
         "sym": True,
         "lm_head": False,

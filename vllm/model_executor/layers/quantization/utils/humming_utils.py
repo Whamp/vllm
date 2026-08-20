@@ -73,6 +73,9 @@ if has_humming():
         humming_dtypes.uint8: INT8_DTYPE,
         humming_dtypes.uint2: torch.uint8,
         humming_dtypes.uint3: torch.uint8,
+        humming_dtypes.uint5: torch.uint8,
+        humming_dtypes.uint6: torch.uint8,
+        humming_dtypes.uint7: torch.uint8,
     }
 
     _HUMMING_TO_SCALE_DTYPE: dict[humming_dtypes.DataType, torch.dtype] = {
@@ -562,6 +565,8 @@ def make_humming_moe_quant_config(
     gemm1_beta: float | None = None,
     gemm1_clamp_limit: float | None = None,
     humming_configs: dict[str, "LayerConfig"] | None = None,
+    w2_weight_dtype: torch.dtype | str | None = None,
+    w2_weight_group_shape: GroupShape | None = None,
 ) -> HummingMoEQuantConfig:
     assert humming_configs is not None
     if quant_dtype is None:
@@ -580,8 +585,12 @@ def make_humming_moe_quant_config(
     )
 
     w2_quant_desc = FusedMoEQuantDesc(
-        dtype=weight_dtype,
-        shape=weight_group_shape,
+        dtype=(weight_dtype if w2_weight_dtype is None else w2_weight_dtype),
+        shape=(
+            weight_group_shape
+            if w2_weight_group_shape is None
+            else w2_weight_group_shape
+        ),
         scale=w2_scale,
         alpha_or_gscale=w2_gscale,
         zp=w2_zp,
@@ -601,6 +610,14 @@ def make_humming_moe_quant_config(
     )
 
 
+def _humming_moe_weight_group_shape(weight_schema: "HummingWeightSchema") -> GroupShape:
+    """Return the fused MoE group shape for one Humming weight schema."""
+    return _group_shape(
+        group_size=weight_schema.weight_scale_group_size,
+        group_size_n=weight_schema.weight_scale_group_size_n,
+    )
+
+
 def get_humming_moe_quant_config(
     layer: "RoutedExperts",
     humming_configs: dict[str, "LayerConfig"] | None = None,
@@ -611,30 +628,27 @@ def get_humming_moe_quant_config(
     if humming_configs is None:
         humming_configs = layer.humming_configs
     input_schema = layer.input_schemas["w13"]
-    weight_schema = layer.weight_schemas["w13"]
+    w13_weight_schema = layer.weight_schemas["w13"]
+    w2_weight_schema = layer.weight_schemas["w2"]
 
     if input_schema.a_dtype is None or input_schema.a_dtype.num_bits == 16:
         q_dtype = None
     else:
         q_dtype = str(input_schema.a_dtype)
 
-    weight_scale_group_size = weight_schema.weight_scale_group_size
-    weight_scale_group_size_n = weight_schema.weight_scale_group_size_n
-    weight_group_shape: tuple[int, ...] = ()
-    if weight_scale_group_size_n > 1:
-        weight_group_shape = GroupShape(
-            row=weight_scale_group_size,
-            col=weight_scale_group_size_n,
-        )
-    elif weight_scale_group_size == 0:
-        weight_group_shape = GroupShape(row=-1, col=1)
-    else:
-        weight_group_shape = GroupShape(row=weight_scale_group_size, col=1)
+    if gemm1_alpha is None:
+        gemm1_alpha = getattr(layer, "swiglu_alpha", None)
+    if gemm1_beta is None:
+        gemm1_beta = getattr(layer, "swiglu_beta", None)
+    if gemm1_clamp_limit is None:
+        gemm1_clamp_limit = getattr(layer, "swiglu_limit", None)
 
     return make_humming_moe_quant_config(
         quant_dtype=q_dtype,
-        weight_dtype=str(weight_schema.b_dtype),
-        weight_group_shape=weight_group_shape,
+        weight_dtype=str(w13_weight_schema.b_dtype),
+        weight_group_shape=_humming_moe_weight_group_shape(w13_weight_schema),
+        w2_weight_dtype=str(w2_weight_schema.b_dtype),
+        w2_weight_group_shape=_humming_moe_weight_group_shape(w2_weight_schema),
         w1_scale=getattr(layer, "w13_weight_scale", None),
         w1_gscale=getattr(layer, "w13_weight_scale_2", None),
         w1_zp=getattr(layer, "w13_zero_point", None),
@@ -966,6 +980,8 @@ def convert_to_humming_moe_kernel_format(
     quant_config: dict | None = None,
     sublayer_configs: dict[str, Any] | None = None,
     weight_schema: Any | None = None,
+    weight_schemas: dict[str, Any] | None = None,
+    weight_quant_configs: dict[str, dict[str, Any]] | None = None,
     input_schema: Any | None = None,
     force_weight_schema: Any | None = None,
 ) -> dict[str, "LayerConfig"]:
@@ -986,8 +1002,12 @@ def convert_to_humming_moe_kernel_format(
         sublayer_configs: Optional configuration dict for each sublayer (w13, w2).
                          Each config must have "shape_n" and "shape_k" keys.
                          If None, configs are built from layer.moe_config properties.
-        weight_schema: Optional initial weight quantization schema.
+        weight_schema: Optional shared initial weight quantization schema.
                       If None, built from quant_config.
+        weight_schemas: Optional initial weight schema keyed by sublayer name.
+                       Overrides weight_schema for matching sublayers.
+        weight_quant_configs: Optional checkpoint quantization config keyed by
+                              sublayer name. Parsed into Humming schemas lazily.
         input_schema: Optional initial input quantization schema.
                      If None, built from quant_config or env vars.
         force_weight_schema: Optional schema to force requantization to
@@ -1003,27 +1023,32 @@ def convert_to_humming_moe_kernel_format(
     num_experts = layer.moe_config.num_local_experts
     param_dtype = layer.params_dtype
 
-    if weight_schema is None or input_schema is None:
+    if (
+        weight_schema is None
+        and weight_schemas is None
+        and weight_quant_configs is None
+    ):
         if quant_config is None:
             raise ValueError(
-                "Must provide either weight_schema/input_schema or quant_config"
+                "Must provide weight_schema, weight_schemas, "
+                "weight_quant_configs, or quant_config"
             )
+        from vllm.utils.humming import BaseWeightSchema
 
+        weight_schema = BaseWeightSchema.from_config(quant_config)
+
+    if input_schema is None:
         from vllm.model_executor.layers.quantization.utils.humming_utils import (
             humming_is_layer_skipped,
         )
-        from vllm.utils.humming import BaseWeightSchema, HummingInputSchema
+        from vllm.utils.humming import HummingInputSchema
 
-        if weight_schema is None:
-            weight_schema = BaseWeightSchema.from_config(quant_config)
-
-        if input_schema is None:
-            input_quant_config = envs.VLLM_HUMMING_INPUT_QUANT_CONFIG or {}
-            if humming_is_layer_skipped(input_quant_config, layer.layer_name):
-                input_schema = HummingInputSchema()
-            else:
-                # TODO: read input_quant_config from quant_config
-                input_schema = HummingInputSchema.from_config(input_quant_config)
+        input_quant_config = envs.VLLM_HUMMING_INPUT_QUANT_CONFIG or {}
+        if humming_is_layer_skipped(input_quant_config, layer.layer_name):
+            input_schema = HummingInputSchema()
+        else:
+            # TODO: read input_quant_config from quant_config
+            input_schema = HummingInputSchema.from_config(input_quant_config)
 
     # Build sublayer configs from layer properties if not provided
     if sublayer_configs is None:
@@ -1045,13 +1070,27 @@ def convert_to_humming_moe_kernel_format(
     humming_configs = {}
 
     for sublayer_name, configs in sublayer_configs.items():
+        if weight_quant_configs is not None and sublayer_name in weight_quant_configs:
+            from vllm.utils.humming import BaseWeightSchema
+
+            sublayer_weight_schema = BaseWeightSchema.from_config(
+                weight_quant_configs[sublayer_name]
+            )
+        else:
+            sublayer_weight_schema = (
+                weight_schemas.get(sublayer_name, weight_schema)
+                if weight_schemas is not None
+                else weight_schema
+            )
+        if sublayer_weight_schema is None:
+            raise ValueError(f"Missing Humming weight schema for {sublayer_name}.")
         final_weight_schema, final_input_schema, humming_config = (
             _process_single_sublayer(
                 layer=layer,
                 sublayer_name=sublayer_name,
                 shape_n=configs["shape_n"],
                 shape_k=configs["shape_k"],
-                weight_schema=weight_schema,
+                weight_schema=sublayer_weight_schema,
                 input_schema=input_schema,
                 has_bias=has_bias,
                 num_experts=num_experts,

@@ -32,6 +32,48 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C, ops) {
   ops.def("get_cuda_view_from_cpu_tensor(Tensor cpu_tensor) -> Tensor");
 
 #ifndef USE_ROCM
+  ops.def(
+      "gguf_iq2_xxs_raw_matvec(Tensor input, Tensor packed_weights, "
+      "Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_iq2_xxs_aligned_matvec(Tensor input, Tensor aligned_scales, "
+      "Tensor aligned_grid_bytes, Tensor aligned_scale_sign_bytes, "
+      "Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_quantize_bf16_to_q8_1(Tensor input, Tensor(a!) output_scales, "
+      "Tensor(b!) output_codes) -> ()");
+  ops.def(
+      "gguf_iq2_xxs_q8_1_raw_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor packed_weights, Tensor(a!) output) -> "
+      "()");
+  ops.def(
+      "gguf_iq2_xxs_q8_1_aligned_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor aligned_weight_scales, "
+      "Tensor aligned_grid_bytes, Tensor aligned_scale_sign_bytes, "
+      "Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_iq2_xxs_q8_1_indexed_gate_up(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor gate_weights, Tensor up_weights, "
+      "Tensor topk_ids, Tensor(a!) gate_output, Tensor(b!) up_output) -> ()");
+  ops.def(
+      "gguf_iq2_xxs_q8_1_grouped_gate_up(Tensor token_scales, "
+      "Tensor token_codes, Tensor gate_weights, Tensor up_weights, "
+      "Tensor sorted_token_ids, Tensor expert_ids, "
+      "Tensor num_tokens_padded, Tensor(a!) gate_output, "
+      "Tensor(b!) up_output, int topk) -> ()");
+  ops.def(
+      "gguf_swiglu_weighted_q8_1(Tensor gate, Tensor up, "
+      "Tensor router_weights, Tensor(a!) output_scales, "
+      "Tensor(b!) output_codes, float clamp_limit) -> ()");
+  ops.def(
+      "gguf_q2_k_q8_1_grouped_down(Tensor assignment_scales, "
+      "Tensor assignment_codes, Tensor down_weights, "
+      "Tensor sorted_token_ids, Tensor expert_ids, "
+      "Tensor num_tokens_padded, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_q2_k_q8_1_indexed_down(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor down_weights, Tensor topk_ids, "
+      "Tensor(a!) output) -> ()");
 
   // Note about marlin kernel 'workspace' arguments:
   // Technically these should be mutable since they are modified by the kernel.
@@ -434,7 +476,18 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C, ops) {
       "Tensor slot_mapping, Tensor position_ids, Tensor cos_sin_cache, "
       "int q_head_padded, float eps, int cache_block_size) -> Tensor");
   ops.def(
+      "fused_deepseek_v4_qnorm_rope_kv_rope_fp4_quant_insert("
+      "Tensor q_in, Tensor kv, Tensor! k_cache, "
+      "Tensor slot_mapping, Tensor position_ids, Tensor cos_sin_cache, "
+      "int q_head_padded, float eps, int cache_block_size) -> Tensor");
+  ops.def(
       "fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert_out("
+      "Tensor q_in, Tensor kv, Tensor! q_out, Tensor! k_cache, "
+      "Tensor slot_mapping, Tensor position_ids, Tensor cos_sin_cache, "
+      "int q_head_padded, float eps, int cache_block_size) -> ()");
+
+  ops.def(
+      "fused_deepseek_v4_qnorm_rope_kv_rope_fp4_quant_insert_out("
       "Tensor q_in, Tensor kv, Tensor! q_out, Tensor! k_cache, "
       "Tensor slot_mapping, Tensor position_ids, Tensor cos_sin_cache, "
       "int q_head_padded, float eps, int cache_block_size) -> ()");
@@ -709,6 +762,27 @@ STABLE_TORCH_LIBRARY_IMPL(_C, CUDA, ops) {
   ops.impl("permute_cols", TORCH_BOX(&permute_cols));
 
 #ifndef USE_ROCM
+  ops.impl("gguf_iq2_xxs_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_raw_matvec));
+  ops.impl("gguf_iq2_xxs_aligned_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_aligned_matvec));
+  ops.impl("gguf_quantize_bf16_to_q8_1",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_quantize_bf16_to_q8_1));
+  ops.impl("gguf_iq2_xxs_q8_1_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_raw_matvec));
+  ops.impl("gguf_iq2_xxs_q8_1_aligned_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_aligned_matvec));
+  ops.impl("gguf_iq2_xxs_q8_1_indexed_gate_up",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_indexed_gate_up));
+  ops.impl("gguf_iq2_xxs_q8_1_grouped_gate_up",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq2_xxs_q8_1_grouped_gate_up));
+  ops.impl("gguf_swiglu_weighted_q8_1",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_swiglu_weighted_q8_1));
+  ops.impl("gguf_q2_k_q8_1_grouped_down",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_q2_k_q8_1_grouped_down));
+  ops.impl("gguf_q2_k_q8_1_indexed_down",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_q2_k_q8_1_indexed_down));
+
   // CUTLASS scaled_mm ops
   ops.impl("cutlass_scaled_mm", TORCH_BOX(&cutlass_scaled_mm));
   ops.impl("cutlass_scaled_mm_azp", TORCH_BOX(&cutlass_scaled_mm_azp));
@@ -766,6 +840,11 @@ STABLE_TORCH_LIBRARY_IMPL(_C, CUDA, ops) {
            TORCH_BOX(&fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert));
   ops.impl("fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert_out",
            TORCH_BOX(&fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert_out));
+  ops.impl("fused_deepseek_v4_qnorm_rope_kv_rope_fp4_quant_insert",
+           TORCH_BOX(&fused_deepseek_v4_qnorm_rope_kv_rope_fp4_quant_insert));
+  ops.impl(
+      "fused_deepseek_v4_qnorm_rope_kv_rope_fp4_quant_insert_out",
+      TORCH_BOX(&fused_deepseek_v4_qnorm_rope_kv_rope_fp4_quant_insert_out));
   ops.impl(
       "fused_deepseek_v4_qnorm_rope_kv_rope_full_cache_bf16_insert",
       TORCH_BOX(&fused_deepseek_v4_qnorm_rope_kv_rope_full_cache_bf16_insert));
@@ -987,6 +1066,9 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C_custom_ar, custom_ar) {
   custom_ar.def(
       "all_reduce(int fa, Tensor inp, Tensor! out, int reg_buffer, "
       "int reg_buffer_sz_bytes) -> ()");
+  custom_ar.def(
+      "all_reduce_int8(int fa, Tensor inp, Tensor! out_q, Tensor! out_s, "
+      "int reg_buffer, int reg_buffer_sz_bytes) -> ()");
   custom_ar.def("dispose(int fa) -> ()");
   custom_ar.def("meta_size() -> int");
   custom_ar.def("register_buffer(int fa, int[] ipc_tensors) -> ()");
@@ -1001,6 +1083,7 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C_custom_ar, custom_ar) {
 STABLE_TORCH_LIBRARY_IMPL(_C_custom_ar, CUDA, custom_ar) {
   custom_ar.impl("init_custom_ar", TORCH_BOX(&init_custom_ar));
   custom_ar.impl("all_reduce", TORCH_BOX(&all_reduce));
+  custom_ar.impl("all_reduce_int8", TORCH_BOX(&all_reduce_int8));
 }
 
 STABLE_TORCH_LIBRARY_IMPL(_C_custom_ar, CPU, custom_ar) {

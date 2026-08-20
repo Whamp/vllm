@@ -16,23 +16,46 @@ DSparkMarkovHead and DSparkConfidenceHead are shared with the DSV4-style DSpark 
 """
 
 from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
 
-from vllm.config import VllmConfig
+from vllm.config import VllmConfig, get_current_vllm_config_or_none
 from vllm.logger import init_logger
 from vllm.model_executor.layers.linear import ReplicatedLinear
 from vllm.model_executor.layers.logits_processor import LogitsProcessor
 from vllm.model_executor.layers.quantization import QuantizationConfig
 from vllm.model_executor.layers.vocab_parallel_embedding import (
     ParallelLMHead,
+    UnquantizedEmbeddingMethod,
 )
+
+if TYPE_CHECKING:
+    from vllm.v1.worker.gpu.spec_decode.dspark.markov_argmax import (
+        MarkovFusionOperands,
+    )
 
 from .qwen3_dflash import DFlashQwen3ForCausalLM, DFlashQwen3Model
 from .utils import AutoWeightsLoader, maybe_prefix, process_eagle_weight
 
 logger = init_logger(__name__)
+
+
+def dspark_vocab_shard_enabled() -> bool:
+    """Whether the Markov head shards ``markov_w2`` over the TP group.
+
+    Keyed on the existing ``use_local_argmax_reduction`` speculative-config
+    flag rather than a DSpark-private switch: that flag names exactly this
+    trade -- vocab-parallel local argmax instead of an all-gather of full
+    logits, greedy selection only -- and the weight layout has to be fixed
+    here, at construction, from the same switch the speculator dispatches on
+    later.
+    """
+    vllm_config = get_current_vllm_config_or_none()
+    if vllm_config is None or vllm_config.speculative_config is None:
+        return False
+    return vllm_config.speculative_config.use_local_argmax_reduction
 
 
 class DSparkMarkovHead(nn.Module):
@@ -43,9 +66,17 @@ class DSparkMarkovHead(nn.Module):
     (``draft_vocab_size``) added to the base draft logits. The two sizes
     coincide for full-vocab drafts.
 
-    Both weights are replicated because the head runs sequentially for every
-    draft position. Sharding them would add an all-reduce and a full-vocab
-    gather to each position.
+    ``markov_w1`` is always replicated: it is indexed by a token id, so
+    sharding it would buy nothing. ``markov_w2`` is replicated by default for
+    the reason the head's original docstring gives -- it runs once per draft
+    position, and sharding it would add a full-vocab gather to each. That
+    argument holds for the *probabilistic* path, which needs whole processed
+    logit rows to verify against, and fails for the greedy path, where the only
+    thing read off the vocab axis is an argmax, and an argmax reduces. So under
+    ``use_local_argmax_reduction`` (greedy only, validated by the speculator)
+    ``markov_w2`` becomes vocab-parallel and selection goes through
+    :meth:`select_top_tokens`, which exchanges one (value, id) pair per rank
+    instead of a [B, V] row.
     """
 
     def __init__(
@@ -55,8 +86,13 @@ class DSparkMarkovHead(nn.Module):
         markov_rank: int,
         prefix: str,
         quant_config: QuantizationConfig | None = None,
+        *,
+        shard_vocab: bool | None = None,
     ) -> None:
         super().__init__()
+        if shard_vocab is None:
+            shard_vocab = dspark_vocab_shard_enabled()
+        self.shard_vocab = shard_vocab
         self.markov_w1 = nn.Embedding(vocab_size, markov_rank)
         self.markov_w2 = ParallelLMHead(
             draft_vocab_size,
@@ -64,7 +100,7 @@ class DSparkMarkovHead(nn.Module):
             bias=False,
             quant_config=quant_config,
             prefix=maybe_prefix(prefix, "markov_w2"),
-            disable_tp=True,
+            disable_tp=not shard_vocab,
         )
 
     def embed(self, token_ids: torch.Tensor) -> torch.Tensor:
@@ -87,12 +123,7 @@ class DSparkMarkovHead(nn.Module):
         index: torch.Tensor,
         scale: float = 1.0,
     ) -> torch.Tensor:
-        """Apply the Markov bias only to selected rows of ``logits``.
-
-        The caller initializes ``logits`` to ``-inf`` once for all draft
-        positions. This method scatters the corrected candidate values into
-        that dense buffer so the normal sampler sees the truncated proposal.
-        """
+        """Apply the Markov bias only to selected rows of ``logits``."""
         weight = self.markov_w2.weight[index]
         corrected = values.unsqueeze(-1)
         corrected.baddbmm_(
@@ -102,6 +133,52 @@ class DSparkMarkovHead(nn.Module):
             alpha=scale,
         )
         return logits.scatter_(1, index, corrected.squeeze(-1))
+
+    def select_top_tokens(
+        self,
+        markov_embed: torch.Tensor,
+        base_shard_logits: torch.Tensor,
+        logits_processor: LogitsProcessor,
+    ) -> torch.Tensor:
+        """Select greedy draft ids from the local base and Markov logits."""
+        return logits_processor.get_top_tokens(
+            self.markov_w2, markov_embed, extra_logits=base_shard_logits
+        )
+
+    def fusion_operands(
+        self, logits_processor: LogitsProcessor
+    ) -> "MarkovFusionOperands | None":
+        """Return operands when the Markov step can be fused exactly."""
+        from vllm.v1.worker.gpu.spec_decode.dspark.markov_argmax import (
+            MarkovFusionOperands,
+        )
+
+        w2 = self.markov_w2
+        w1 = self.markov_w1.weight
+        why: str | None = None
+        if logits_processor.soft_cap is not None:
+            why = "soft_cap is set"
+        elif logits_processor.scale != 1.0:
+            why = f"logit scale is {logits_processor.scale}"
+        elif logits_processor.head_dtype not in (None, w1.dtype):
+            why = f"head_dtype {logits_processor.head_dtype} != {w1.dtype}"
+        elif not isinstance(w2.quant_method, UnquantizedEmbeddingMethod):
+            why = f"markov_w2 uses {type(w2.quant_method).__name__}"
+        elif w1.dtype != w2.weight.dtype:
+            why = f"markov_w1 is {w1.dtype}, markov_w2 is {w2.weight.dtype}"
+        elif w1.stride(-1) != 1 or w2.weight.stride(-1) != 1:
+            why = "a Markov weight is not row-major"
+        if why is not None:
+            logger.info_once("DSpark: not fusing the Markov step (%s).", why)
+            return None
+        return MarkovFusionOperands(
+            w1=w1,
+            w2=w2.weight,
+            num_valid=w2.weight.shape[0] - w2.shard_indices.num_org_vocab_padding,
+            vocab_start=w2.shard_indices.org_vocab_start_index,
+            tp_size=w2.tp_size,
+            tp_rank=w2.tp_rank,
+        )
 
 
 class DSparkConfidenceHead(nn.Module):
@@ -212,6 +289,17 @@ class Qwen3DSparkForCausalLM(DFlashQwen3ForCausalLM):
         # Markov bias in draft space, then remaps via map_draft_to_target.
         return self.logits_processor(self.lm_head, hidden_states)
 
+    def compute_draft_logits_shard(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        # Same logits, this rank's vocab columns only (no gather).
+        return self.logits_processor.get_shard_logits(self.lm_head, hidden_states)
+
+    def select_draft_token_shard(
+        self, markov_embed: torch.Tensor, base_shard_logits: torch.Tensor
+    ) -> torch.Tensor:
+        return self.model.markov_head.select_top_tokens(
+            markov_embed, base_shard_logits, self.logits_processor
+        )
+
     def map_draft_to_target(self, draft_ids: torch.Tensor) -> torch.Tensor:
         # Map draft-vocab ids to target ids (identity for full-vocab drafts).
         if self.draft_id_to_target_id is None:
@@ -242,9 +330,15 @@ class Qwen3DSparkForCausalLM(DFlashQwen3ForCausalLM):
     def compute_confidence(
         self, head_hidden: torch.Tensor, markov_embed: torch.Tensor
     ) -> torch.Tensor:
-        """Per-position acceptance probability for each drafted token."""
+        """Return per-position acceptance probabilities."""
         assert self.model.confidence_head is not None
         return torch.sigmoid(self.model.confidence_head(head_hidden, markov_embed))
+
+    def markov_fusion_operands(self) -> "MarkovFusionOperands | None":
+        operands = self.model.markov_head.fusion_operands(self.logits_processor)
+        if operands is not None:
+            operands.d2t = self.draft_id_to_target_id
+        return operands
 
     def load_weights(self, weights: Iterable[tuple[str, torch.Tensor]]):
         model_weights = {}

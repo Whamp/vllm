@@ -1104,10 +1104,21 @@ def _humming_wna16_weight_schema(
             "desc_act": quant_config.desc_act,
             "sym": quant_config.is_sym,
         }
+    if isinstance(quant_config, QuantizationArgs):
+        quant_type = getattr(quant_config.type, "value", quant_config.type)
+        quant_strategy = getattr(quant_config.strategy, "value", quant_config.strategy)
+        return {
+            "quant_method": "compressed-tensors",
+            "format": "pack-quantized",
+            "type": str(quant_type),
+            "num_bits": quant_config.num_bits,
+            "strategy": str(quant_strategy),
+            "group_size": quant_config.group_size,
+            "symmetric": quant_config.symmetric,
+        }
     raise TypeError(
-        "Humming WNA16 checkpoint schema requires AutoAWQConfig or "
-        "AutoGPTQConfig, "
-        f"got {type(quant_config).__name__}."
+        "Humming WNA16 checkpoint schema requires AutoAWQConfig, "
+        f"AutoGPTQConfig or QuantizationArgs, got {type(quant_config).__name__}."
     )
 
 
@@ -1413,6 +1424,7 @@ def convert_to_wna16_moe_kernel_format(
     w2: torch.Tensor,
     w13_scale: torch.Tensor,
     w2_scale: torch.Tensor,
+    w2_quant_config: QuantizationConfig | QuantizationArgs | None = None,
     w13_g_idx: torch.Tensor | None = None,
     w2_g_idx: torch.Tensor | None = None,
     w13_qzeros: torch.Tensor | None = None,
@@ -1467,6 +1479,14 @@ def convert_to_wna16_moe_kernel_format(
                     has_zero_point=quant_config.has_zp,
                 ),
                 input_schema=HummingInputSchema(),
+            )
+        elif w2_quant_config is not None:
+            convert_to_humming_moe_kernel_format(
+                layer,
+                weight_quant_configs={
+                    "w13": _humming_wna16_weight_schema(quant_config),
+                    "w2": _humming_wna16_weight_schema(w2_quant_config),
+                },
             )
         else:
             convert_to_humming_moe_kernel_format(

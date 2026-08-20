@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+//
+// Fragment mapping follows NVIDIA PTX m16n8k32 and the MIT-licensed
+// antirez/ds4@84cc882 cuda/mmq/mma.cuh instruction wrapper.
+
+#pragma once
+
+#include <cuda_runtime.h>
+
+namespace vllm::gguf_dsv4 {
+
+__device__ __forceinline__ void mma_int8_m16n8k32_row_col(
+    const int (&weight_fragment)[4], const int8_t* activation_codes, int lane,
+    int (&accumulator)[4]) {
+  constexpr int kAssignmentTile = 8;
+  constexpr int kGroupWords = 8;
+  const int* activation_words = reinterpret_cast<const int*>(activation_codes);
+  const int* activation_address = activation_words +
+                                  (lane % kAssignmentTile) * kGroupWords +
+                                  ((lane / kAssignmentTile) * 4) % kGroupWords;
+  int activation_fragment[2];
+  asm volatile("ldmatrix.sync.aligned.m8n8.x2.b16 {%0, %1}, [%2];"
+               : "=r"(activation_fragment[0]), "=r"(activation_fragment[1])
+               : "l"(activation_address));
+  asm("mma.sync.aligned.m16n8k32.row.col.s32.s8.s8.s32 "
+      "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, "
+      "{%0, %1, %2, %3};"
+      : "+r"(accumulator[0]), "+r"(accumulator[1]), "+r"(accumulator[2]),
+        "+r"(accumulator[3])
+      : "r"(weight_fragment[0]), "r"(weight_fragment[1]),
+        "r"(weight_fragment[2]), "r"(weight_fragment[3]),
+        "r"(activation_fragment[0]), "r"(activation_fragment[1]));
+}
+
+}  // namespace vllm::gguf_dsv4

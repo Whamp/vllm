@@ -9,6 +9,7 @@ import torch
 
 from vllm.config import VllmConfig
 from vllm.config.cache import CacheDType
+from vllm.models.deepseek_v4.cache_layout import get_deepseek_v4_cache_layout
 from vllm.platforms.interface import DeviceCapability
 from vllm.triton_utils import tl, triton
 from vllm.utils.math_utils import cdiv
@@ -96,12 +97,10 @@ class DeepseekV4SparseMLABackend(AttentionBackend):
         head_size: int,
         cache_dtype_str: str = "auto",
     ) -> tuple[int, ...]:
-        if cache_dtype_str == "fp8_ds_mla":
-            # DeepseekV4 main MLA: 584B per token (448 NoPE + 128 RoPE + 8 fp8 scale).
-            # head_size passed in is the semantic head_dim (512).
-            return (num_blocks, block_size, 584)
-        else:
-            return (num_blocks, block_size, head_size)
+        if cache_dtype_str in ("fp8_ds_mla", "fp4_ds_mla"):
+            layout = get_deepseek_v4_cache_layout(cache_dtype_str)
+            return (num_blocks, block_size, layout.row_bytes)
+        return (num_blocks, block_size, head_size)
 
 
 @dataclass

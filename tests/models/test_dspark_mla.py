@@ -67,6 +67,7 @@ def test_dspark_markov_head_is_replicated(
     monkeypatch: pytest.MonkeyPatch,
 ):
     from vllm.model_executor.layers import logits_processor, vocab_parallel_embedding
+    from vllm.model_executor.layers.utils import dispatch_cpu_unquantized_gemm
 
     monkeypatch.setattr(
         vocab_parallel_embedding, "get_tensor_model_parallel_rank", lambda: 3
@@ -97,6 +98,7 @@ def test_dspark_markov_head_is_replicated(
     )
     logits_processor = LogitsProcessor(128)
     monkeypatch.setattr(logits_processor, "_gather_logits", fail_collective)
+    dispatch_cpu_unquantized_gemm(head.markov_w2, remove_weight=False)
 
     markov_embed = head.embed(torch.tensor([1, 2]))
     bias = head.bias(markov_embed, logits_processor)
