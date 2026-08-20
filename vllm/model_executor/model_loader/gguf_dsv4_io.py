@@ -12,7 +12,10 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from vllm.model_executor.model_loader.gguf_dsv4_index import GGUFIndex
+from vllm.model_executor.model_loader.gguf_dsv4_index import (
+    GGUF_QUANTIZED_TYPE_NAMES,
+    GGUFIndex,
+)
 from vllm.model_executor.model_loader.gguf_dsv4_plan import (
     GGUFByteSpan,
     GGUFSpan,
@@ -20,18 +23,6 @@ from vllm.model_executor.model_loader.gguf_dsv4_plan import (
     GGUFTensorLoadPlan,
 )
 
-_QUANTIZED_GGUF_TYPES = {
-    "Q8_0",
-    "Q2_K",
-    "Q4_K",
-    "Q5_K",
-    "Q6_K",
-    "IQ1_S",
-    "IQ1_M",
-    "IQ2_XXS",
-    "IQ3_XXS",
-    "MXFP4",
-}
 _SOURCE_TORCH_DTYPES = {
     "F32": torch.float32,
     "F16": torch.float16,
@@ -179,7 +170,7 @@ def load_gguf_plan_into_parameter(
         index, plan, max_source_chunk_bytes
     )
     target = parameter.data.reshape(-1)
-    if plan.source_type in _QUANTIZED_GGUF_TYPES:
+    if plan.source_type in GGUF_QUANTIZED_TYPE_NAMES:
         if target.dtype != torch.uint8:
             raise ValueError(
                 f"Quantized GGUF target {plan.target_name} must be uint8, "

@@ -2,8 +2,10 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 import hashlib
+import json
 import struct
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -11,6 +13,19 @@ import torch
 from vllm.config.load import LoadConfig
 from vllm.model_executor.model_loader import get_model_loader
 from vllm.model_executor.model_loader.gguf_dsv4 import GGUFDSV4ModelLoader
+
+
+def _source_profile_sha256(source_types: dict[str, str]) -> str:
+    payload = json.dumps(source_types, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _profile_model_config(source_profile_sha256: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        model_arch_config=SimpleNamespace(
+            quantization_config={"source_quant_types_sha256": source_profile_sha256}
+        )
+    )
 
 
 def _string(value: str) -> bytes:
@@ -71,6 +86,9 @@ class _LoaderFixtureModel(torch.nn.Module):
         layer.attn = torch.nn.Module()
         layer.attn.fused_wqa_wkv = torch.nn.Module()
         layer.attn.fused_wqa_wkv.weight_raw = torch.nn.Parameter(
+            torch.full((34,), 255, dtype=torch.uint8), requires_grad=False
+        )
+        layer.attn.fused_wqa_wkv.weight_raw_0 = torch.nn.Parameter(
             torch.full((34,), 255, dtype=torch.uint8), requires_grad=False
         )
         layer.ffn_norm = torch.nn.Module()
@@ -151,6 +169,7 @@ def test_gguf_dsv4_loader_verifies_and_loads_ordered_split_artifact(
         split_number=1,
         tensor=("blk.0.ffn_norm.weight", (4,), 0, norm.numpy().tobytes()),
     )
+    source_profile_sha256 = _source_profile_sha256({"blk.0.attn_q_a.weight": "Q8_0"})
     config = LoadConfig(
         load_format="gguf_dsv4",
         model_loader_extra_config={
@@ -164,6 +183,7 @@ def test_gguf_dsv4_loader_verifies_and_loads_ordered_split_artifact(
                 for path in shards
             ],
             "tensor_count": 2,
+            "source_quant_types_sha256": source_profile_sha256,
             "max_source_chunk_bytes": 9,
         },
     )
@@ -179,11 +199,12 @@ def test_gguf_dsv4_loader_verifies_and_loads_ordered_split_artifact(
         lambda: 1,
     )
     model = _LoaderFixtureModel()
+    model_config = _profile_model_config(source_profile_sha256)
 
-    loader.download_model(model_config=None)
-    loader.load_weights(model, model_config=None)
+    loader.download_model(model_config=model_config)
+    loader.load_weights(model, model_config=model_config)
 
-    assert bytes(model.model.layers[0].attn.fused_wqa_wkv.weight_raw.tolist()) == (
+    assert bytes(model.model.layers[0].attn.fused_wqa_wkv.weight_raw_0.tolist()) == (
         quantized
     )
     torch.testing.assert_close(
@@ -211,6 +232,12 @@ def test_gguf_dsv4_loader_rejects_out_of_order_split_artifact(
             split_number=split_number,
             tensor=(source_name, (32, 1), 8, payload),
         )
+    source_profile_sha256 = _source_profile_sha256(
+        {
+            "blk.0.attn_q_a.weight": "Q8_0",
+            "blk.0.attn_kv.weight": "Q8_0",
+        }
+    )
     config = LoadConfig(
         load_format="gguf_dsv4",
         model_loader_extra_config={
@@ -224,9 +251,10 @@ def test_gguf_dsv4_loader_rejects_out_of_order_split_artifact(
                 for path in shards
             ],
             "tensor_count": 2,
+            "source_quant_types_sha256": source_profile_sha256,
         },
     )
     loader = get_model_loader(config)
 
     with pytest.raises(ValueError, match="split.no"):
-        loader.download_model(model_config=None)
+        loader.download_model(model_config=_profile_model_config(source_profile_sha256))

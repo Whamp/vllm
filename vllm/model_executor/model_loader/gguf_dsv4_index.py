@@ -39,6 +39,15 @@ GGUF_TYPES: dict[int, GGUFTypeSpec] = {
     39: GGUFTypeSpec("MXFP4", 32, 17),
 }
 
+GGUF_TYPE_SPECS_BY_NAME = {
+    type_spec.name: type_spec for type_spec in GGUF_TYPES.values()
+}
+GGUF_QUANTIZED_TYPE_NAMES = frozenset(
+    type_name
+    for type_name, type_spec in GGUF_TYPE_SPECS_BY_NAME.items()
+    if type_spec.block_elements > 1
+)
+
 
 @dataclass(frozen=True)
 class GGUFTensorEntry:
