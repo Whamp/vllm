@@ -403,8 +403,9 @@ __device__ __noinline__ void histogram_2048_topk(
         }
       }
 
-      const uint32_t packed = (static_cast<uint32_t>(__popc(def_bits)) << 16) |
-                              static_cast<uint32_t>(__popc(tie_bits));
+      const uint32_t packed =
+          (static_cast<uint32_t>(__popc(def_bits)) << 16) |
+          static_cast<uint32_t>(__popc(tie_bits));
       uint32_t winc = packed;
 #pragma unroll
       for (uint32_t o = 1; o < 32; o *= 2) {
@@ -423,17 +424,16 @@ __device__ __noinline__ void histogram_2048_topk(
       }
       const uint32_t thread_excl = inter_prefix + (winc - packed);
 
-      int def_prefix =
-          decode_smem[SBASE + sBUF0] + static_cast<int>(thread_excl >> 16);
-      int tie_prefix =
-          decode_smem[SBASE + sBUF1] + static_cast<int>(thread_excl & 0xFFFF);
+      int def_prefix = decode_smem[SBASE + sBUF0] +
+                       static_cast<int>(thread_excl >> 16);
+      int tie_prefix = decode_smem[SBASE + sBUF1] +
+                       static_cast<int>(thread_excl & 0xFFFF);
 
 #pragma unroll 4
       for (int sub = 0; sub < 4; sub++) {
         const int elem_idx = (i << 2) + sub;
         if (def_bits & (1u << sub)) {
-          const int tie_used =
-              (tie_prefix < tie_slots) ? tie_prefix : tie_slots;
+          const int tie_used = (tie_prefix < tie_slots) ? tie_prefix : tie_slots;
           output_indices[def_prefix + tie_used] = elem_idx;
           def_prefix++;
         } else if (tie_bits & (1u << sub)) {
@@ -560,7 +560,8 @@ __device__ __noinline__ void histogram_256_topk(
 
       compute_cumulative_sum();
 
-      if (thread_id < RADIX && shared_histogram[0][thread_id] >= remaining_k &&
+      if (thread_id < RADIX &&
+          shared_histogram[0][thread_id] >= remaining_k &&
           shared_histogram[0][thread_id + 1] < remaining_k) {
         shared_threshold_bin = thread_id;
         shared_final_k = shared_histogram[0][thread_id + 1];
@@ -765,7 +766,7 @@ __device__ void radix_topk(const float* __restrict__ row_input,
   // with it the pivot, the selected set, and the output bounds). Zero it
   // explicitly behind the initial barrier — no extra synchronization needed.
   if (cta_in_group == 0) {
-    uint32_t* round0_hist = state->histogram[(radix_iter * 4) % 3];
+    uint32_t* round0_hist = state->histogram[(iter * 4) % 3];
     for (uint32_t i = tx; i < RADIX; i += kThreadsPerBlock) {
       round0_hist[i] = 0;
     }
@@ -911,7 +912,7 @@ __device__ void radix_topk(const float* __restrict__ row_input,
   // (< 64K elements), so 16 bits per component suffice. The counts buffer
   // reuses the histogram slot that is not referenced again until it is
   // zeroed (behind a barrier) in the next iteration's round 0/1.
-  uint32_t* counts_buf = state->histogram[(radix_iter * 4 + 5) % 3];
+  uint32_t* counts_buf = state->histogram[(iter * 4 + 5) % 3];
   if (tx == 0) {
     counts_buf[cta_in_group] = (suffix_sum[0] << 16) | suffix_sum[1];
     red_release(&state->arrival_counter, 1);
@@ -933,8 +934,8 @@ __device__ void radix_topk(const float* __restrict__ row_input,
   }
 
   // Index-ordered selection sweep over this CTA's chunk.
-  uint32_t* warp_sums = local_histogram;     // 32 entries scratch
-  uint32_t* running = local_histogram + 32;  // [def, tie]
+  uint32_t* warp_sums = local_histogram;        // 32 entries scratch
+  uint32_t* running = local_histogram + 32;     // [def, tie]
   if (tx == 0) {
     running[0] = 0;
     running[1] = 0;
@@ -1360,7 +1361,8 @@ __global__ void __launch_bounds__(FILTERED_TOPK_BLOCK_THREADS)
     }
     const uint32_t thread_excl = inter_prefix + (winc - packed);
 
-    const int def_prefix = s_num_input[0] + static_cast<int>(thread_excl >> 16);
+    const int def_prefix =
+        s_num_input[0] + static_cast<int>(thread_excl >> 16);
     const int tie_prefix =
         s_num_input[1] + static_cast<int>(thread_excl & 0xFFFF);
 
