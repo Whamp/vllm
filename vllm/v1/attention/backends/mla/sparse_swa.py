@@ -12,6 +12,7 @@ from vllm.model_executor.warmup.jit_warmup import (
     WarmupIntRange,
 )
 from vllm.model_executor.warmup.jit_warmup_triton_helper import TritonWarmupTensor
+from vllm.models.deepseek_v4.cache_layout import get_deepseek_v4_cache_layout
 from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
 from vllm.utils.math_utils import cdiv, next_power_of_2
@@ -87,20 +88,22 @@ class DeepseekV4SWACache(torch.nn.Module, AttentionLayerBase):
         assert self.dtype in (torch.uint8, torch.bfloat16, torch.float8_e4m3fn)
 
     def get_kv_cache_spec(self, vllm_config: VllmConfig) -> KVCacheSpec:
-        # fp8_ds_mla's UE8M0 paged layout needs 576B alignment; contiguous
-        # bf16/fp8 cache uses the natural element-size page.
-        uses_fp8_ds_mla_layout = self.cache_config.cache_dtype == "fp8_ds_mla"
+        cache_dtype = self.cache_config.cache_dtype
+        uses_ds_mla_layout = cache_dtype in ("fp8_ds_mla", "fp4_ds_mla")
+        layout = (
+            get_deepseek_v4_cache_layout(cache_dtype) if uses_ds_mla_layout else None
+        )
         return SlidingWindowMLASpec(
             block_size=self.block_size,
             num_kv_heads=1,
             head_size=self.head_dim,
             dtype=self.dtype,
             sliding_window=self.window_size,
-            cache_dtype_str=self.cache_config.cache_dtype,
-            # 576B for FlashMLA packing; 512B for FlashInfer sparse (#44577).
-            alignment=576 if uses_fp8_ds_mla_layout else 512,
+            cache_dtype_str=cache_dtype,
+            alignment=layout.block_alignment if layout is not None else 512,
             model_version="deepseek_v4",
-            kv_quant_mode=get_kv_quant_mode(self.cache_config.cache_dtype),
+            physical_row_bytes=layout.row_bytes if layout is not None else None,
+            kv_quant_mode=get_kv_quant_mode(cache_dtype),
         )
 
     def forward(self): ...
@@ -128,7 +131,12 @@ class DeepseekSparseSWABackend(AttentionBackend):
 
     @staticmethod
     def get_builder_cls() -> type["DeepseekSparseSWAMetadataBuilder"]:
-        if current_platform.is_rocm():
+        # ROCm and CUDA SM8x share the ragged Triton decode kernels, which
+        # consume the ragged SWA metadata this builder adds.
+        if current_platform.is_rocm() or (
+            current_platform.is_cuda()
+            and not current_platform.has_device_capability(90)
+        ):
             from vllm.models.deepseek_v4.amd.rocm import (
                 DeepseekV4ROCMAiterSparseSWAMetadataBuilder,
             )
@@ -145,12 +153,12 @@ class DeepseekSparseSWABackend(AttentionBackend):
         cache_dtype_str: str = "auto",
     ) -> tuple[int, ...]:
         assert num_kv_heads == 1
-        if cache_dtype_str == "fp8_ds_mla":
-            # DeepseekV4 SWA: 584B per token (448 NoPE + 128 RoPE + 8 fp8 scale).
-            # head_size passed in is the semantic head_dim (512).
-            return (num_blocks, block_size, 584)
-        else:
-            return (num_blocks, block_size, head_size)
+        if cache_dtype_str in ("fp8_ds_mla", "fp4_ds_mla"):
+            layout = get_deepseek_v4_cache_layout(cache_dtype_str)
+            # head_size is the semantic latent dimension. DS-MLA layouts own
+            # their packed physical row width independently.
+            return (num_blocks, block_size, layout.row_bytes)
+        return (num_blocks, block_size, head_size)
 
     @staticmethod
     def get_kv_cache_stride_order(

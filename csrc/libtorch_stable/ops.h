@@ -47,6 +47,76 @@ torch::stable::Tensor permute_cols(torch::stable::Tensor const& A,
                                    torch::stable::Tensor const& perm);
 
 #ifndef USE_ROCM
+namespace vllm::gguf_dsv4 {
+void gguf_iq2_xxs_raw_matvec(const torch::stable::Tensor& input,
+                             const torch::stable::Tensor& packed_weights,
+                             torch::stable::Tensor& output);
+
+void gguf_iq2_xxs_aligned_matvec(
+    const torch::stable::Tensor& input,
+    const torch::stable::Tensor& aligned_scales,
+    const torch::stable::Tensor& aligned_grid_bytes,
+    const torch::stable::Tensor& aligned_scale_sign_bytes,
+    torch::stable::Tensor& output);
+
+void gguf_quantize_bf16_to_q8_1(const torch::stable::Tensor& input,
+                                torch::stable::Tensor& output_scales,
+                                torch::stable::Tensor& output_codes);
+
+void gguf_iq2_xxs_q8_1_raw_matvec(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& packed_weights, torch::stable::Tensor& output);
+
+void gguf_iq2_xxs_q8_1_aligned_matvec(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& aligned_weight_scales,
+    const torch::stable::Tensor& aligned_grid_bytes,
+    const torch::stable::Tensor& aligned_scale_sign_bytes,
+    torch::stable::Tensor& output);
+
+void gguf_iq2_xxs_q8_1_indexed_gate_up(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& gate_weights,
+    const torch::stable::Tensor& up_weights,
+    const torch::stable::Tensor& topk_ids, torch::stable::Tensor& gate_output,
+    torch::stable::Tensor& up_output);
+
+void gguf_iq2_xxs_q8_1_grouped_gate_up(
+    const torch::stable::Tensor& token_scales,
+    const torch::stable::Tensor& token_codes,
+    const torch::stable::Tensor& gate_weights,
+    const torch::stable::Tensor& up_weights,
+    const torch::stable::Tensor& sorted_token_ids,
+    const torch::stable::Tensor& expert_ids,
+    const torch::stable::Tensor& num_tokens_padded,
+    torch::stable::Tensor& gate_output, torch::stable::Tensor& up_output,
+    int64_t topk);
+
+void gguf_swiglu_weighted_q8_1(const torch::stable::Tensor& gate,
+                               const torch::stable::Tensor& up,
+                               const torch::stable::Tensor& router_weights,
+                               torch::stable::Tensor& output_scales,
+                               torch::stable::Tensor& output_codes,
+                               double clamp_limit);
+
+void gguf_q2_k_q8_1_grouped_down(const torch::stable::Tensor& assignment_scales,
+                                 const torch::stable::Tensor& assignment_codes,
+                                 const torch::stable::Tensor& down_weights,
+                                 const torch::stable::Tensor& sorted_token_ids,
+                                 const torch::stable::Tensor& expert_ids,
+                                 const torch::stable::Tensor& num_tokens_padded,
+                                 torch::stable::Tensor& output);
+
+void gguf_q2_k_q8_1_indexed_down(const torch::stable::Tensor& activation_scales,
+                                 const torch::stable::Tensor& activation_codes,
+                                 const torch::stable::Tensor& down_weights,
+                                 const torch::stable::Tensor& topk_ids,
+                                 torch::stable::Tensor& output);
+}  // namespace vllm::gguf_dsv4
+
 bool cutlass_scaled_mm_supports_fp8(int64_t cuda_device_capability);
 bool cutlass_scaled_mm_supports_block_fp8(int64_t cuda_device_capability);
 bool cutlass_group_gemm_supported(int64_t cuda_device_capability);
@@ -269,7 +339,22 @@ torch::stable::Tensor fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert(
     torch::stable::Tensor const& cos_sin_cache, int64_t q_head_padded,
     double eps, int64_t cache_block_size);
 
+torch::stable::Tensor fused_deepseek_v4_qnorm_rope_kv_rope_fp4_quant_insert(
+    torch::stable::Tensor const& q_in, torch::stable::Tensor const& kv,
+    torch::stable::Tensor& k_cache, torch::stable::Tensor const& slot_mapping,
+    torch::stable::Tensor const& position_ids,
+    torch::stable::Tensor const& cos_sin_cache, int64_t q_head_padded,
+    double eps, int64_t cache_block_size);
+
 void fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert_out(
+    torch::stable::Tensor const& q_in, torch::stable::Tensor const& kv,
+    torch::stable::Tensor& q_out, torch::stable::Tensor& k_cache,
+    torch::stable::Tensor const& slot_mapping,
+    torch::stable::Tensor const& position_ids,
+    torch::stable::Tensor const& cos_sin_cache, int64_t q_head_padded,
+    double eps, int64_t cache_block_size);
+
+void fused_deepseek_v4_qnorm_rope_kv_rope_fp4_quant_insert_out(
     torch::stable::Tensor const& q_in, torch::stable::Tensor const& kv,
     torch::stable::Tensor& q_out, torch::stable::Tensor& k_cache,
     torch::stable::Tensor const& slot_mapping,
@@ -470,6 +555,9 @@ fptr_t init_custom_ar(const std::vector<int64_t>& fake_ipc_ptrs,
 void all_reduce(fptr_t _fa, torch::stable::Tensor& inp,
                 torch::stable::Tensor& out, fptr_t reg_buffer,
                 int64_t reg_buffer_sz_bytes);
+void all_reduce_int8(fptr_t _fa, torch::stable::Tensor& inp,
+                     torch::stable::Tensor& out_q, torch::stable::Tensor& out_s,
+                     fptr_t reg_buffer, int64_t reg_buffer_sz_bytes);
 void custom_all_gather(fptr_t _fa, torch::stable::Tensor& inp,
                        torch::stable::Tensor& out, fptr_t reg_buffer,
                        int64_t reg_buffer_sz_bytes);

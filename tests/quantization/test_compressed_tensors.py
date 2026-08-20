@@ -43,6 +43,11 @@ from vllm.model_executor.layers.quantization.compressed_tensors.utils import (
     find_matched_target,
 )
 from vllm.model_executor.layers.quantization.input_quant_fp8 import QuantFP8
+from vllm.model_executor.layers.quantization.utils.quant_utils import (
+    GroupShape,
+    QuantKey,
+    ScaleDesc,
+)
 from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead
 from vllm.platforms import current_platform
 from vllm.v1.attention.backends.fa_utils import get_flash_attn_version
@@ -942,6 +947,92 @@ def test_compressed_tensors_mxfp8_moe_setup(vllm_runner):
         assert output
 
 
+def test_compressed_tensors_moe_accepts_separate_w13_w2_wna16_schemes(
+    monkeypatch,
+):
+    from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
+        compressed_tensors_moe_wna16 as wna16_module,
+    )
+    from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe.compressed_tensors_moe import (  # noqa: E501
+        CompressedTensorsMoEMethod,
+    )
+
+    w13_quant = QuantizationArgs(
+        num_bits=2,
+        type=QuantizationType.INT,
+        strategy=QuantizationStrategy.GROUP,
+        symmetric=True,
+        dynamic=False,
+        group_size=128,
+    )
+    w2_quant = QuantizationArgs(
+        num_bits=4,
+        type=QuantizationType.INT,
+        strategy=QuantizationStrategy.GROUP,
+        symmetric=True,
+        dynamic=False,
+        group_size=128,
+    )
+    schemes = {
+        "gate_proj": w13_quant,
+        "up_proj": w13_quant,
+        "down_proj": w2_quant,
+    }
+
+    class MixedProjectionQuantConfig:
+        def _add_fused_moe_to_target_scheme_map(self):
+            pass
+
+        def get_scheme_dict(self, _layer, layer_name):
+            projection = layer_name.rsplit(".", 1)[-1]
+            return {
+                "weights": schemes[projection],
+                "input_activations": None,
+                "format": "pack-quantized",
+            }
+
+        @staticmethod
+        def _is_mxfp4(_weight_quant):
+            return False
+
+        @staticmethod
+        def _is_mxfp8(_weight_quant):
+            return False
+
+        @staticmethod
+        def _is_wNa16_group_channel(weight_quant, input_quant):
+            return weight_quant in (w13_quant, w2_quant) and input_quant is None
+
+    captured: dict[str, object] = {}
+    expected_method = object()
+
+    def fake_wna16_method(weight_quant, input_quant, moe, w2_weight_quant=None):
+        captured.update(
+            weight_quant=weight_quant,
+            input_quant=input_quant,
+            moe=moe,
+            w2_weight_quant=w2_weight_quant,
+        )
+        return expected_method
+
+    monkeypatch.setattr(
+        wna16_module,
+        "CompressedTensorsWNA16MoEMethod",
+        fake_wna16_method,
+    )
+    layer = Mock()
+
+    method = CompressedTensorsMoEMethod.get_moe_method(
+        MixedProjectionQuantConfig(), layer, "model.layers.0.ffn.experts"
+    )
+
+    assert method is expected_method
+    assert captured["weight_quant"] is w13_quant
+    assert captured["w2_weight_quant"] is w2_quant
+    assert captured["input_quant"] is None
+    assert captured["moe"] is layer.moe_config
+
+
 @pytest.mark.parametrize(
     "actorder,group_size,part,full,expected",
     [
@@ -969,6 +1060,250 @@ def test_wna16_moe_w2_scale_sharding(actorder, group_size, part, full, expected)
         actorder, group_size, part, full
     )
     assert result == expected
+
+
+def test_compressed_tensors_moe_allocates_separate_w13_w2_bit_widths(monkeypatch):
+    from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
+    from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
+        compressed_tensors_moe_wna16 as wna16_module,
+    )
+
+    def quant_args(num_bits):
+        return QuantizationArgs(
+            num_bits=num_bits,
+            type=QuantizationType.INT,
+            strategy=QuantizationStrategy.GROUP,
+            symmetric=True,
+            dynamic=False,
+            group_size=128,
+        )
+
+    monkeypatch.setattr(
+        wna16_module,
+        "select_wna16_moe_backend",
+        lambda **_kwargs: (WNA16MoEBackend.HUMMING, object),
+    )
+    moe_config = Mock(is_act_and_mul=True)
+
+    method = wna16_module.CompressedTensorsWNA16MoEMethod(
+        quant_args(2),
+        None,
+        moe_config,
+        w2_weight_quant=quant_args(4),
+    )
+
+    assert method.get_weight_shape("w13_weight", 1, 128, 128) == (1, 256, 8)
+    assert method.get_weight_shape("w2_weight", 1, 128, 128) == (1, 128, 16)
+
+
+def test_compressed_tensors_moe_allocates_projection_group_scales(monkeypatch):
+    from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
+    from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
+        compressed_tensors_moe_wna16 as wna16_module,
+    )
+
+    def quant_args(group_size):
+        return QuantizationArgs(
+            num_bits=2,
+            type=QuantizationType.INT,
+            strategy=QuantizationStrategy.GROUP,
+            symmetric=True,
+            dynamic=False,
+            group_size=group_size,
+        )
+
+    monkeypatch.setattr(
+        wna16_module,
+        "select_wna16_moe_backend",
+        lambda **_kwargs: (WNA16MoEBackend.HUMMING, object),
+    )
+    method = wna16_module.CompressedTensorsWNA16MoEMethod(
+        quant_args(512),
+        None,
+        Mock(is_act_and_mul=True),
+        w2_weight_quant=quant_args(128),
+    )
+    layer = torch.nn.Module()
+
+    method.create_weights(
+        layer,
+        num_experts=2,
+        hidden_size=512,
+        intermediate_size_per_partition=512,
+        intermediate_size_full=512,
+        params_dtype=torch.bfloat16,
+    )
+
+    assert layer.w13_weight_scale.shape == (2, 1024, 1)
+    assert layer.w2_weight_scale.shape == (2, 512, 4)
+    assert method.w13_group_size == 512
+    assert method.w2_group_size == 128
+
+
+@pytest.mark.parametrize(
+    "w2_bits,w2_group_size,backend,error_match",
+    [
+        (4, 128, "MARLIN", "requires the Humming backend"),
+    ],
+)
+def test_compressed_tensors_mixed_moe_rejects_incompatible_layout(
+    monkeypatch, w2_bits, w2_group_size, backend, error_match
+):
+    from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
+    from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
+        compressed_tensors_moe_wna16 as wna16_module,
+    )
+
+    def quant_args(num_bits, group_size):
+        return QuantizationArgs(
+            num_bits=num_bits,
+            type=QuantizationType.INT,
+            strategy=QuantizationStrategy.GROUP,
+            symmetric=True,
+            dynamic=False,
+            group_size=group_size,
+        )
+
+    monkeypatch.setattr(
+        wna16_module,
+        "select_wna16_moe_backend",
+        lambda **_kwargs: (WNA16MoEBackend[backend], object),
+    )
+
+    with pytest.raises(ValueError, match=error_match):
+        wna16_module.CompressedTensorsWNA16MoEMethod(
+            quant_args(2, 128),
+            None,
+            Mock(),
+            w2_weight_quant=quant_args(w2_bits, w2_group_size),
+        )
+
+
+@pytest.mark.parametrize("num_bits", range(2, 9))
+def test_humming_supports_compressed_tensors_wna16_moe(num_bits):
+    from vllm.model_executor.layers.fused_moe.experts.fused_humming_moe import (
+        HummingExpertsBase,
+    )
+    from vllm.model_executor.layers.quantization.compressed_tensors.schemes.compressed_tensors_wNa16 import (  # noqa: E501
+        WNA16_SUPPORTED_TYPES_MAP,
+    )
+
+    weight_key = QuantKey(
+        dtype=WNA16_SUPPORTED_TYPES_MAP[num_bits],
+        scale=ScaleDesc(
+            dtype=torch.float16,
+            static=True,
+            group_shape=GroupShape(row=1, col=128),
+        ),
+        symmetric=True,
+    )
+
+    assert HummingExpertsBase._supports_quant_scheme(weight_key, None)
+
+
+@pytest.mark.parametrize("num_bits", range(2, 9))
+def test_humming_wna16_moe_schema_accepts_compressed_tensors(num_bits):
+    from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import (
+        _humming_wna16_weight_schema,
+    )
+
+    quant_args = QuantizationArgs(
+        num_bits=num_bits,
+        type=QuantizationType.INT,
+        strategy=QuantizationStrategy.GROUP,
+        symmetric=True,
+        dynamic=False,
+        group_size=128,
+    )
+
+    assert _humming_wna16_weight_schema(quant_args) == {
+        "quant_method": "compressed-tensors",
+        "format": "pack-quantized",
+        "type": "int",
+        "num_bits": num_bits,
+        "strategy": "group",
+        "group_size": 128,
+        "symmetric": True,
+    }
+
+
+@pytest.mark.parametrize("num_bits", [2, 3, 5, 6, 7])
+def test_compressed_tensors_wna16_moe_selects_humming_only_bits(monkeypatch, num_bits):
+    from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
+    from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
+        compressed_tensors_moe_wna16 as wna16_module,
+    )
+    from vllm.model_executor.layers.quantization.compressed_tensors.schemes.compressed_tensors_wNa16 import (  # noqa: E501
+        WNA16_SUPPORTED_TYPES_MAP,
+    )
+
+    captured = {}
+
+    def fake_select_wna16_moe_backend(*, config, weight_key, **kwargs):
+        del config, kwargs
+        captured["weight_key"] = weight_key
+        return WNA16MoEBackend.HUMMING, object
+
+    monkeypatch.setattr(
+        wna16_module,
+        "select_wna16_moe_backend",
+        fake_select_wna16_moe_backend,
+    )
+
+    quant_args = QuantizationArgs(
+        num_bits=num_bits,
+        type=QuantizationType.INT,
+        strategy=QuantizationStrategy.GROUP,
+        symmetric=True,
+        dynamic=False,
+        group_size=128,
+    )
+
+    method = wna16_module.CompressedTensorsWNA16MoEMethod(
+        quant_args,
+        None,
+        Mock(),
+    )
+
+    assert method.wna16_backend == WNA16MoEBackend.HUMMING
+    assert captured["weight_key"].dtype == WNA16_SUPPORTED_TYPES_MAP[num_bits]
+    assert captured["weight_key"].scale.group_shape == GroupShape(row=1, col=128)
+
+
+@pytest.mark.skip_global_cleanup
+def test_compressed_tensors_wna16_setup_forwards_humming_layer(monkeypatch):
+    from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
+    from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
+        compressed_tensors_moe_wna16 as wna16_module,
+    )
+
+    method = object.__new__(wna16_module.CompressedTensorsWNA16MoEMethod)
+    method.experts_cls = object
+    method.wna16_backend = WNA16MoEBackend.HUMMING
+    method.moe = object()
+    method.is_marlin = False
+    quant_config = object()
+    method.get_fused_moe_quant_config = lambda layer: quant_config
+    layer = Mock()
+    layer._expert_routing_tables.return_value = (None, None, None)
+    captured = {}
+    kernel = object()
+
+    def fake_make_wna16_moe_kernel(**kwargs):
+        captured.update(kwargs)
+        return kernel
+
+    monkeypatch.setattr(
+        wna16_module,
+        "make_wna16_moe_kernel",
+        fake_make_wna16_moe_kernel,
+    )
+
+    method._setup_kernel(layer)
+
+    assert method.moe_kernel is kernel
+    assert captured["backend"] == WNA16MoEBackend.HUMMING
+    assert captured["layer"] is layer
 
 
 @pytest.mark.skipif(

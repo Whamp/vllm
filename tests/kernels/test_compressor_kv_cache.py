@@ -27,10 +27,12 @@ from vllm.models.deepseek_v4.common.ops import (
 from vllm.models.deepseek_v4.common.ops.fused_compress_quant_cache import (
     _fused_kv_compress_norm_rope_insert_indexer_attn,
     _fused_kv_compress_norm_rope_insert_indexer_mxfp4_attn,
+    _fused_kv_compress_norm_rope_insert_sparse_attn,
     _launch_two_stage_sparse_attn_compressor,
 )
 from vllm.models.deepseek_v4.compressor import _get_c128_boundary
 from vllm.platforms import current_platform
+from vllm.utils.import_utils import is_cutedsl_supported
 
 from .test_fused_indexer_q_rope_quant import quantize_to_mxfp4
 
@@ -582,7 +584,23 @@ def _reference_kv_compress_norm_rope(
 
 @pytest.mark.parametrize("num_tokens", [1, 7, 32])
 @pytest.mark.parametrize("kv_block_size", [16, 32])
-@pytest.mark.parametrize("use_fp4", [False, True])
+@pytest.mark.parametrize(
+    "use_fp4",
+    [
+        False,
+        # The MXFP4 kernel emits Blackwell-only PTX
+        # (cvt.rn.satfinite.e2m1x2.f32); ptxas exits 255 on older archs.
+        # Production double-gates this path at SM100
+        # (nvidia/model.py use_fp4_indexer_cache validation).
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                not current_platform.has_device_capability(100),
+                reason="MXFP4 indexer cache kernel requires SM100+",
+            ),
+        ),
+    ],
+)
 def test_fused_kv_insert_indexer(num_tokens: int, kv_block_size: int, use_fp4: bool):
     """Fused K compress+norm+rope+quant+insert for the indexer KV cache."""
     HEAD_DIM = 128
@@ -718,6 +736,125 @@ def test_fused_kv_insert_indexer(num_tokens: int, kv_block_size: int, use_fp4: b
             )
 
 
+def test_fused_sparse_compressor_fp4_cache() -> None:
+    """C4 compressor writes the 368-byte fp4_ds_mla physical format."""
+    head_dim = 512
+    nope_dim = 448
+    rope_dim = 64
+    state_block_size = 16
+    kv_block_size = 64
+    compress_ratio = 4
+    overlap = 1
+    coff = 1 + overlap
+    num_tokens = 7
+    token_stride = 352
+    scale_dim = 16
+    quant_block = 32
+    device = "cuda"
+    torch.manual_seed(71)
+
+    num_pages = (compress_ratio * num_tokens - 1) // state_block_size + 2
+    state_cache = torch.randn(
+        num_pages,
+        state_block_size,
+        2 * coff * head_dim,
+        dtype=torch.float32,
+        device=device,
+    )
+    block_table = torch.arange(num_pages, dtype=torch.int32, device=device).unsqueeze(0)
+    token_to_req = torch.zeros(num_tokens, dtype=torch.int32, device=device)
+    slot_mapping = torch.arange(num_tokens, dtype=torch.int64, device=device)
+    positions = torch.arange(
+        compress_ratio - 1,
+        compress_ratio * num_tokens,
+        compress_ratio,
+        dtype=torch.int64,
+        device=device,
+    )
+    rms_weight = torch.randn(head_dim, dtype=torch.bfloat16, device=device)
+    cos_sin_cache = torch.randn(
+        compress_ratio * num_tokens, rope_dim, dtype=torch.float32, device=device
+    )
+    kv_cache = torch.zeros(
+        1, kv_block_size, token_stride + scale_dim, dtype=torch.uint8, device=device
+    )
+
+    _fused_kv_compress_norm_rope_insert_sparse_attn[(num_tokens,)](
+        state_cache,
+        state_cache.stride(0),
+        state_cache.stride(1),
+        token_to_req,
+        positions,
+        slot_mapping,
+        block_table,
+        block_table.stride(0),
+        state_block_size,
+        rms_weight,
+        1e-6,
+        cos_sin_cache,
+        cos_sin_cache.stride(0),
+        kv_cache,
+        slot_mapping,
+        kv_block_size,
+        HEAD_SIZE=head_dim,
+        TRITON_BLOCK_SIZE=head_dim,
+        STATE_WIDTH=coff * head_dim,
+        COMPRESS_RATIO=compress_ratio,
+        OVERLAP=bool(overlap),
+        ROPE_HEAD_DIM=rope_dim,
+        FP8_MAX=448.0,
+        QUANT_BLOCK=quant_block,
+        TOKEN_STRIDE=token_stride,
+        SCALE_DIM=scale_dim,
+        KV_BLOCK_STRIDE=kv_cache.stride(0),
+        USE_FP4_CACHE=True,
+        num_warps=4,
+    )
+
+    reference = _reference_kv_compress_norm_rope(
+        state_cache,
+        block_table,
+        positions,
+        rms_weight,
+        cos_sin_cache,
+        compress_ratio,
+        overlap,
+        rms_eps=1e-6,
+        return_full_cache=True,
+    )
+    expected_nope, expected_scales = quantize_to_mxfp4(reference[:, :nope_dim])
+    expected_data = torch.cat(
+        (expected_nope, reference[:, nope_dim:].contiguous().view(torch.uint8)),
+        dim=-1,
+    )
+    expected_scale_storage = torch.zeros(
+        num_tokens, scale_dim, dtype=torch.uint8, device=device
+    )
+    expected_scale_storage[:, : expected_scales.shape[1]] = expected_scales
+
+    flat = kv_cache.view(1, -1)
+    for token in range(num_tokens):
+        data_start = token * token_stride
+        scale_start = kv_block_size * token_stride + token * scale_dim
+        torch.testing.assert_close(
+            flat[0, data_start : data_start + token_stride],
+            expected_data[token],
+            rtol=0,
+            atol=0,
+        )
+        torch.testing.assert_close(
+            flat[0, scale_start : scale_start + scale_dim],
+            expected_scale_storage[token],
+            rtol=0,
+            atol=0,
+        )
+
+
+@pytest.mark.skipif(
+    not is_cutedsl_supported(),
+    reason="CuTe DSL kernels compile only for SM90+; the package importing "
+    "fine is not a usable gate (the sm_80 compile aborts)",
+)
 @pytest.mark.parametrize("compress_ratio", [4, 128])
 @pytest.mark.parametrize("store_fp8", [False, True])
 def test_cutedsl_full_cache_store(compress_ratio: int, store_fp8: bool):
@@ -726,7 +863,6 @@ def test_cutedsl_full_cache_store(compress_ratio: int, store_fp8: bool):
     Exercises the contiguous bf16 / per-tensor fp8 store branch of both the C4
     fused kernel and the C128 split kernel against the PyTorch reference.
     """
-    cutedsl = pytest.importorskip("cutlass")  # noqa: F841
     from vllm.models.deepseek_v4.nvidia.ops.sparse_attn_compress_cutedsl import (
         fused_kv_compress_norm_rope_insert_sparse_attn_cutedsl,
         split_kv_compress_norm_rope_insert_sparse_attn_cutedsl,
@@ -940,6 +1076,7 @@ def test_fused_kv_insert_split(num_tokens: int, kv_block_size: int):
         QUANT_BLOCK,
         TOKEN_STRIDE,
         SCALE_DIM,
+        False,
         HEAD_DIM,
         ROPE_DIM,
         num_tokens,

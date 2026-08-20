@@ -173,7 +173,7 @@ class DeepseekV4FlashInferMLAAttention(DeepseekV4Attention):
     """FlashInfer TRTLLM-gen sparse MLA attention layer for SM100 DeepSeek V4."""
 
     backend_cls = DeepseekV4FlashInferMLASparseBackend
-    use_fp8_ds_mla_layout: ClassVar[bool] = False
+    use_ds_mla_layout: ClassVar[bool] = False
 
     @classmethod
     def get_padded_num_q_heads(cls, num_heads: int) -> int:
@@ -534,7 +534,7 @@ class DeepseekV4FlashInferSM120Attention(DeepseekV4Attention):
     """DeepSeek V4 sparse MLA attention through FlashInfer's SM120 kernels."""
 
     backend_cls = DeepseekV4FlashInferMLASparseBackend
-    use_fp8_ds_mla_layout: ClassVar[bool] = True
+    use_ds_mla_layout: ClassVar[bool] = True
 
     @staticmethod
     def _get_workspace(device: torch.device) -> torch.Tensor:

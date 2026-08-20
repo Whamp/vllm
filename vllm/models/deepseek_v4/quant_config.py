@@ -12,6 +12,9 @@ from vllm.model_executor.layers.fused_moe import (
     UnquantizedFusedMoEMethod,
 )
 from vllm.model_executor.layers.quantization import QuantizationMethods
+from vllm.model_executor.layers.quantization.compressed_tensors import (
+    compressed_tensors as compressed_tensors_module,
+)
 from vllm.model_executor.layers.quantization.fp8 import Fp8Config
 from vllm.model_executor.layers.quantization.mxfp4 import Mxfp4MoEMethod
 from vllm.model_executor.layers.quantization.utils.quant_utils import (
@@ -51,6 +54,9 @@ class DeepseekV4FP8Config(Fp8Config):
         self._resolved_expert_dtype: str | None = None
         self._resolved_moe_quant_algo: str | None = None
         self._nvfp4_config: ModelOptNvFp4Config | None = None
+        self._compressed_tensors_config: (
+            compressed_tensors_module.CompressedTensorsConfig | None
+        ) = None
         # ``is_scale_e8m0`` is a property that resolves on first read,
         # by which time the current vllm_config has been set.
 
@@ -140,6 +146,10 @@ class DeepseekV4FP8Config(Fp8Config):
             and (
                 hf_quant_cfg.get("quant_method") in ("fp8", "deepseek_v4_fp8")
                 or (
+                    hf_quant_cfg.get("quant_method") == "compressed-tensors"
+                    and hf_quant_cfg.get("base_quant_method") == "deepseek_v4_fp8"
+                )
+                or (
                     hf_quant_cfg.get("quant_method") == "quark"
                     and cls._is_quark_mxfp4_ocp(hf_quant_cfg)
                 )
@@ -153,6 +163,21 @@ class DeepseekV4FP8Config(Fp8Config):
 
     @classmethod
     def from_config(cls, config: dict) -> DeepseekV4FP8Config:
+        compressed_tensors_config = None
+        if (
+            config.get("quant_method") == "compressed-tensors"
+            and config.get("base_quant_method") == "deepseek_v4_fp8"
+        ):
+            compressed_tensors_config = (
+                compressed_tensors_module.CompressedTensorsConfig.from_config(config)
+            )
+            config = {
+                "quant_method": "fp8",
+                "activation_scheme": "dynamic",
+                "fmt": "e4m3",
+                "scale_fmt": "ue8m0",
+                "weight_block_size": [128, 128],
+            }
         # Reroute AMD-Quark fused shared expert MXFP4 checkpoints onto the fp8
         # path: the runtime layout matches the DeepSeek-native fp8 checkpoint,
         # so translate the schema into format Fp8Config.from_config expects.
@@ -168,10 +193,14 @@ class DeepseekV4FP8Config(Fp8Config):
                     name for name in quark_exclude if isinstance(name, str)
                 ],
             }
-        return cast("DeepseekV4FP8Config", super().from_config(config))
+        result = cast("DeepseekV4FP8Config", super().from_config(config))
+        result._compressed_tensors_config = compressed_tensors_config
+        return result
 
     def get_quant_method(self, layer, prefix):
         if isinstance(layer, RoutedExperts):
+            if self._compressed_tensors_config is not None:
+                return self._compressed_tensors_config.get_quant_method(layer, prefix)
             if is_layer_skipped(
                 prefix=prefix,
                 ignored_layers=self.ignored_layers,

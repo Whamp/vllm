@@ -129,6 +129,55 @@ def test_registered():
     )
 
 
+@pytest.mark.parametrize(
+    ("initial_stop", "expected_stop"),
+    [
+        (None, [TC_END]),
+        ([], [TC_END]),
+        ("caller-stop", ["caller-stop", TC_END]),
+        (["caller-stop"], ["caller-stop", TC_END]),
+        ([TC_END], [TC_END]),
+    ],
+)
+def test_adjust_request_stops_after_complete_tool_block(
+    sample_tools: list[ChatCompletionToolsParam],
+    initial_stop: str | list[str] | None,
+    expected_stop: list[str],
+) -> None:
+    request = ChatCompletionRequest(
+        messages=[],
+        model="m",
+        tools=sample_tools,
+        tool_choice="auto",
+        stop=initial_stop,
+    )
+
+    adjusted = make_parser(tools=sample_tools).adjust_request(request)
+
+    assert adjusted.stop == expected_stop
+    assert adjusted.include_stop_str_in_output is False
+
+
+def test_adjust_request_without_tools_does_not_add_tool_block_stop() -> None:
+    request = ChatCompletionRequest(messages=[], model="m")
+
+    adjusted = make_parser().adjust_request(request)
+
+    assert adjusted.stop == []
+
+
+def test_adjust_request_with_tool_choice_none_does_not_add_tool_block_stop(
+    sample_tools: list[ChatCompletionToolsParam],
+) -> None:
+    request = ChatCompletionRequest(
+        messages=[], model="m", tools=sample_tools, tool_choice="none"
+    )
+
+    adjusted = make_parser(tools=sample_tools).adjust_request(request)
+
+    assert adjusted.stop == []
+
+
 def test_extract_tool_calls():
     parser = make_parser()
     model_output = "Let me check. " + build_tool_call(
