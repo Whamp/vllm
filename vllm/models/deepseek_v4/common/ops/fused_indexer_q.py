@@ -67,7 +67,7 @@ def _fp32x2_to_fp4x2_software(x_lo, x_hi):
 
 
 @triton.jit
-def _quantize_mxfp4_pair(x_lo, x_hi):
+def _quantize_mxfp4_pair(x_lo, x_hi, USE_SOFTWARE_E2M1: tl.constexpr):
     """Quantize a block of MXFP4_BLOCK_SIZE fp32 values given as two
     interleaved halves (x_lo = values at even positions in the block,
     x_hi = values at odd positions). Returns:
@@ -84,7 +84,10 @@ def _quantize_mxfp4_pair(x_lo, x_hi):
     ue8m0 = (log2_ratio + 127.0).to(tl.uint8)
 
     inv_scale = 1.0 / scale
-    packed = _fp32x2_to_fp4x2(x_lo * inv_scale, x_hi * inv_scale)
+    if USE_SOFTWARE_E2M1:
+        packed = _fp32x2_to_fp4x2_software(x_lo * inv_scale, x_hi * inv_scale)
+    else:
+        packed = _fp32x2_to_fp4x2(x_lo * inv_scale, x_hi * inv_scale)
     return packed, ue8m0
 
 
@@ -215,6 +218,7 @@ def _fused_indexer_q_rope_mxfp4_kernel(
     index_q_scale_stride1,
     INDEX_Q_HEAD_DIM: tl.constexpr,
     MXFP4_BLOCK: tl.constexpr,
+    USE_SOFTWARE_E2M1: tl.constexpr,
     # Weights (NO per-token q_scale fold for MXFP4; per-block scales stay
     # with the Q values in the output scale tensor).
     index_weights_ptr,
@@ -258,7 +262,7 @@ def _fused_indexer_q_rope_mxfp4_kernel(
         base = b * MXFP4_BLOCK
         x_lo = tl.load(q_base + base + half_off * 2).to(tl.float32)
         x_hi = tl.load(q_base + base + half_off * 2 + 1).to(tl.float32)
-        packed, ue8m0 = _quantize_mxfp4_pair(x_lo, x_hi)
+        packed, ue8m0 = _quantize_mxfp4_pair(x_lo, x_hi, USE_SOFTWARE_E2M1)
         tl.store(out_base + base // 2 + half_off, packed)
         tl.store(scale_base + b, ue8m0)
 
@@ -283,7 +287,7 @@ def _fused_indexer_q_rope_mxfp4_kernel(
         # bf16 roundtrip for parity with the FP8 kernel / reference numerics.
         r_even = r_even.to(tl.bfloat16).to(tl.float32)
         r_odd = r_odd.to(tl.bfloat16).to(tl.float32)
-        packed, ue8m0 = _quantize_mxfp4_pair(r_even, r_odd)
+        packed, ue8m0 = _quantize_mxfp4_pair(r_even, r_odd, USE_SOFTWARE_E2M1)
         rope_byte_off = (INDEX_Q_NOPE_DIM + b * MXFP4_BLOCK) // 2
         tl.store(out_base + rope_byte_off + half_off, packed)
         tl.store(scale_base + NUM_NOPE_BLOCKS + b, ue8m0)
@@ -430,6 +434,7 @@ def fused_indexer_q_rope_quant(
                 index_q_scale.stride(1),
                 index_q_head_dim,
                 MXFP4_BLOCK_SIZE,
+                not current_platform.has_device_capability(100),
                 index_weights,
                 index_weights.stride(0),
                 index_weights_softmax_scale,

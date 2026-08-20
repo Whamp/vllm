@@ -2,6 +2,8 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 """Correctness tests for the Triton MQA logits kernels."""
 
+from unittest import mock
+
 import pytest
 import torch
 
@@ -11,6 +13,8 @@ from vllm.v1.attention.ops import mqa_logits_triton as mqa_logits_mod
 from vllm.v1.attention.ops.mqa_logits_triton import (
     fp8_mqa_logits_triton,
     fp8_paged_mqa_logits_triton,
+    mxfp4_mqa_logits_triton,
+    mxfp4_paged_mqa_logits_triton,
 )
 
 pytestmark = pytest.mark.skipif(
@@ -26,6 +30,71 @@ def _quantize_k_per_row(
     sf = amax / 448.0
     k_fp8 = (k_bf16.float() / sf).to(torch.float8_e4m3fn)
     return k_fp8, sf.squeeze(-1)
+
+
+def _quantize_mxfp4(
+    tensor: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Quantize the last dimension to packed E2M1 with group-32 UE8M0."""
+    head_dim = tensor.shape[-1]
+    blocks = tensor.float().reshape(*tensor.shape[:-1], head_dim // 32, 32)
+    amax = blocks.abs().amax(dim=-1, keepdim=True).clamp_min(6 * 2**-126)
+    exponent = (amax / 6).log2().ceil().clamp(-127, 127)
+    scaled = (blocks / exponent.exp2()).clamp(-6, 6)
+    magnitudes = torch.tensor(
+        [0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0],
+        dtype=torch.float32,
+        device=tensor.device,
+    )
+    distances = (scaled.abs().unsqueeze(-1) - magnitudes).abs()
+    minimum_distance = distances.amin(dim=-1, keepdim=True)
+    nearest = distances == minimum_distance
+    magnitude_codes = torch.arange(8, device=tensor.device, dtype=torch.int64)
+    tie_break_penalty = torch.where(
+        nearest,
+        magnitude_codes & 1,
+        torch.full_like(magnitude_codes, 2),
+    )
+    code = tie_break_penalty.argmin(dim=-1).to(torch.uint8)
+    code |= (scaled < 0).to(torch.uint8) << 3
+    packed = code[..., 0::2] | (code[..., 1::2] << 4)
+    return (
+        packed.reshape(*tensor.shape[:-1], head_dim // 2),
+        (exponent.squeeze(-1) + 127).to(torch.uint8),
+    )
+
+
+def _dequantize_mxfp4(packed: torch.Tensor, scales: torch.Tensor) -> torch.Tensor:
+    """Decode packed E2M1 and group-32 UE8M0 to BF16."""
+    code = torch.stack((packed & 0xF, packed >> 4), dim=-1).flatten(-2)
+    magnitude_table = torch.tensor(
+        [0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0],
+        dtype=torch.float32,
+        device=packed.device,
+    )
+    values = magnitude_table[(code & 0x7).long()]
+    values = torch.where((code & 0x8) != 0, -values, values)
+    scale = torch.exp2(scales.float() - 127).repeat_interleave(32, dim=-1)
+    return (values * scale).to(torch.bfloat16)
+
+
+def _pack_paged_mxfp4(kv_bf16: torch.Tensor) -> torch.Tensor:
+    """Pack MXFP4 K rows into the production segregated paged layout."""
+    num_blocks, block_size, head_dim = kv_bf16.shape
+    values, scales = _quantize_mxfp4(kv_bf16)
+    row_bytes = head_dim // 2 + head_dim // 32
+    cache = torch.empty(
+        num_blocks,
+        block_size,
+        row_bytes,
+        dtype=torch.uint8,
+        device=kv_bf16.device,
+    )
+    flat = cache.view(num_blocks, -1)
+    value_end = block_size * head_dim // 2
+    flat[:, :value_end] = values.reshape(num_blocks, -1)
+    flat[:, value_end:] = scales.reshape(num_blocks, -1)
+    return cache
 
 
 def _pack_paged_kv(kv_bf16: torch.Tensor) -> torch.Tensor:
@@ -136,6 +205,71 @@ def _fp8_paged_mqa_logits_ref(
     return logits
 
 
+def _mxfp4_mqa_logits_ref(
+    q: tuple[torch.Tensor, torch.Tensor],
+    kv: tuple[torch.Tensor, torch.Tensor],
+    weights: torch.Tensor,
+    cu_seqlen_ks: torch.Tensor,
+    cu_seqlen_ke: torch.Tensor,
+) -> torch.Tensor:
+    q_values, q_scales = q
+    k_values, k_scales = kv
+    q_bf16 = _dequantize_mxfp4(q_values, q_scales)
+    k_bf16 = _dequantize_mxfp4(k_values, k_scales)
+    score = torch.einsum("mhd,nd->hmn", q_bf16, k_bf16).float()
+    logits = (score.relu() * weights.T.unsqueeze(-1)).sum(dim=0)
+    positions = torch.arange(k_values.shape[0], device=k_values.device)
+    valid = (positions >= cu_seqlen_ks[:, None]) & (positions < cu_seqlen_ke[:, None])
+    return logits.masked_fill(~valid, float("-inf"))
+
+
+def _mxfp4_paged_mqa_logits_ref(
+    q: tuple[torch.Tensor, torch.Tensor],
+    kv_cache: torch.Tensor,
+    weights: torch.Tensor,
+    context_lens: torch.Tensor,
+    block_tables: torch.Tensor,
+    max_model_len: int,
+) -> torch.Tensor:
+    q_values, q_scales = q
+    batch_size, next_n, _, head_bytes = q_values.shape
+    head_dim = head_bytes * 2
+    num_blocks, block_size = kv_cache.shape[:2]
+    flat = kv_cache.view(num_blocks, -1)
+    value_end = block_size * head_bytes
+    k_values = flat[:, :value_end].reshape(num_blocks, block_size, head_bytes)
+    k_scales = flat[:, value_end:].reshape(num_blocks, block_size, head_dim // 32)
+    q_bf16 = _dequantize_mxfp4(q_values, q_scales)
+    k_bf16 = _dequantize_mxfp4(k_values, k_scales)
+    logits = torch.full(
+        (batch_size * next_n, max_model_len),
+        float("-inf"),
+        dtype=torch.float32,
+        device=q_values.device,
+    )
+    if context_lens.ndim == 1:
+        offsets = torch.arange(
+            next_n - 1,
+            -1,
+            -1,
+            dtype=context_lens.dtype,
+            device=context_lens.device,
+        )
+        lens = context_lens[:, None] - offsets[None, :]
+    else:
+        lens = context_lens
+    for batch in range(batch_size):
+        for query in range(next_n):
+            context_len = int(lens[batch, min(query, lens.shape[1] - 1)].item())
+            row = batch * next_n + query
+            for key_position in range(context_len):
+                block = block_tables[batch, key_position // block_size]
+                key = k_bf16[block, key_position % block_size]
+                score = torch.einsum("hd,d->h", q_bf16[batch, query], key).float()
+                logits[row, key_position] = (score.relu() * weights[row]).sum()
+    return logits
+
+
 # Looser tolerance to accommodate FP8 rounding and the paged torch
 # reference using fp32 matmul while the triton kernel uses bf16 matmul
 # (with an fp32 accumulator, matching the DeepGEMM path).
@@ -190,6 +324,225 @@ def test_fp8_mqa_logits_triton_matches_torch(
         torch.testing.assert_close(
             out_triton[finite], out_torch[finite], atol=_ATOL, rtol=_RTOL
         )
+
+
+def _assert_topk_and_gathered_output_match(
+    actual: torch.Tensor,
+    expected: torch.Tensor,
+    topk: int,
+) -> None:
+    actual_rows = actual.reshape(-1, actual.shape[-1])
+    expected_rows = expected.reshape(-1, expected.shape[-1])
+    generator = torch.Generator(device=actual.device).manual_seed(29)
+    value_table = torch.randn(
+        actual.shape[-1],
+        64,
+        generator=generator,
+        device=actual.device,
+        dtype=torch.float32,
+    )
+    for actual_row, expected_row in zip(actual_rows, expected_rows):
+        finite = torch.isfinite(expected_row)
+        k = min(topk, int(finite.sum().item()))
+        expected_ids = torch.topk(expected_row, k).indices
+        actual_ids = torch.topk(actual_row, k).indices
+        assert set(actual_ids.tolist()) == set(expected_ids.tolist())
+
+        max_logit_error = (actual_row[finite] - expected_row[finite]).abs().max()
+        actual_rank = {idx: rank for rank, idx in enumerate(actual_ids.tolist())}
+        expected_id_list = expected_ids.tolist()
+        for left_offset, left_id in enumerate(expected_id_list):
+            for right_id in expected_id_list[left_offset + 1 :]:
+                expected_margin = expected_row[left_id] - expected_row[right_id]
+                if expected_margin > 2 * max_logit_error:
+                    assert actual_rank[left_id] < actual_rank[right_id]
+
+        actual_set_order = torch.sort(actual_ids).values
+        expected_set_order = torch.sort(expected_ids).values
+        torch.testing.assert_close(
+            value_table[actual_set_order].sum(dim=0),
+            value_table[expected_set_order].sum(dim=0),
+            atol=0,
+            rtol=0,
+        )
+
+
+@pytest.mark.parametrize("M,N,num_heads", [(8, 64, 16), (17, 257, 32)])
+def test_mxfp4_mqa_logits_triton_matches_independent_reference(M, N, num_heads):
+    torch.manual_seed(11)
+    device = "cuda"
+    head_dim = 128
+    q_bf16 = torch.randn(M, num_heads, head_dim, dtype=torch.bfloat16, device=device)
+    k_bf16 = torch.randn(N, head_dim, dtype=torch.bfloat16, device=device)
+    q = _quantize_mxfp4(q_bf16)
+    kv = _quantize_mxfp4(k_bf16)
+    weights = torch.randn(M, num_heads, dtype=torch.float32, device=device)
+    ks = torch.arange(M, dtype=torch.int32, device=device) % 7
+    ke = torch.minimum(
+        ks + N // 2,
+        torch.full((M,), N, dtype=torch.int32, device=device),
+    )
+
+    expected = _mxfp4_mqa_logits_ref(q, kv, weights, ks, ke)
+    actual = mxfp4_mqa_logits_triton(q, kv, weights, ks, ke)
+
+    assert torch.equal(torch.isneginf(expected), torch.isneginf(actual))
+    finite = torch.isfinite(expected)
+    torch.testing.assert_close(actual[finite], expected[finite], atol=1.0, rtol=0.2)
+    _assert_topk_and_gathered_output_match(actual, expected, topk=16)
+
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        graph_actual = mxfp4_mqa_logits_triton(q, kv, weights, ks, ke)
+    graph.replay()
+    first_replay = graph_actual.clone()
+    graph.replay()
+    torch.testing.assert_close(graph_actual, first_replay, atol=0, rtol=0)
+    torch.testing.assert_close(
+        graph_actual[finite], expected[finite], atol=1.0, rtol=0.2
+    )
+
+
+def test_mxfp4_mqa_logits_triton_preserves_tied_topk_boundary():
+    device = "cuda"
+    m, n, num_heads, head_dim = 1, 64, 16, 128
+    q = _quantize_mxfp4(
+        torch.ones(m, num_heads, head_dim, dtype=torch.bfloat16, device=device)
+    )
+    k_bf16 = -torch.ones(n, head_dim, dtype=torch.bfloat16, device=device)
+    k_bf16[9] = 1
+    k_bf16[10] = 1
+    k_bf16[11] = 0.5
+    kv = _quantize_mxfp4(k_bf16)
+    weights = torch.ones(m, num_heads, dtype=torch.float32, device=device)
+    ks = torch.zeros(m, dtype=torch.int32, device=device)
+    ke = torch.full((m,), n, dtype=torch.int32, device=device)
+
+    expected = _mxfp4_mqa_logits_ref(q, kv, weights, ks, ke)
+    actual = mxfp4_mqa_logits_triton(q, kv, weights, ks, ke)
+
+    assert expected[0, 9] == expected[0, 10]
+    torch.testing.assert_close(actual, expected, atol=1.0, rtol=0.2)
+    expected_ids = set(torch.topk(expected[0], 2).indices.tolist())
+    actual_ids = set(torch.topk(actual[0], 2).indices.tolist())
+    assert actual_ids == expected_ids == {9, 10}
+
+
+@pytest.mark.parametrize("batch_size,next_n,context_len", [(1, 1, 128), (2, 4, 130)])
+@pytest.mark.parametrize("clean_logits", [True, False])
+def test_mxfp4_paged_mqa_logits_triton_matches_independent_reference(
+    batch_size, next_n, context_len, clean_logits
+):
+    torch.manual_seed(12)
+    device = "cuda"
+    num_heads, head_dim, block_size = 16, 128, 64
+    num_blocks = 16
+    kv_bf16 = torch.randn(
+        num_blocks, block_size, head_dim, dtype=torch.bfloat16, device=device
+    )
+    kv_cache = _pack_paged_mxfp4(kv_bf16)
+    q_bf16 = torch.randn(
+        batch_size,
+        next_n,
+        num_heads,
+        head_dim,
+        dtype=torch.bfloat16,
+        device=device,
+    )
+    q = _quantize_mxfp4(q_bf16)
+    weights = torch.randn(
+        batch_size * next_n, num_heads, dtype=torch.float32, device=device
+    )
+    context_lens = torch.full(
+        (batch_size,), context_len, dtype=torch.int32, device=device
+    )
+    max_blocks = cdiv(context_len, block_size) + 2
+    block_tables = torch.randint(
+        0,
+        num_blocks,
+        (batch_size, max_blocks),
+        dtype=torch.int32,
+        device=device,
+    )
+
+    expected = _mxfp4_paged_mqa_logits_ref(
+        q, kv_cache, weights, context_lens, block_tables, context_len
+    )
+
+    def run_kernel() -> torch.Tensor:
+        return mxfp4_paged_mqa_logits_triton(
+            q,
+            kv_cache,
+            weights,
+            context_lens,
+            block_tables,
+            max_model_len=context_len,
+            clean_logits=clean_logits,
+        )
+
+    if clean_logits:
+        actual = run_kernel()
+    else:
+        original_empty = torch.empty
+
+        def poison_logits(*args, **kwargs):
+            output = original_empty(*args, **kwargs)
+            if output.dtype == torch.float32 and output.shape == expected.shape:
+                output.fill_(torch.finfo(torch.float32).max)
+            return output
+
+        with mock.patch.object(
+            mqa_logits_mod.torch, "empty", side_effect=poison_logits
+        ):
+            actual = run_kernel()
+
+    finite = torch.isfinite(expected)
+    torch.testing.assert_close(actual[finite], expected[finite], atol=1.0, rtol=0.2)
+    if clean_logits:
+        assert torch.equal(torch.isneginf(expected), torch.isneginf(actual))
+        _assert_topk_and_gathered_output_match(actual, expected, topk=16)
+    else:
+        for row in range(batch_size * next_n):
+            batch = row // next_n
+            query = row % next_n
+            row_end = int(context_lens[batch]) - next_n + query + 1
+            _assert_topk_and_gathered_output_match(
+                actual[row : row + 1, :row_end],
+                expected[row : row + 1, :row_end],
+                topk=16,
+            )
+
+    topk = 16
+    topk_indices = torch.empty(
+        (batch_size * next_n, topk), dtype=torch.int32, device=device
+    )
+    torch.ops._C.top_k_per_row_decode(
+        actual,
+        next_n,
+        context_lens,
+        topk_indices,
+        batch_size * next_n,
+        actual.stride(0),
+        actual.stride(1),
+        topk,
+    )
+    for row in range(batch_size * next_n):
+        batch = row // next_n
+        query = row % next_n
+        row_end = int(context_lens[batch]) - next_n + query + 1
+        expected_ids = torch.topk(expected[row, :row_end], topk).indices
+        assert set(topk_indices[row].tolist()) == set(expected_ids.tolist())
+
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        graph_actual = run_kernel()
+    graph.replay()
+    first_replay = graph_actual.clone()
+    graph.replay()
+    torch.testing.assert_close(graph_actual, first_replay, atol=0, rtol=0)
+    torch.testing.assert_close(
+        graph_actual[finite], expected[finite], atol=1.0, rtol=0.2
+    )
 
 
 @pytest.mark.parametrize(
@@ -546,27 +899,26 @@ def test_paged_q_lut_hoist_is_bit_identical(monkeypatch):
     B, next_n, H, D = 3, 6, 64, 128
     block_size, num_blocks = 64, 32
 
-    q_bytes = torch.randint(
-        0, 256, (B, next_n, H, D), dtype=torch.uint8, device=device
-    )
-    q_bytes[0, 0, 0, :2] = torch.tensor([0x7F, 0xFF], dtype=torch.uint8,
-                                        device=device)
+    q_bytes = torch.randint(0, 256, (B, next_n, H, D), dtype=torch.uint8, device=device)
+    q_bytes[0, 0, 0, :2] = torch.tensor([0x7F, 0xFF], dtype=torch.uint8, device=device)
     q = q_bytes.view(torch.float8_e4m3fn)
     kv_cache = _pack_paged_kv(
         torch.randn(num_blocks, block_size, D, dtype=torch.bfloat16, device=device)
     )
     weights = torch.randn(B * next_n, H, dtype=torch.float32, device=device)
-    context_lens = torch.full((B,), num_blocks * block_size // 2,
-                              dtype=torch.int32, device=device)
-    block_tables = torch.arange(
-        num_blocks, dtype=torch.int32, device=device
-    ).view(1, -1).repeat(B, 1).contiguous()
+    context_lens = torch.full(
+        (B,), num_blocks * block_size // 2, dtype=torch.int32, device=device
+    )
+    block_tables = (
+        torch.arange(num_blocks, dtype=torch.int32, device=device)
+        .view(1, -1)
+        .repeat(B, 1)
+        .contiguous()
+    )
 
     outs = {}
     for hoisted in (False, True):
-        monkeypatch.setattr(
-            mqa_logits_mod.envs, "VLLM_INDEXER_PAGED_Q_BF16", hoisted
-        )
+        monkeypatch.setattr(mqa_logits_mod.envs, "VLLM_INDEXER_PAGED_Q_BF16", hoisted)
         outs[hoisted] = fp8_paged_mqa_logits_triton(
             q,
             kv_cache,

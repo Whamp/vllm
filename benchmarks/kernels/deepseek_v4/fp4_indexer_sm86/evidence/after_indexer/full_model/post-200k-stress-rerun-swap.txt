@@ -1,0 +1,7 @@
+pid=2406215 VmSwap:	       0 kB
+pid=2406958 VmSwap:	       0 kB
+pid=2406959 VmSwap:	       0 kB
+pid=2407092 VmSwap:	       0 kB
+pid=2407093 VmSwap:	       0 kB
+pid=2407094 VmSwap:	       0 kB
+pid=2407095 VmSwap:	       0 kB

@@ -37,6 +37,9 @@ from vllm.v1.attention.backends.utils import (
     get_dcp_local_seq_lens,
     split_decodes_and_prefills,
 )
+from vllm.v1.attention.ops.mqa_logits_triton import (
+    supports_mxfp4_indexer_cache,
+)
 from vllm.v1.kv_cache_interface import KVCacheSpec, MLAAttentionSpec
 
 logger = init_logger(__name__)
@@ -115,9 +118,7 @@ def shard_chunk_specs_by_query(
     data-dependent, which hangs rather than misbehaves.
     """
     if tp_size <= 1:
-        return [
-            ShardedChunkSpec(r, q, q.start > 0, None, None) for r, q in chunk_specs
-        ]
+        return [ShardedChunkSpec(r, q, q.start > 0, None, None) for r, q in chunk_specs]
 
     out: list[ShardedChunkSpec] = []
     prev_req: tuple[int, int] | None = None
@@ -738,14 +739,10 @@ class DeepseekV32IndexerMetadataBuilder(AttentionMetadataBuilder):
             self.vllm_config.attention_config.use_fp4_indexer_cache
         )
 
-        assert (
-            current_platform.is_device_capability_family(100)
-            or not self.use_fp4_indexer_cache
-        ), (
-            "use_fp4_indexer_cache requires Blackwell datacenter GPUs "
-            "(sm_10x, e.g. B200/GB200); sm_120 (consumer Blackwell) and "
-            "earlier architectures are not supported."
-        )
+        if self.use_fp4_indexer_cache and not supports_mxfp4_indexer_cache():
+            raise ValueError(
+                "use_fp4_indexer_cache requires an NVIDIA SM86 or SM100-family GPU."
+            )
 
         next_n = self.num_speculative_tokens + 1
         self.decode_threshold = next_n
