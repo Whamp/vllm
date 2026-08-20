@@ -12,6 +12,7 @@ from vllm.forward_context import get_forward_context
 from vllm.model_executor.layers.attention_layer_base import AttentionLayerBase
 from vllm.model_executor.layers.layernorm import RMSNorm
 from vllm.model_executor.layers.linear import MergedColumnParallelLinear
+from vllm.model_executor.layers.quantization import QuantizationConfig
 from vllm.models.deepseek_v4.cache_layout import get_deepseek_v4_cache_layout
 from vllm.models.deepseek_v4.common.ops.fused_compress_quant_cache import (
     compress_norm_rope_store_triton,
@@ -234,6 +235,7 @@ class DeepseekCompressor(nn.Module):
         k_cache_prefix="",
         use_fp4_cache: bool = False,
         eager_scratch_pool: "DeepseekV4EagerScratchPool | None" = None,
+        quant_config: QuantizationConfig | None = None,
     ):
         super().__init__()
         self.compress_ratio = compress_ratio
@@ -293,7 +295,7 @@ class DeepseekCompressor(nn.Module):
             [self.coff * self.head_dim, self.coff * self.head_dim],
             bias=False,
             return_bias=False,
-            quant_config=None,
+            quant_config=quant_config,
             disable_tp=True,
             prefix=f"{prefix}.fused_wkv_wgate",
         )
