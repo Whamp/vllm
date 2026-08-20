@@ -11,7 +11,6 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.distributed as dist
-import torch.nn.functional as F
 import vllm._C_stable_libtorch  # noqa: F401
 import vllm._moe_C_stable_libtorch  # noqa: F401
 
@@ -28,6 +27,7 @@ from vllm.distributed.parallel_state import (
     get_tp_group,
     init_distributed_environment,
 )
+from vllm.model_executor.layers.activation import SiluAndMulWithClamp
 from vllm.model_executor.layers.fused_moe.moe_align_block_size import (
     moe_align_block_size,
 )
@@ -218,6 +218,7 @@ class GGUFDecoderLayerSlice:
             token_count, TOPK, HIDDEN_SIZE, device=device, dtype=torch.float32
         )
         self.wo_a = PreparedWoA(weights.dense["wo_a"])
+        self.shared_activation = SiluAndMulWithClamp(SWIGLU_LIMIT)
         if grouped_experts:
             (
                 self.sorted_ids,
@@ -300,16 +301,12 @@ class GGUFDecoderLayerSlice:
                 self.topk_ids,
                 self.down_output,
             )
-        routed_partial = self.down_output.sum(dim=1)
+        routed_partial = self.down_output.sum(dim=1).to(self.hidden.dtype)
 
-        shared_gate_up = apply_gguf_q8_0_marlin(hidden, dense["shared_gate_up"]).float()
-        shared_gate = torch.clamp(shared_gate_up[:, :512], max=SWIGLU_LIMIT)
-        shared_up = torch.clamp(
-            shared_gate_up[:, 512:], min=-SWIGLU_LIMIT, max=SWIGLU_LIMIT
-        )
-        shared_mid = (F.silu(shared_gate) * shared_up).to(torch.bfloat16)
+        shared_gate_up = apply_gguf_q8_0_marlin(hidden, dense["shared_gate_up"])
+        shared_mid = self.shared_activation(shared_gate_up)
         shared_partial = apply_gguf_q8_0_marlin(shared_mid, dense["shared_down"])
-        ffn_partial = (routed_partial + shared_partial.float()).to(torch.bfloat16)
+        ffn_partial = routed_partial + shared_partial
         return tensor_model_parallel_all_reduce(ffn_partial)
 
 
@@ -382,7 +379,8 @@ def main() -> None:
         (1, False, args.decode_iterations),
         (256, True, args.prefill_iterations),
     ):
-        layer_slice = GGUFDecoderLayerSlice(token_count, grouped, weights, device)
+        with set_current_vllm_config(VllmConfig()):
+            layer_slice = GGUFDecoderLayerSlice(token_count, grouped, weights, device)
         elapsed_ms, output = capture_and_time_slice(
             layer_slice,
             iterations,
