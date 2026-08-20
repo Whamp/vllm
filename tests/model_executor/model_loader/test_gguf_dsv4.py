@@ -37,12 +37,33 @@ def _write_synthetic_gguf(
         offset
         + (
             GGUFTensorEntry.compute_nbytes(type_id=type_id, dims=tuple(dims))
-            if type_id in (0, 1, 8, 9, 10, 16, 24, 26, 27, 28, 30)
+            if type_id
+            in (0, 1, 8, 9, 10, 12, 13, 14, 16, 18, 19, 24, 26, 27, 28, 29, 30, 39)
             else 1
         )
         for _, dims, type_id, offset in tensors
     )
     path.write_bytes(bytes(header) + bytes(data_start - len(header) + payload_end))
+
+
+@pytest.mark.parametrize(
+    ("type_id", "block_elements", "block_bytes"),
+    [
+        (12, 256, 144),
+        (13, 256, 176),
+        (14, 256, 210),
+        (18, 256, 98),
+        (19, 256, 50),
+        (29, 256, 56),
+        (39, 32, 17),
+    ],
+)
+def test_gguf_tensor_entry_supports_unsloth_dynamic_types(
+    type_id: int, block_elements: int, block_bytes: int
+) -> None:
+    dims = (block_elements, 3)
+
+    assert GGUFTensorEntry.compute_nbytes(type_id, dims) == 3 * block_bytes
 
 
 def test_parse_gguf_index_reads_bounded_v3_directory(tmp_path: Path) -> None:
