@@ -115,6 +115,128 @@ void gguf_q2_k_q8_1_indexed_down(const torch::stable::Tensor& activation_scales,
                                  const torch::stable::Tensor& down_weights,
                                  const torch::stable::Tensor& topk_ids,
                                  torch::stable::Tensor& output);
+
+void gguf_iq1_s_q8_1_raw_matvec(const torch::stable::Tensor& activation_scales,
+                                const torch::stable::Tensor& activation_codes,
+                                const torch::stable::Tensor& weights,
+                                torch::stable::Tensor& output);
+
+void gguf_iq1_m_q8_1_raw_matvec(const torch::stable::Tensor& activation_scales,
+                                const torch::stable::Tensor& activation_codes,
+                                const torch::stable::Tensor& weights,
+                                torch::stable::Tensor& output);
+
+void gguf_iq3_xxs_q8_1_raw_matvec(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& weights, torch::stable::Tensor& output);
+
+void gguf_iq1_s_q8_1_indexed_gate_up(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& gate_weights,
+    const torch::stable::Tensor& up_weights,
+    const torch::stable::Tensor& topk_ids, torch::stable::Tensor& gate_output,
+    torch::stable::Tensor& up_output);
+
+void gguf_iq1_m_q8_1_indexed_gate_up(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& gate_weights,
+    const torch::stable::Tensor& up_weights,
+    const torch::stable::Tensor& topk_ids, torch::stable::Tensor& gate_output,
+    torch::stable::Tensor& up_output);
+
+void gguf_iq1_s_q8_1_grouped_gate_up(
+    const torch::stable::Tensor& token_scales,
+    const torch::stable::Tensor& token_codes,
+    const torch::stable::Tensor& gate_weights,
+    const torch::stable::Tensor& up_weights,
+    const torch::stable::Tensor& sorted_token_ids,
+    const torch::stable::Tensor& expert_ids,
+    const torch::stable::Tensor& num_tokens_padded,
+    torch::stable::Tensor& gate_output, torch::stable::Tensor& up_output,
+    int64_t topk);
+
+void gguf_iq1_m_q8_1_grouped_gate_up(
+    const torch::stable::Tensor& token_scales,
+    const torch::stable::Tensor& token_codes,
+    const torch::stable::Tensor& gate_weights,
+    const torch::stable::Tensor& up_weights,
+    const torch::stable::Tensor& sorted_token_ids,
+    const torch::stable::Tensor& expert_ids,
+    const torch::stable::Tensor& num_tokens_padded,
+    torch::stable::Tensor& gate_output, torch::stable::Tensor& up_output,
+    int64_t topk);
+
+void gguf_iq3_xxs_q8_1_indexed_down(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& down_weights,
+    const torch::stable::Tensor& topk_ids, torch::stable::Tensor& output);
+
+void gguf_iq3_xxs_q8_1_grouped_down(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& down_weights,
+    const torch::stable::Tensor& sorted_token_ids,
+    const torch::stable::Tensor& expert_ids,
+    const torch::stable::Tensor& num_tokens_padded,
+    torch::stable::Tensor& output, int64_t topk);
+
+void gguf_mxfp4_q8_1_raw_matvec(const torch::stable::Tensor& activation_scales,
+                                const torch::stable::Tensor& activation_codes,
+                                const torch::stable::Tensor& weights,
+                                torch::stable::Tensor& output);
+
+void gguf_mxfp4_q8_1_indexed_down(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& down_weights,
+    const torch::stable::Tensor& topk_ids, torch::stable::Tensor& output);
+
+void gguf_mxfp4_q8_1_grouped_down(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& down_weights,
+    const torch::stable::Tensor& sorted_token_ids,
+    const torch::stable::Tensor& expert_ids,
+    const torch::stable::Tensor& num_tokens_padded,
+    torch::stable::Tensor& output, int64_t topk);
+
+void gguf_q4_k_q8_1_raw_matvec(const torch::stable::Tensor& activation_scales,
+                               const torch::stable::Tensor& activation_codes,
+                               const torch::stable::Tensor& weights,
+                               torch::stable::Tensor& output);
+
+void gguf_q5_k_q8_1_raw_matvec(const torch::stable::Tensor& activation_scales,
+                               const torch::stable::Tensor& activation_codes,
+                               const torch::stable::Tensor& weights,
+                               torch::stable::Tensor& output);
+
+void gguf_q6_k_q8_1_raw_matvec(const torch::stable::Tensor& activation_scales,
+                               const torch::stable::Tensor& activation_codes,
+                               const torch::stable::Tensor& weights,
+                               torch::stable::Tensor& output);
+
+void gguf_q4_k_q8_1_grouped_matmul(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& weights, torch::stable::Tensor& output);
+
+void gguf_q5_k_q8_1_grouped_matmul(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& weights, torch::stable::Tensor& output);
+
+void gguf_q6_k_q8_1_grouped_matmul(
+    const torch::stable::Tensor& activation_scales,
+    const torch::stable::Tensor& activation_codes,
+    const torch::stable::Tensor& weights, torch::stable::Tensor& output);
+
+void gguf_q4_k_embedding(const torch::stable::Tensor& input_ids,
+                         const torch::stable::Tensor& weights,
+                         torch::stable::Tensor& output);
 }  // namespace vllm::gguf_dsv4
 
 bool cutlass_scaled_mm_supports_fp8(int64_t cuda_device_capability);
