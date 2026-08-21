@@ -1046,6 +1046,21 @@ class OffloadingConnectorScheduler:
             num_offloadable_tokens = self._calc_num_offloadable_tokens(
                 req_status, num_tokens_after_batch
             )
+            # Store-reachability horizon. is_store_reachable_swa_chunk()
+            # deliberately treats the tail of an INCOMPLETE alignment segment
+            # as reachable, so the request's final short segment is still
+            # offloaded. But the running storable count only covers chunks
+            # completed SO FAR: during a chunked prefill every step's frontier
+            # looks like that final short segment, so its trailing chunk is
+            # stored -- one junk chunk per SWA group per scheduler step, none
+            # of which the load path can ever ask for (it only ever queries
+            # chunks at a full-attention alignment boundary). On a small CPU
+            # tier those junk chunks evict useful ones LRU-first. Projecting
+            # the horizon to the end of the prompt confines the relaxation to
+            # the request's real final segment.
+            final_offloadable_tokens = self._calc_num_offloadable_tokens(
+                req_status, req.num_prompt_tokens
+            )
 
             # Filter out chunks skipped due to sliding window attention / SSM
             # or unreachable by the load path's alignment constraints.
@@ -1086,7 +1101,10 @@ class OffloadingConnectorScheduler:
                     abs_chunk_idx = start_chunk_idx + key_idx
                     if not is_store_reachable_swa_chunk(
                         abs_chunk_idx,
-                        num_chunks,
+                        max(
+                            num_chunks,
+                            final_offloadable_tokens // group_config.tokens_per_chunk,
+                        ),
                         group_config.alignment_chunk_count,
                         group_config.sliding_window_size_in_chunks,
                         group_config.is_eagle_group,
