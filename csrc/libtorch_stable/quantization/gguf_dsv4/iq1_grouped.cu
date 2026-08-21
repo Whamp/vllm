@@ -34,7 +34,10 @@ constexpr int block_bytes() {
 
 struct GroupedIq1SharedStorage {
   alignas(16) int8_t activation_codes[kAssignmentTile * kGroupElements];
-  uint32_t grid_words[kOutputTile * 4];
+  // Pre-split parity words looked up from kIq1SGridEven/kIq1SGridOdd so the
+  // per-fragment nibble extraction never runs inside the MMA loop.
+  uint32_t grid_words_even[kOutputTile * 4];
+  uint32_t grid_words_odd[kOutputTile * 4];
   int8_t scale_codes[kOutputTile * 4];
   float delta_corrections[kOutputTile * 4];
   float block_scales[kOutputTile];
@@ -65,22 +68,14 @@ __device__ __forceinline__ int multiply_packed_bytes(int packed, int scale) {
   return static_cast<int>(result);
 }
 
-__device__ __forceinline__ int pack_iq1_grid_parity(uint32_t grid, int parity) {
-  uint32_t packed = 0;
-#pragma unroll
-  for (int index = 0; index < 4; ++index) {
-    const int value_index = 2 * index + parity;
-    packed |= ((grid >> (4 * value_index)) & 15U) << (8 * index);
-  }
-  return static_cast<int>(packed);
-}
-
 __device__ __forceinline__ int decode_iq1_fragment_register(
     const GroupedIq1SharedStorage& shared, int output_row, int chunk) {
   const int part = chunk >> 1;
   const int parity = chunk & 1;
-  const uint32_t grid = shared.grid_words[output_row * 4 + part];
-  return multiply_packed_bytes(pack_iq1_grid_parity(grid, parity),
+  const uint32_t word = parity != 0
+                            ? shared.grid_words_odd[output_row * 4 + part]
+                            : shared.grid_words_even[output_row * 4 + part];
+  return multiply_packed_bytes(static_cast<int>(word),
                                shared.scale_codes[output_row * 4 + part]);
 }
 
@@ -96,7 +91,8 @@ __device__ void load_iq1_weight_tile(const uint8_t* __restrict__ weights,
     if (output_row >= output_rows) {
 #pragma unroll
       for (int part = 0; part < 4; ++part) {
-        shared.grid_words[lane * 4 + part] = 0;
+        shared.grid_words_even[lane * 4 + part] = 0;
+        shared.grid_words_odd[lane * 4 + part] = 0;
         shared.scale_codes[lane * 4 + part] = 0;
         shared.delta_corrections[lane * 4 + part] = 0.0f;
       }
@@ -120,7 +116,8 @@ __device__ void load_iq1_weight_tile(const uint8_t* __restrict__ weights,
         for (int part = 0; part < 4; ++part) {
           const int table_index =
               indices[part] | (((high >> (3 * part)) & 7) << 8);
-          shared.grid_words[lane * 4 + part] = kIq1SGrid[table_index];
+          shared.grid_words_even[lane * 4 + part] = kIq1SGridEven[table_index];
+          shared.grid_words_odd[lane * 4 + part] = kIq1SGridOdd[table_index];
           shared.scale_codes[lane * 4 + part] = scale;
           shared.delta_corrections[lane * 4 + part] = delta * scale;
         }
@@ -145,7 +142,8 @@ __device__ void load_iq1_weight_tile(const uint8_t* __restrict__ weights,
           const int table_index = indices[part] | ((high & 7) << 8);
           const int scale = half_scales[part / 2];
           const float delta = (high & 8) != 0 ? -1.125f : -0.875f;
-          shared.grid_words[lane * 4 + part] = kIq1SGrid[table_index];
+          shared.grid_words_even[lane * 4 + part] = kIq1SGridEven[table_index];
+          shared.grid_words_odd[lane * 4 + part] = kIq1SGridOdd[table_index];
           shared.scale_codes[lane * 4 + part] = scale;
           shared.delta_corrections[lane * 4 + part] = delta * scale;
         }
