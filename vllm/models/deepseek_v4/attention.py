@@ -602,6 +602,19 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         qr_kv, _ = self.fused_wqa_wkv(hidden_states)
         return qr_kv
 
+    @staticmethod
+    def _project_compressor_kv_score(
+        compressor: DeepseekCompressor, hidden_states: torch.Tensor
+    ) -> torch.Tensor:
+        """Project compressor KV scores through BF16 or native GGUF weights."""
+        weight = getattr(compressor.fused_wkv_wgate, "weight", None)
+        if weight is not None and weight.dtype == torch.bfloat16:
+            return torch.mm(hidden_states, weight.T, out_dtype=torch.float32)
+        output = compressor.fused_wkv_wgate(hidden_states)
+        if not isinstance(output, torch.Tensor):
+            raise TypeError("DeepSeek V4 compressor projection must return a Tensor")
+        return output
+
     def _run_parallel_input_projections(
         self, hidden_states: torch.Tensor
     ) -> tuple[
@@ -674,15 +687,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
             compressor = self.compressor
 
             def compressor_kv_score() -> torch.Tensor:
-                weight = getattr(compressor.fused_wkv_wgate, "weight", None)
-                if weight is not None and weight.dtype == torch.bfloat16:
-                    return torch.mm(
-                        hidden_states,
-                        weight.T,
-                        out_dtype=torch.float32,
-                    )
-                output, _ = compressor.fused_wkv_wgate(hidden_states)
-                return output
+                return self._project_compressor_kv_score(compressor, hidden_states)
 
             aux_fns[0] = compressor_kv_score
 
@@ -701,15 +706,9 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
                 return weights
 
             def indexer_compressor_kv_score() -> torch.Tensor:
-                weight = getattr(indexer.compressor.fused_wkv_wgate, "weight", None)
-                if weight is not None and weight.dtype == torch.bfloat16:
-                    return torch.mm(
-                        hidden_states,
-                        weight.T,
-                        out_dtype=torch.float32,
-                    )
-                output, _ = indexer.compressor.fused_wkv_wgate(hidden_states)
-                return output
+                return self._project_compressor_kv_score(
+                    indexer.compressor, hidden_states
+                )
 
             aux_fns[1] = indexer_weights_proj
             aux_fns[2] = indexer_compressor_kv_score
