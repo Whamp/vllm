@@ -97,8 +97,7 @@ __device__ __forceinline__ float q45_group_dot(const uint8_t* block,
   // adjacent groups share the window and select low/high nibbles.
   const uint8_t* segment_quants = quants + segment * 32;
   const uint4 quant_words[2] = {load_u16x(segment_quants),
-                                load_u16x(segment_quants + 8)};
-  const uint32_t nibble_mask = high_nibble ? 0xf0f0f0f0U : 0x0f0f0f0fU;
+                                load_u16x(segment_quants + 16)};
   const uint32_t nibble_shift = high_nibble ? 4 : 0;
   const uint32_t words[8] = {
       quant_words[0].x, quant_words[0].y, quant_words[0].z, quant_words[0].w,
