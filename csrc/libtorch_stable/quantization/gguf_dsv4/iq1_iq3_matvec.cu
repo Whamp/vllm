@@ -27,7 +27,7 @@ constexpr int kThreadsPerBlock = 32 * kWarpsPerBlock;
 enum class IqFormat { kIq1S, kIq1M, kIq3XXS };
 
 template <IqFormat kFormat>
-constexpr int block_bytes() {
+__host__ __device__ constexpr int block_bytes() {
   if constexpr (kFormat == IqFormat::kIq1S) {
     return 50;
   } else if constexpr (kFormat == IqFormat::kIq1M) {

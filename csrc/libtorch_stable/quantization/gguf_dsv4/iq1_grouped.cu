@@ -28,7 +28,7 @@ constexpr int kThreads = 32;
 enum class Iq1Format { kIq1S, kIq1M };
 
 template <Iq1Format kFormat>
-constexpr int block_bytes() {
+__host__ __device__ constexpr int block_bytes() {
   return kFormat == Iq1Format::kIq1S ? 50 : 56;
 }
 

@@ -28,7 +28,7 @@ constexpr int kThreads = 32;
 enum class DownFormat { kIq3XXS, kMXFP4 };
 
 template <DownFormat kFormat>
-constexpr int block_bytes() {
+__host__ __device__ constexpr int block_bytes() {
   if constexpr (kFormat == DownFormat::kIq3XXS) {
     return 98;
   } else {
@@ -37,7 +37,7 @@ constexpr int block_bytes() {
 }
 
 template <DownFormat kFormat>
-constexpr int block_elements() {
+__host__ __device__ constexpr int block_elements() {
   if constexpr (kFormat == DownFormat::kIq3XXS) {
     return 256;
   } else {
