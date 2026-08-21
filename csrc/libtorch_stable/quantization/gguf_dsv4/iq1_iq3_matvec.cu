@@ -72,12 +72,11 @@ __device__ __forceinline__ int sum_q8_codes(const int* code_packs) {
   return sum;
 }
 
-__device__ __forceinline__ int pack_iq1_grid_quartet(uint32_t grid,
-                                                     int quartet) {
+__device__ __forceinline__ int pack_iq1_grid_parity(uint32_t grid, int parity) {
   uint32_t packed = 0;
 #pragma unroll
   for (int index = 0; index < 4; ++index) {
-    const int value_index = quartet * 4 + index;
+    const int value_index = 2 * index + parity;
     packed |= ((grid >> (4 * value_index)) & 15U) << (8 * index);
   }
   return static_cast<int>(packed);
@@ -86,9 +85,8 @@ __device__ __forceinline__ int pack_iq1_grid_quartet(uint32_t grid,
 __device__ __forceinline__ int iq1_grid_dot(uint32_t grid,
                                             const int* code_packs,
                                             int first_pack) {
-  int sum = __dp4a(pack_iq1_grid_quartet(grid, 0), code_packs[first_pack], 0);
-  return __dp4a(pack_iq1_grid_quartet(grid, 1), code_packs[first_pack + 1],
-                sum);
+  int sum = __dp4a(pack_iq1_grid_parity(grid, 0), code_packs[first_pack], 0);
+  return __dp4a(pack_iq1_grid_parity(grid, 1), code_packs[first_pack + 1], sum);
 }
 
 __device__ __forceinline__ float iq1_s_group_dot(const uint8_t* block,
