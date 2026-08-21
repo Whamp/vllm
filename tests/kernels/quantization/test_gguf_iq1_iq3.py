@@ -37,7 +37,8 @@ IQ3_GRID_WORDS = {
 
 def _decode_iq1_grid(table_index: int) -> np.ndarray:
     word = IQ1_GRID_WORDS[table_index]
-    return np.array([(word >> (4 * index)) & 3 for index in range(8)])
+    packed = [(word >> (4 * index)) & 3 for index in range(8)]
+    return np.array(packed[0::2] + packed[1::2])
 
 
 def _sign_byte(selector: int) -> int:

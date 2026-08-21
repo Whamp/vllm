@@ -65,12 +65,11 @@ __device__ __forceinline__ int multiply_packed_bytes(int packed, int scale) {
   return static_cast<int>(result);
 }
 
-__device__ __forceinline__ int pack_iq1_grid_quartet(uint32_t grid,
-                                                     int quartet) {
+__device__ __forceinline__ int pack_iq1_grid_parity(uint32_t grid, int parity) {
   uint32_t packed = 0;
 #pragma unroll
   for (int index = 0; index < 4; ++index) {
-    const int value_index = quartet * 4 + index;
+    const int value_index = 2 * index + parity;
     packed |= ((grid >> (4 * value_index)) & 15U) << (8 * index);
   }
   return static_cast<int>(packed);
@@ -79,9 +78,9 @@ __device__ __forceinline__ int pack_iq1_grid_quartet(uint32_t grid,
 __device__ __forceinline__ int decode_iq1_fragment_register(
     const GroupedIq1SharedStorage& shared, int output_row, int chunk) {
   const int part = chunk >> 1;
-  const int quartet = chunk & 1;
+  const int parity = chunk & 1;
   const uint32_t grid = shared.grid_words[output_row * 4 + part];
-  return multiply_packed_bytes(pack_iq1_grid_quartet(grid, quartet),
+  return multiply_packed_bytes(pack_iq1_grid_parity(grid, parity),
                                shared.scale_codes[output_row * 4 + part]);
 }
 
