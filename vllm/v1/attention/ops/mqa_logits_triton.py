@@ -651,3 +651,476 @@ def warmup_fp8_paged_mqa_logits_triton(
     fp8_paged_mqa_logits_triton(
         q, kv_cache, weights, context_lens, block_tables, max_model_len=block_size
     )
+
+
+_MXFP4_GROUP_SIZE = 32
+_MXFP4_PACKED_GROUP_SIZE = _MXFP4_GROUP_SIZE // 2
+
+
+def supports_mxfp4_indexer_cache() -> bool:
+    """Return whether DeepSeek V4 has an MXFP4 indexer path for this GPU."""
+    return current_platform.is_cuda() and (
+        current_platform.is_device_capability_family(100)
+        or current_platform.get_device_capability() == (8, 6)
+    )
+
+
+@triton.jit
+def _decode_e2m1_nibble(code):
+    magnitude_code = code & 0x7
+    magnitude = tl.where(magnitude_code == 0, 0.0, 0.5)
+    magnitude = tl.where(magnitude_code == 2, 1.0, magnitude)
+    magnitude = tl.where(magnitude_code == 3, 1.5, magnitude)
+    magnitude = tl.where(magnitude_code == 4, 2.0, magnitude)
+    magnitude = tl.where(magnitude_code == 5, 3.0, magnitude)
+    magnitude = tl.where(magnitude_code == 6, 4.0, magnitude)
+    magnitude = tl.where(magnitude_code == 7, 6.0, magnitude)
+    return tl.where((code & 0x8) != 0, -magnitude, magnitude)
+
+
+@triton.jit
+def _decode_mxfp4_bytes(packed):
+    low = _decode_e2m1_nibble(packed & 0xF)
+    high = _decode_e2m1_nibble(packed >> 4)
+    return tl.interleave(low, high).to(tl.bfloat16)
+
+
+@triton.jit
+def _decode_ue8m0_scale(encoded):
+    return tl.exp2(encoded.to(tl.float32) - 127.0)
+
+
+@triton.autotune(
+    configs=_PREFILL_AUTOTUNE_CONFIGS,
+    key=["num_heads", "head_dim"],
+)
+@triton.jit
+def _mxfp4_mqa_logits_kernel(
+    q_ptr,
+    q_scale_ptr,
+    k_ptr,
+    k_scale_ptr,
+    weights_ptr,
+    ks_ptr,
+    ke_ptr,
+    logits_ptr,
+    stride_q_m,
+    stride_q_h,
+    stride_q_d,
+    stride_qs_m,
+    stride_qs_h,
+    stride_qs_g,
+    stride_k_n,
+    stride_k_d,
+    stride_ks_n,
+    stride_ks_g,
+    stride_w_m,
+    stride_w_h,
+    stride_l_m,
+    stride_l_n,
+    num_heads: tl.constexpr,
+    head_dim: tl.constexpr,
+    N,
+    BLOCK_H: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_D_PACKED: tl.constexpr,
+):
+    tl.static_assert(head_dim % 32 == 0)
+    m = tl.program_id(0)
+    n_start = tl.program_id(1) * BLOCK_N
+    offs_h = tl.arange(0, BLOCK_H)
+    offs_n = n_start + tl.arange(0, BLOCK_N)
+    offs_packed = tl.arange(0, BLOCK_D_PACKED)
+    mask_h = offs_h < num_heads
+    mask_n = offs_n < N
+    ks = tl.load(ks_ptr + m)
+    ke = tl.load(ke_ptr + m)
+    scores = tl.zeros((BLOCK_H, BLOCK_N), tl.float32)
+
+    for group in tl.static_range(head_dim // 32):
+        q_packed = tl.load(
+            q_ptr
+            + m * stride_q_m
+            + offs_h[:, None] * stride_q_h
+            + (group * 16 + offs_packed[None, :]) * stride_q_d,
+            mask=mask_h[:, None],
+            other=0,
+        )
+        k_packed = tl.load(
+            k_ptr
+            + offs_n[:, None] * stride_k_n
+            + (group * 16 + offs_packed[None, :]) * stride_k_d,
+            mask=mask_n[:, None],
+            other=0,
+        )
+        q_group = _decode_mxfp4_bytes(q_packed)
+        k_group = _decode_mxfp4_bytes(k_packed)
+        q_scale = _decode_ue8m0_scale(
+            tl.load(
+                q_scale_ptr
+                + m * stride_qs_m
+                + offs_h * stride_qs_h
+                + group * stride_qs_g,
+                mask=mask_h,
+                other=0,
+            )
+        )
+        k_scale = _decode_ue8m0_scale(
+            tl.load(
+                k_scale_ptr + offs_n * stride_ks_n + group * stride_ks_g,
+                mask=mask_n,
+                other=0,
+            )
+        )
+        scores += (
+            tl.dot(q_group, tl.trans(k_group)) * q_scale[:, None] * k_scale[None, :]
+        )
+
+    weights = tl.load(
+        weights_ptr + m * stride_w_m + offs_h * stride_w_h,
+        mask=mask_h,
+        other=0.0,
+    )
+    logits = tl.sum(tl.maximum(scores, 0.0) * weights[:, None], axis=0)
+    logits = tl.where((offs_n >= ks) & (offs_n < ke), logits, float("-inf"))
+    tl.store(
+        logits_ptr + m * stride_l_m + offs_n * stride_l_n,
+        logits,
+        mask=mask_n,
+    )
+
+
+def _mxfp4_scale_bytes(
+    scales: torch.Tensor, leading_shape: tuple[int, ...]
+) -> torch.Tensor:
+    if scales.dtype == torch.int32:
+        scales = scales.contiguous().view(torch.uint8)
+    assert scales.dtype == torch.uint8
+    return scales.reshape(*leading_shape, -1)
+
+
+def mxfp4_mqa_logits_triton(
+    q: tuple[torch.Tensor, torch.Tensor],
+    kv: tuple[torch.Tensor, torch.Tensor],
+    weights: torch.Tensor,
+    cu_seqlen_ks: torch.Tensor,
+    cu_seqlen_ke: torch.Tensor,
+    clean_logits: bool = True,
+) -> torch.Tensor:
+    """Compute sparse-indexer prefill logits from E2M1/UE8M0 rows on SM8x."""
+    del clean_logits
+    q_values, q_scales = q
+    k_values, k_scales = kv
+    q_values = q_values.view(torch.uint8)
+    k_values = k_values.view(torch.uint8)
+    M, num_heads, packed_head_dim = q_values.shape
+    N = k_values.shape[0]
+    head_dim = packed_head_dim * 2
+    assert head_dim % _MXFP4_GROUP_SIZE == 0
+    q_scale_bytes = _mxfp4_scale_bytes(q_scales, (M, num_heads))
+    k_scale_bytes = _mxfp4_scale_bytes(k_scales, (N,))
+    assert q_scale_bytes.shape[-1] == head_dim // _MXFP4_GROUP_SIZE
+    assert k_scale_bytes.shape[-1] == head_dim // _MXFP4_GROUP_SIZE
+
+    logits = torch.empty((M, N), dtype=torch.float32, device=q_values.device)
+    block_h = max(16, triton.next_power_of_2(num_heads))
+    grid = lambda meta: (M, triton.cdiv(N, meta["BLOCK_N"]))  # noqa: E731
+    _mxfp4_mqa_logits_kernel[grid](
+        q_values,
+        q_scale_bytes,
+        k_values,
+        k_scale_bytes,
+        weights,
+        cu_seqlen_ks,
+        cu_seqlen_ke,
+        logits,
+        q_values.stride(0),
+        q_values.stride(1),
+        q_values.stride(2),
+        q_scale_bytes.stride(0),
+        q_scale_bytes.stride(1),
+        q_scale_bytes.stride(2),
+        k_values.stride(0),
+        k_values.stride(1),
+        k_scale_bytes.stride(0),
+        k_scale_bytes.stride(1),
+        weights.stride(0),
+        weights.stride(1),
+        logits.stride(0),
+        logits.stride(1),
+        num_heads=num_heads,
+        head_dim=head_dim,
+        N=N,
+        BLOCK_H=block_h,
+        BLOCK_D_PACKED=_MXFP4_PACKED_GROUP_SIZE,
+    )
+    return logits
+
+
+@triton.autotune(
+    configs=_PAGED_AUTOTUNE_CONFIGS,
+    key=["num_heads", "head_dim", "block_size"],
+)
+@triton.jit
+def _mxfp4_paged_mqa_logits_kernel(
+    q_ptr,
+    q_scale_ptr,
+    kv_cache_ptr,
+    weights_ptr,
+    context_lens_ptr,
+    block_tables_ptr,
+    logits_ptr,
+    stride_q_b,
+    stride_q_n,
+    stride_q_h,
+    stride_q_d,
+    stride_qs_b,
+    stride_qs_n,
+    stride_qs_h,
+    stride_qs_g,
+    stride_kv_block,
+    stride_w_t,
+    stride_w_h,
+    stride_cl_b,
+    stride_cl_n,
+    stride_bt_b,
+    stride_bt_k,
+    stride_l_t,
+    stride_l_n,
+    next_n: tl.constexpr,
+    num_heads: tl.constexpr,
+    head_dim: tl.constexpr,
+    block_size: tl.constexpr,
+    BLOCK_H: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_D_PACKED: tl.constexpr,
+):
+    tl.static_assert(head_dim % 32 == 0)
+    token_id = tl.program_id(0)
+    block_rk = tl.program_id(1)
+    batch_id = token_id // next_n
+    query_id = token_id % next_n
+    context_len = tl.load(
+        context_lens_ptr + batch_id * stride_cl_b + query_id * stride_cl_n
+    )
+    if block_rk * block_size >= context_len:
+        return
+
+    block_idx = tl.load(
+        block_tables_ptr + batch_id * stride_bt_b + block_rk * stride_bt_k
+    ).to(tl.int64)
+    offs_h = tl.arange(0, BLOCK_H)
+    offs_n = tl.arange(0, BLOCK_N)
+    offs_packed = tl.arange(0, BLOCK_D_PACKED)
+    mask_h = offs_h < num_heads
+    mask_n = (offs_n < block_size) & (block_rk * block_size + offs_n < context_len)
+    scores = tl.zeros((BLOCK_H, BLOCK_N), tl.float32)
+    packed_head_dim: tl.constexpr = head_dim // 2
+    num_scale_groups: tl.constexpr = head_dim // 32
+    cache_block_base = kv_cache_ptr + block_idx * stride_kv_block
+
+    for group in tl.static_range(num_scale_groups):
+        q_packed = tl.load(
+            q_ptr
+            + batch_id * stride_q_b
+            + query_id * stride_q_n
+            + offs_h[:, None] * stride_q_h
+            + (group * 16 + offs_packed[None, :]) * stride_q_d,
+            mask=mask_h[:, None],
+            other=0,
+        )
+        k_packed = tl.load(
+            cache_block_base
+            + offs_n[:, None] * packed_head_dim
+            + group * 16
+            + offs_packed[None, :],
+            mask=mask_n[:, None],
+            other=0,
+        )
+        q_group = _decode_mxfp4_bytes(q_packed)
+        k_group = _decode_mxfp4_bytes(k_packed)
+        q_scale = _decode_ue8m0_scale(
+            tl.load(
+                q_scale_ptr
+                + batch_id * stride_qs_b
+                + query_id * stride_qs_n
+                + offs_h * stride_qs_h
+                + group * stride_qs_g,
+                mask=mask_h,
+                other=0,
+            )
+        )
+        k_scale = _decode_ue8m0_scale(
+            tl.load(
+                cache_block_base
+                + block_size * packed_head_dim
+                + offs_n * num_scale_groups
+                + group,
+                mask=mask_n,
+                other=0,
+            )
+        )
+        scores += (
+            tl.dot(q_group, tl.trans(k_group)) * q_scale[:, None] * k_scale[None, :]
+        )
+
+    weights = tl.load(
+        weights_ptr + token_id * stride_w_t + offs_h * stride_w_h,
+        mask=mask_h,
+        other=0.0,
+    )
+    output = tl.sum(tl.maximum(scores, 0.0) * weights[:, None], axis=0)
+    key_offsets = block_rk * block_size + offs_n
+    output = tl.where(key_offsets < context_len, output, float("-inf"))
+    tl.store(
+        logits_ptr + token_id * stride_l_t + key_offsets * stride_l_n,
+        output,
+        mask=mask_n,
+    )
+
+
+def _mxfp4_context_lens(
+    context_lens: torch.Tensor, batch_size: int, next_n: int
+) -> torch.Tensor:
+    if context_lens.ndim == 2:
+        assert context_lens.shape == (batch_size, next_n)
+        return context_lens.contiguous()
+    assert context_lens.shape == (batch_size,)
+    final_lens = context_lens[:, None]
+    offsets = torch.arange(
+        next_n - 1,
+        -1,
+        -1,
+        dtype=context_lens.dtype,
+        device=context_lens.device,
+    )
+    return final_lens - offsets[None, :]
+
+
+def mxfp4_paged_mqa_logits_triton(
+    q: tuple[torch.Tensor, torch.Tensor],
+    kv_cache: torch.Tensor,
+    weights: torch.Tensor,
+    context_lens: torch.Tensor,
+    block_tables: torch.Tensor,
+    max_model_len: int,
+    clean_logits: bool = True,
+) -> torch.Tensor:
+    """Compute sparse-indexer paged decode logits from segregated MXFP4 rows."""
+    q_values, q_scales = q
+    q_values = q_values.view(torch.uint8)
+    batch_size, next_n, num_heads, packed_head_dim = q_values.shape
+    head_dim = packed_head_dim * 2
+    assert kv_cache.ndim == 3 and kv_cache.dtype == torch.uint8
+    _, block_size, row_bytes = kv_cache.shape
+    assert row_bytes == packed_head_dim + head_dim // _MXFP4_GROUP_SIZE
+    q_scale_bytes = _mxfp4_scale_bytes(q_scales, (batch_size, next_n, num_heads))
+    normalized_lens = _mxfp4_context_lens(context_lens, batch_size, next_n)
+    if clean_logits:
+        logits = torch.full(
+            (batch_size * next_n, max_model_len),
+            float("-inf"),
+            dtype=torch.float32,
+            device=q_values.device,
+        )
+    else:
+        logits = torch.empty(
+            (batch_size * next_n, max_model_len),
+            dtype=torch.float32,
+            device=q_values.device,
+        )
+
+    block_h = max(16, triton.next_power_of_2(num_heads))
+    block_n = triton.next_power_of_2(block_size)
+    num_block_cols = min(block_tables.shape[1], triton.cdiv(max_model_len, block_size))
+    _mxfp4_paged_mqa_logits_kernel[(batch_size * next_n, num_block_cols)](
+        q_values,
+        q_scale_bytes,
+        kv_cache,
+        weights,
+        normalized_lens,
+        block_tables,
+        logits,
+        q_values.stride(0),
+        q_values.stride(1),
+        q_values.stride(2),
+        q_values.stride(3),
+        q_scale_bytes.stride(0),
+        q_scale_bytes.stride(1),
+        q_scale_bytes.stride(2),
+        q_scale_bytes.stride(3),
+        kv_cache.stride(0),
+        weights.stride(0),
+        weights.stride(1),
+        normalized_lens.stride(0),
+        normalized_lens.stride(1),
+        block_tables.stride(0),
+        block_tables.stride(1),
+        logits.stride(0),
+        logits.stride(1),
+        next_n=next_n,
+        num_heads=num_heads,
+        head_dim=head_dim,
+        block_size=block_size,
+        BLOCK_H=block_h,
+        BLOCK_N=block_n,
+        BLOCK_D_PACKED=_MXFP4_PACKED_GROUP_SIZE,
+    )
+    return logits
+
+
+def warmup_mxfp4_mqa_logits_triton(
+    num_heads: int, head_dim: int, device: torch.device
+) -> None:
+    """Compile and tune the SM8x MXFP4 sparse-indexer prefill kernel."""
+    m, n = _PREFILL_WARMUP_M, _PREFILL_WARMUP_N
+    q = torch.zeros(m, num_heads, head_dim // 2, dtype=torch.uint8, device=device)
+    q_scales = torch.full(
+        (m, num_heads, head_dim // _MXFP4_GROUP_SIZE),
+        127,
+        dtype=torch.uint8,
+        device=device,
+    )
+    k = torch.zeros(n, head_dim // 2, dtype=torch.uint8, device=device)
+    k_scales = torch.full(
+        (n, head_dim // _MXFP4_GROUP_SIZE), 127, dtype=torch.uint8, device=device
+    )
+    weights = torch.zeros(m, num_heads, dtype=torch.float32, device=device)
+    ks = torch.zeros(m, dtype=torch.int32, device=device)
+    ke = torch.full((m,), n, dtype=torch.int32, device=device)
+    mxfp4_mqa_logits_triton((q, q_scales), (k, k_scales), weights, ks, ke)
+
+
+def warmup_mxfp4_paged_mqa_logits_triton(
+    num_heads: int,
+    head_dim: int,
+    block_size: int,
+    device: torch.device,
+) -> None:
+    """Compile and tune the SM8x MXFP4 sparse-indexer decode kernel."""
+    num_blocks = 2
+    q = torch.zeros(1, 1, num_heads, head_dim // 2, dtype=torch.uint8, device=device)
+    q_scales = torch.full(
+        (1, 1, num_heads, head_dim // _MXFP4_GROUP_SIZE),
+        127,
+        dtype=torch.uint8,
+        device=device,
+    )
+    kv_cache = torch.zeros(
+        num_blocks,
+        block_size,
+        head_dim // 2 + head_dim // _MXFP4_GROUP_SIZE,
+        dtype=torch.uint8,
+        device=device,
+    )
+    weights = torch.zeros(1, num_heads, dtype=torch.float32, device=device)
+    context_lens = torch.tensor([block_size], dtype=torch.int32, device=device)
+    block_tables = torch.zeros(1, 1, dtype=torch.int32, device=device)
+    mxfp4_paged_mqa_logits_triton(
+        (q, q_scales),
+        kv_cache,
+        weights,
+        context_lens,
+        block_tables,
+        max_model_len=block_size,
+    )

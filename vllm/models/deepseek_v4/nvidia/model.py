@@ -92,6 +92,9 @@ from vllm.platforms import current_platform
 from vllm.sequence import IntermediateTensors
 from vllm.utils.math_utils import cdiv
 from vllm.v1.attention.backends.registry import AttentionBackendEnum
+from vllm.v1.attention.ops.mqa_logits_triton import (
+    supports_mxfp4_indexer_cache,
+)
 from vllm.v1.worker.ubatching import dbo_current_ubatch_id
 
 
@@ -814,10 +817,13 @@ def _select_dsv4_attn_cls(vllm_config: VllmConfig) -> type[DeepseekV4Attention]:
                 f"{backend.name} is not supported for DeepSeek V4 on SM8x; "
                 "use TRITON_MLA_SPARSE_DSV4 (default)."
             )
-        if vllm_config.attention_config.use_fp4_indexer_cache:
+        if (
+            vllm_config.attention_config.use_fp4_indexer_cache
+            and not supports_mxfp4_indexer_cache()
+        ):
             raise ValueError(
-                "attention_config.use_fp4_indexer_cache requires SM100; "
-                "the MXFP4 indexer kernels emit Blackwell-only PTX."
+                "attention_config.use_fp4_indexer_cache requires SM86 or "
+                "SM100 datacenter GPUs."
             )
         from vllm.models.deepseek_v4.ampere.ampere_sparse import (
             DeepseekV4AmpereMLAAttention,

@@ -1,0 +1,7 @@
+pid=2406215 VmSwap:	  393976 kB
+pid=2406958 VmSwap:	    6272 kB
+pid=2406959 VmSwap:	  239196 kB
+pid=2407092 VmSwap:	  568132 kB
+pid=2407093 VmSwap:	  584712 kB
+pid=2407094 VmSwap:	  583648 kB
+pid=2407095 VmSwap:	  584308 kB

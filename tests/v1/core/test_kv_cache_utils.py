@@ -27,6 +27,7 @@ from vllm.v1.core.kv_cache_utils import (
     BlockHash,
     FreeKVCacheBlockQueue,
     KVCacheBlock,
+    build_kv_cache_allocation_report,
     estimate_max_model_len,
     generate_block_hash_extra_keys,
     generate_scheduler_kv_cache_config,
@@ -1630,6 +1631,163 @@ def test_get_max_concurrency_packed_kv_cache_config():
     assert get_max_concurrency_for_kv_cache_config(
         vllm_config, kv_cache_config_packed
     ) == num_blocks / (1024 + 73)
+
+
+def test_build_kv_cache_allocation_report_for_packed_layout():
+    vllm_config = SimpleNamespace(
+        model_config=SimpleNamespace(max_model_len=64),
+        scheduler_config=SimpleNamespace(
+            max_num_batched_tokens=8,
+            max_num_seqs=2,
+        ),
+        parallel_config=SimpleNamespace(decode_context_parallel_size=1),
+        cache_config=SimpleNamespace(num_gpu_blocks_override=None),
+        kv_transfer_config=None,
+        max_concurrent_batches=2,
+        max_in_flight_tokens=16,
+    )
+
+    full_specs = {
+        f"full_{i}": MLAAttentionSpec(
+            block_size=16,
+            num_kv_heads=1,
+            head_size=512,
+            dtype=torch.uint8,
+            compress_ratio=4,
+            physical_row_bytes=368,
+            page_size_padded=1536,
+        )
+        for i in range(2)
+    }
+    sliding_specs = {
+        "sliding_0": SlidingWindowMLASpec(
+            block_size=16,
+            num_kv_heads=1,
+            head_size=512,
+            dtype=torch.uint8,
+            sliding_window=32,
+            physical_row_bytes=368,
+            page_size_padded=6144,
+        )
+    }
+    kv_cache_groups = [
+        KVCacheGroupSpec(
+            list(full_specs),
+            UniformTypeKVCacheSpecs(block_size=16, kv_cache_specs=full_specs),
+        ),
+        KVCacheGroupSpec(
+            list(sliding_specs),
+            UniformTypeKVCacheSpecs(block_size=16, kv_cache_specs=sliding_specs),
+        ),
+    ]
+    available_memory = 6144 * 10 + 123
+    num_blocks, kv_cache_tensors = kv_cache_utils._get_kv_cache_config_packed(
+        vllm_config, kv_cache_groups, available_memory
+    )
+    report = build_kv_cache_allocation_report(
+        vllm_config,
+        KVCacheConfig(num_blocks, kv_cache_tensors, kv_cache_groups),
+        available_memory,
+    )
+
+    assert report["layout"] == "packed"
+    assert report["pool"] == {
+        "available_bytes": available_memory,
+        "allocated_bytes": 61440,
+        "unallocated_bytes": 123,
+        "num_blocks": 10,
+        "bytes_per_block": 6144,
+    }
+    assert report["scheduler"] == {
+        "max_model_len": 64,
+        "max_num_seqs": 2,
+        "max_num_batched_tokens": 8,
+        "max_concurrent_batches": 2,
+        "max_in_flight_tokens": 16,
+    }
+
+    full_group, sliding_group = report["groups"]
+    assert full_group["bytes_per_block"] == 3072
+    assert full_group["packed_tail_bytes_per_block"] == 3072
+    assert full_group["max_request_pages"] == 4
+    assert full_group["specs"] == [
+        {
+            "type": "MLAAttentionSpec",
+            "kind": "mla_attention",
+            "layer_names": ["full_0", "full_1"],
+            "layer_count": 2,
+            "context_scaling": "model_length",
+            "block_size": 16,
+            "storage_block_size": 4,
+            "compress_ratio": 4,
+            "semantic_head_size": 512,
+            "semantic_row_bytes": 512,
+            "dtype": "uint8",
+            "cache_dtype": None,
+            "kv_quant_mode": "none",
+            "sliding_window": None,
+            "declared_physical_row_bytes": 368,
+            "physical_row_bytes": 368,
+            "real_page_size_bytes": 1472,
+            "page_size_bytes": 1536,
+            "page_padding_bytes": 64,
+            "max_request_pages": 4,
+            "max_request_bytes_per_layer": 6144,
+            "inflight_reserved_pages": 0,
+            "inflight_reserved_bytes_per_layer": 0,
+        }
+    ]
+
+    assert sliding_group["bytes_per_block"] == 6144
+    assert sliding_group["packed_tail_bytes_per_block"] == 0
+    assert sliding_group["max_request_pages"] == 4
+    assert sliding_group["specs"][0]["context_scaling"] == "sliding_window"
+    assert sliding_group["specs"][0]["inflight_reserved_pages"] == 1
+    assert sliding_group["specs"][0]["inflight_reserved_bytes_per_layer"] == 6144
+    assert report["logical_max_request_bytes"] == {
+        "model_length": 12288,
+        "sliding_window": 24576,
+        "chunk_window": 0,
+        "spec_defined": 0,
+        "total": 36864,
+    }
+    assert report["logical_inflight_reserved_bytes"] == 6144
+
+
+def test_kv_cache_allocation_report_separates_semantic_and_physical_widths():
+    vllm_config = SimpleNamespace(
+        model_config=SimpleNamespace(max_model_len=256),
+        scheduler_config=SimpleNamespace(
+            max_num_batched_tokens=8,
+            max_num_seqs=1,
+        ),
+        parallel_config=SimpleNamespace(decode_context_parallel_size=1),
+        max_concurrent_batches=1,
+        max_in_flight_tokens=8,
+    )
+    spec = MLAAttentionSpec(
+        block_size=256,
+        num_kv_heads=1,
+        head_size=68,
+        semantic_head_size=128,
+        dtype=torch.uint8,
+        compress_ratio=4,
+        page_size_padded=4608,
+    )
+    config = KVCacheConfig(
+        num_blocks=2,
+        kv_cache_tensors=[KVCacheTensor(size=9216, shared_by=["indexer_cache"])],
+        kv_cache_groups=[KVCacheGroupSpec(["indexer_cache"], spec)],
+    )
+
+    report = build_kv_cache_allocation_report(vllm_config, config, 9216)
+    spec_report = report["groups"][0]["specs"][0]
+
+    assert spec_report["semantic_head_size"] == 128
+    assert spec_report["semantic_row_bytes"] == 128
+    assert spec_report["physical_row_bytes"] == 68
+    assert spec_report["real_page_size_bytes"] == 4352
+    assert spec_report["page_padding_bytes"] == 256
 
 
 def test_allocate_with_lookahead():

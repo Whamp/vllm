@@ -896,6 +896,7 @@ class DeepseekV4IndexerCache(torch.nn.Module, AttentionLayerBase):
     def __init__(
         self,
         head_dim: int,
+        semantic_head_dim: int,
         dtype: torch.dtype,
         prefix: str,
         cache_config: CacheConfig,
@@ -904,6 +905,7 @@ class DeepseekV4IndexerCache(torch.nn.Module, AttentionLayerBase):
         super().__init__()
         self.kv_cache = torch.tensor([])
         self.head_dim = head_dim
+        self.semantic_head_dim = semantic_head_dim
         self.prefix = prefix
         self.cache_config = cache_config
         self.dtype = dtype
@@ -923,6 +925,7 @@ class DeepseekV4IndexerCache(torch.nn.Module, AttentionLayerBase):
             head_size=self.head_dim,
             dtype=self.dtype,
             compress_ratio=self.compress_ratio,
+            semantic_head_size=self.semantic_head_dim,
             # 576B for FlashMLA packing; 512B for FlashInfer sparse (#44577).
             alignment=576 if uses_fp8_ds_mla_layout else 512,
         )
@@ -1009,6 +1012,7 @@ class DeepseekV4Indexer(nn.Module):
             )
         self.k_cache = DeepseekV4IndexerCache(
             head_dim=k_cache_head_dim,
+            semantic_head_dim=self.head_dim,
             dtype=torch.uint8,
             prefix=f"{prefix}.k_cache",
             cache_config=cache_config,

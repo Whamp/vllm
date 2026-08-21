@@ -44,6 +44,10 @@ from vllm.v1.attention.ops.common import pack_seq_triton, unpack_seq_triton
 from vllm.v1.attention.ops.mqa_logits_triton import (
     fp8_mqa_logits_triton,
     fp8_paged_mqa_logits_triton,
+    mxfp4_mqa_logits_triton,
+    mxfp4_paged_mqa_logits_triton,
+    warmup_mxfp4_mqa_logits_triton,
+    warmup_mxfp4_paged_mqa_logits_triton,
 )
 from vllm.v1.worker.workspace import current_workspace_manager
 
@@ -455,7 +459,8 @@ def sparse_attn_indexer(
         )
         # scale_fmt can be None, but the function expects str
         assert scale_fmt is not None
-        assert not use_fp4_cache, "Unfused FP4 Insert is not supported yet"
+        if use_fp4_cache:
+            raise NotImplementedError("Unfused MXFP4 indexer insert is not supported")
         ops.indexer_k_quant_and_cache(
             k,
             kv_cache,
@@ -491,10 +496,6 @@ def sparse_attn_indexer(
         topk_indices_buffer[: hidden_states.shape[0]] = -1
     # DeepGEMM availability is constant per process; check once for both branches.
     use_deep_gemm = is_deep_gemm_supported()
-    if not use_deep_gemm:
-        assert not use_fp4_cache, (
-            "Triton sparse-MLA fallback does not support FP4 KV cache"
-        )
     if has_prefill:
         prefill_metadata = attn_metadata_narrowed.prefill
         assert prefill_metadata is not None
@@ -570,8 +571,18 @@ def sparse_attn_indexer(
                         cu_seqlen_ke,
                         clean_logits=False,
                     )
+                elif use_fp4_cache:
+                    assert q_scale_slice is not None
+                    logits = mxfp4_mqa_logits_triton(
+                        (q_slice_cast, q_scale_slice),
+                        (k_quant_cast, k_scale_cast),
+                        weights[chunk.token_start : chunk.token_end],
+                        cu_seqlen_ks,
+                        cu_seqlen_ke,
+                        clean_logits=False,
+                    )
                 else:
-                    # SM80/SM121 Triton fallback (DeepGEMM unavailable).
+                    # SM80/SM121 Triton FP8 fallback (DeepGEMM unavailable).
                     logits = fp8_mqa_logits_triton(
                         q_slice_cast,
                         (k_quant_cast, k_scale_cast),
@@ -621,6 +632,7 @@ def sparse_attn_indexer(
     if has_decode:
         decode_metadata = attn_metadata_narrowed.decode
         assert decode_metadata is not None
+        raw_kv_cache = kv_cache
         kv_cache = kv_cache_as_quant_view(kv_cache, head_dim, use_fp4_cache)
         decode_lens = decode_metadata.decode_lens
         if num_decode_tokens == 0:
@@ -726,8 +738,19 @@ def sparse_attn_indexer(
                 clean_logits=False,
                 indices=decode_metadata.indices,
             )
+        elif use_fp4_cache:
+            assert padded_q_scale is not None
+            logits = mxfp4_paged_mqa_logits_triton(
+                (padded_q_quant_cast, padded_q_scale),
+                raw_kv_cache,
+                shard_weights,
+                seq_lens,
+                block_table,
+                max_model_len=decode_metadata.max_seq_len,
+                clean_logits=False,
+            )
         else:
-            # SM80/SM121 Triton fallback. Downstream topk reads only up to
+            # SM80/SM121 Triton FP8 fallback. Downstream topk reads only up to
             # `seq_lens`, so size the buffer in the same compressed indexer
             # coordinate system.
             logits = fp8_paged_mqa_logits_triton(
@@ -938,18 +961,25 @@ class SparseAttnIndexer(CustomOp):
                 warmup_fp8_paged_mqa_logits_triton,
             )
 
-            if not use_fp4_cache:
-                device = topk_indices_buffer.device
+            device = topk_indices_buffer.device
+            if use_fp4_cache:
+                warmup_mxfp4_mqa_logits_triton(num_heads, head_dim, device)
+            else:
                 warmup_fp8_mqa_logits_triton(num_heads, head_dim, device)
-                # 64/256 are the V3.2 and V4 indexer kernel block sizes; the
-                # configured cache block size covers user-chosen values, which
-                # the backends accept as any MultipleOf(64).
-                block_sizes = {
-                    64,
-                    256,
-                    get_current_vllm_config().cache_config.block_size,
-                }
-                for kernel_block_size in sorted(block_sizes):
+            # 64/256 are the V3.2 and V4 indexer kernel block sizes; the
+            # configured cache block size covers user-chosen values, which
+            # the backends accept as any MultipleOf(64).
+            block_sizes = {
+                64,
+                256,
+                get_current_vllm_config().cache_config.block_size,
+            }
+            for kernel_block_size in sorted(block_sizes):
+                if use_fp4_cache:
+                    warmup_mxfp4_paged_mqa_logits_triton(
+                        num_heads, head_dim, kernel_block_size, device
+                    )
+                else:
                     warmup_fp8_paged_mqa_logits_triton(
                         num_heads, head_dim, kernel_block_size, device
                     )

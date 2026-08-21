@@ -24,6 +24,7 @@ from typing import Any
 
 import torch
 
+from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
 from vllm.v1.attention.ops.fp8_sm80 import _encode_e4m3fn_u8
 
@@ -175,6 +176,11 @@ def compress_norm_rope_store_triton(
         SCALE_DIM=scale_dim,
         KV_BLOCK_STRIDE=kv_cache.stride(0),
         **({"USE_FP4_CACHE": use_fp4_cache} if head_dim == 512 else {}),
+        **(
+            {"USE_SOFTWARE_E2M1": not current_platform.has_device_capability(100)}
+            if head_dim == 128 and use_fp4_cache
+            else {}
+        ),
         num_warps=num_warps,
         **pdl_kwargs,
     )
@@ -912,6 +918,7 @@ def _fused_kv_compress_norm_rope_insert_indexer_mxfp4_attn(
     TOKEN_STRIDE: tl.constexpr,  # HEAD_SIZE // 2 = 64 packed bytes/token
     SCALE_DIM: tl.constexpr,  # HEAD_SIZE // QUANT_BLOCK = 4 ue8m0 bytes/token
     KV_BLOCK_STRIDE: tl.constexpr,
+    USE_SOFTWARE_E2M1: tl.constexpr,
 ):
     """Fused compress → RMSNorm → RoPE → MXFP4 quant → store.
 
@@ -1058,9 +1065,12 @@ def _fused_kv_compress_norm_rope_insert_indexer_mxfp4_attn(
     ue8m0 = (log2_ratio + 127.0).to(tl.uint8)  # [N_QUANT_BLOCKS]
 
     inv_scale_col = tl.reshape(inv_scale, (N_QUANT_BLOCKS, 1))
-    packed = _fp32x2_to_fp4x2(
-        even_2d * inv_scale_col, odd_2d * inv_scale_col
-    )  # (N_BLOCKS, HALF_BLOCK) uint8
+    if USE_SOFTWARE_E2M1:
+        packed = _fp32x2_to_fp4x2_software(
+            even_2d * inv_scale_col, odd_2d * inv_scale_col
+        )
+    else:
+        packed = _fp32x2_to_fp4x2(even_2d * inv_scale_col, odd_2d * inv_scale_col)
     packed_flat = tl.reshape(packed, (TOKEN_STRIDE,))
 
     tl.store(val_ptr + tl.arange(0, TOKEN_STRIDE), packed_flat)

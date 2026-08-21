@@ -66,7 +66,7 @@ class AttentionConfig:
     """If set, quantize query for attention in prefill."""
 
     use_fp4_indexer_cache: bool = False
-    """If set, use fp4 indexer cache for dsv32 family model (not support yet)"""
+    """If set, use an MXFP4 sparse-indexer cache on supported backends."""
 
     indexer_kv_dtype: IndexerKVDType = "bf16"
     """Data type for the sparse-attention indexer K cache. Quantized formats

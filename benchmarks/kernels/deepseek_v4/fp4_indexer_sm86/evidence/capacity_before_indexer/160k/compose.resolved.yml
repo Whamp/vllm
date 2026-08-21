@@ -1,0 +1,100 @@
+name: dsv4-fp4-goal-160
+services:
+  deepseek-v4-gguf-tp-sm86:
+    command:
+      - serve
+      - /runtime-model
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --served-model-name
+      - deepseek-v4-flash-0731-gguf-tp
+      - --tensor-parallel-size
+      - "4"
+      - --max-model-len
+      - "160000"
+      - --max-num-seqs
+      - "2"
+      - --max-num-batched-tokens
+      - "256"
+      - --gpu-memory-utilization
+      - "0.98"
+      - --kv-cache-dtype
+      - fp4_ds_mla
+      - --load-format
+      - gguf_dsv4
+      - --quantization
+      - gguf_dsv4
+      - --model-loader-extra-config
+      - '{"gguf_path":"/model.gguf","sha256":"ca22ae2f838e14077c22bc1c1417b71b45b5e5a3687bd96c2ac6e17fdb6261c0","file_size":86720111488,"tensor_count":1328}'
+      - --disable-custom-all-reduce
+      - --enable-auto-tool-choice
+      - --tool-call-parser
+      - deepseek_v4
+      - --reasoning-parser
+      - deepseek_v4
+      - --trust-remote-code
+    container_name: dsv4-fp4-goal-160
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+                - gpu
+              driver: nvidia
+              count: -1
+    entrypoint:
+      - /opt/venv/bin/vllm
+    environment:
+      CUDA_VISIBLE_DEVICES: 0,1,2,3
+      HF_HUB_OFFLINE: "1"
+      NVIDIA_VISIBLE_DEVICES: all
+      OMP_NUM_THREADS: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      VLLM_DSV4_FLASH_MLA_DECODE: "1"
+      VLLM_DSV4_WO_A_MARLIN_DIAGONAL: "1"
+      VLLM_HIER_ALL_REDUCE: 0,1;2,3
+      VLLM_NO_USAGE_STATS: "1"
+      VLLM_SPARSE_DENSE_QUERY_BLOCK: "0"
+      VLLM_SPARSE_INDEXER_MAX_LOGITS_MB: "64"
+      VLLM_WORKER_MULTIPROC_METHOD: spawn
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:8000/health >/dev/null
+      timeout: 10s
+      interval: 30s
+      retries: 10
+      start_period: 10m0s
+    image: club-3090/deepseek-v4-gguf-tp:fp4-accounting-ac21b230c3fe
+    ipc: host
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 0.0.0.0
+        target: 8000
+        published: "8034"
+        protocol: tcp
+    restart: 'no'
+    shm_size: "17179869184"
+    volumes:
+      - type: bind
+        source: /home/will/inference/runtime/gguf-tp-m5-model-view
+        target: /runtime-model
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /home/will/models/deepseek-v4-frontier-quality-cache/hub/models--hampsonw--DeepSeek-V4-Flash-0731-WNA16/blobs
+        target: /blobs
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /mnt/models/huggingface/hub/models--antirez--deepseek-v4-gguf/blobs/ca22ae2f838e14077c22bc1c1417b71b45b5e5a3687bd96c2ac6e17fdb6261c0
+        target: /model.gguf
+        read_only: true
+        bind: {}
+networks:
+  default:
+    name: dsv4-fp4-goal-160_default

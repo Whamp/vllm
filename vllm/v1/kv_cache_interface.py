@@ -413,6 +413,9 @@ class MLAAttentionSpec(FullAttentionSpec):
     # Model-owned physical bytes for custom paged rows whose semantic head size
     # is not their storage width (for example DeepSeek V4 FP8/FP4 DS-MLA).
     physical_row_bytes: int | None = None
+    # Some legacy custom caches put physical row bytes in ``head_size``. Keep
+    # their true vector width explicit for allocation reports and diagnostics.
+    semantic_head_size: int | None = None
     # Marks draft groups that flatten a non-causal query block into decode rows.
     non_causal_multi_token_decode: bool = False
 
@@ -452,12 +455,14 @@ class MLAAttentionSpec(FullAttentionSpec):
         compress_ratio_set = set(spec.compress_ratio for spec in specs)
         model_version_set = set(spec.model_version for spec in specs)
         physical_row_bytes_set = set(spec.physical_row_bytes for spec in specs)
+        semantic_head_size_set = set(spec.semantic_head_size for spec in specs)
         block_stride_set = set(spec.indexes_kv_by_block_stride for spec in specs)
         assert (
             len(cache_dtype_str_set) == 1
             and len(compress_ratio_set) == 1
             and len(model_version_set) == 1
             and len(physical_row_bytes_set) == 1
+            and len(semantic_head_size_set) == 1
             and len(block_stride_set) == 1
         ), (
             "All attention layers in the same KV cache group must use the same "
@@ -476,6 +481,7 @@ class MLAAttentionSpec(FullAttentionSpec):
             compress_ratio=compress_ratio_set.pop(),
             model_version=model_version_set.pop(),
             physical_row_bytes=physical_row_bytes_set.pop(),
+            semantic_head_size=semantic_head_size_set.pop(),
             non_causal_multi_token_decode=any(
                 spec.non_causal_multi_token_decode for spec in specs
             ),

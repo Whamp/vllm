@@ -7774,9 +7774,38 @@ class GPUModelRunner(
 
         # Reinitialize need to after initialize_attn_backend
         self.may_reinitialize_input_batch(kv_cache_config, kernel_block_sizes)
+        torch_allocated_before = torch.accelerator.memory_allocated(self.device)
         kv_caches = self.initialize_kv_cache_tensors(
             kv_cache_config, kernel_block_sizes
         )
+        if not is_profiling:
+            from vllm.v1.core.kv_cache_utils import (
+                get_kv_cache_physical_allocation_bytes,
+            )
+
+            storages = {
+                (
+                    tensor.untyped_storage().data_ptr(),
+                    tensor.untyped_storage().nbytes(),
+                )
+                for tensor in kv_caches.values()
+            }
+            observed_storage_bytes = sum(nbytes for _, nbytes in storages)
+            planned_storage_bytes = get_kv_cache_physical_allocation_bytes(
+                kv_cache_config
+            )
+            torch_allocated_delta = (
+                torch.accelerator.memory_allocated(self.device) - torch_allocated_before
+            )
+            logger.info(
+                "KV cache runtime allocation: planned_storage_bytes=%d, "
+                "observed_storage_bytes=%d, reconciliation_delta_bytes=%d, "
+                "torch_allocated_delta_bytes=%d",
+                planned_storage_bytes,
+                observed_storage_bytes,
+                observed_storage_bytes - planned_storage_bytes,
+                torch_allocated_delta,
+            )
 
         if (
             self.speculative_config
