@@ -248,6 +248,63 @@ def test_gguf_q4_k_embedding_decodes_only_selected_rows() -> None:
 
 
 @pytest.mark.parametrize(("format_name", "_", "make_weights"), _FORMAT_CASES)
+def test_gguf_q456_strided_output_matches_contiguous(
+    format_name: str,
+    _: int,
+    make_weights: Callable[[int, int, int], tuple[np.ndarray, np.ndarray]],
+) -> None:
+    """Column slices of a wider combined buffer must match exactly.
+
+    The production mixed-linear path writes each partition into a column
+    slice of one combined FP32 buffer; the kernels address output rows
+    through the tensor's row stride. This pins that contract bit-exactly
+    for both the raw-matvec and grouped-matmul entry points.
+    """
+    token_count, output_rows, input_columns = 3, 12, 512
+    raw, _ = make_weights(output_rows, input_columns, 8421)
+    torch.manual_seed(8421)
+    activations = torch.randn(
+        token_count, input_columns, device="cuda", dtype=torch.bfloat16
+    )
+    scales, codes = _quantize_q8_1(activations)
+    weights = torch.from_numpy(raw).cuda()
+
+    contiguous = torch.empty(
+        token_count, output_rows, device="cuda", dtype=torch.float32
+    )
+    getattr(torch.ops._C, f"gguf_{format_name}_q8_1_raw_matvec")(
+        scales, codes, weights, contiguous
+    )
+    grouped = torch.empty_like(contiguous)
+    getattr(torch.ops._C, f"gguf_{format_name}_q8_1_grouped_matmul")(
+        scales, codes, weights, grouped
+    )
+
+    pad = 5
+    combined = torch.zeros(
+        token_count,
+        output_rows + pad,
+        device="cuda",
+        dtype=torch.float32,
+    )
+    strided = combined[:, :output_rows]
+    assert strided.stride(0) == output_rows + pad and not strided.is_contiguous()
+    getattr(torch.ops._C, f"gguf_{format_name}_q8_1_raw_matvec")(
+        scales, codes, weights, strided
+    )
+    torch.testing.assert_close(strided, contiguous, rtol=0, atol=0)
+    combined_grouped = torch.zeros_like(combined)
+    strided_grouped = combined_grouped[:, :output_rows]
+    getattr(torch.ops._C, f"gguf_{format_name}_q8_1_grouped_matmul")(
+        scales, codes, weights, strided_grouped
+    )
+    torch.testing.assert_close(strided_grouped, grouped, rtol=0, atol=0)
+    # Guard rails: untouched padding columns stay zero.
+    assert torch.count_nonzero(combined[:, output_rows:]) == 0
+    assert torch.count_nonzero(combined_grouped[:, output_rows:]) == 0
+
+
+@pytest.mark.parametrize(("format_name", "_", "make_weights"), _FORMAT_CASES)
 def test_gguf_q456_raw_matvec_replays_in_cuda_graph(
     format_name: str,
     _: int,

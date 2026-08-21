@@ -211,7 +211,7 @@ __global__ void k_quant_q8_1_grouped_matmul_kernel(
     const __half* __restrict__ token_scales,
     const int8_t* __restrict__ token_codes, const uint8_t* __restrict__ weights,
     float* __restrict__ output, int token_count, int output_rows,
-    int input_columns) {
+    int input_columns, int output_row_stride) {
   const int token_tile_start = blockIdx.y * kTokenTile;
   const int output_tile_start = blockIdx.x * kOutputTile;
   __shared__ GroupedKQuantSharedStorage shared;
@@ -299,7 +299,7 @@ __global__ void k_quant_q8_1_grouped_matmul_kernel(
     const int token = token_tile_start + (lane % 4) * 2 + local % 2;
     const int output_row = output_tile_start + (local / 2) * 8 + lane / 4;
     if (token < token_count && output_row < output_rows) {
-      output[token * output_rows + output_row] = sums[local];
+      output[token * output_row_stride + output_row] = sums[local];
     }
   }
 }
@@ -310,15 +310,21 @@ void launch_k_quant_grouped_matmul(
     const torch::stable::Tensor& activation_codes,
     const torch::stable::Tensor& weights, torch::stable::Tensor& output) {
   using torch::headeronly::ScalarType;
-  const torch::stable::Tensor* tensors[] = {
-      &activation_scales, &activation_codes, &weights, &output};
-  for (const auto* tensor : tensors) {
-    STD_TORCH_CHECK(
-        tensor->device().is_cuda() && tensor->is_contiguous(),
-        "GGUF grouped Q4/Q5/Q6 tensors must be contiguous CUDA tensors");
-    STD_TORCH_CHECK(tensor->get_device_index() == output.get_device_index(),
-                    "GGUF grouped Q4/Q5/Q6 tensors must share one CUDA device");
-  }
+  STD_TORCH_CHECK(activation_scales.device().is_cuda() &&
+                      activation_scales.is_contiguous() &&
+                      activation_codes.device().is_cuda() &&
+                      activation_codes.is_contiguous() &&
+                      weights.device().is_cuda() && weights.is_contiguous(),
+                  "GGUF grouped Q4/Q5/Q6 inputs must be contiguous CUDA "
+                  "tensors");
+  STD_TORCH_CHECK(output.device().is_cuda() && output.dim() == 2 &&
+                      output.stride(1) == 1,
+                  "GGUF grouped Q4/Q5/Q6 output must be a 2D CUDA tensor "
+                  "with unit-stride columns; row stride may come from a "
+                  "wider combined buffer");
+  STD_TORCH_CHECK(activation_scales.get_device_index() ==
+                      output.get_device_index(),
+                  "GGUF grouped Q4/Q5/Q6 tensors must share one CUDA device");
   STD_TORCH_CHECK(activation_scales.scalar_type() == ScalarType::Half &&
                       activation_codes.scalar_type() == ScalarType::Char &&
                       weights.scalar_type() == ScalarType::Byte &&
@@ -347,7 +353,8 @@ void launch_k_quant_grouped_matmul(
       reinterpret_cast<const __half*>(activation_scales.const_data_ptr()),
       reinterpret_cast<const int8_t*>(activation_codes.const_data_ptr()),
       weights.const_data_ptr<uint8_t>(), output.mutable_data_ptr<float>(),
-      token_count, output_rows, input_columns);
+      token_count, output_rows, input_columns,
+      static_cast<int>(output.stride(0)));
 }
 
 }  // namespace
