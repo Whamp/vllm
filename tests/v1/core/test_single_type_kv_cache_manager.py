@@ -536,3 +536,67 @@ def test_predictor_matches_allocator_blocks_calculation_with_admission_cap():
             f"but allocator pulled {len(new_blocks)}"
         )
         total_computed = num_tokens
+
+
+def test_sliding_window_records_new_block_ids_for_zeroing():
+    """The zeroing gate widened from an exact FullAttentionSpec-family tuple
+    to isinstance(AttentionSpec): sliding-window families (SWA KV, DeepseekV4
+    compressor state) must record newly allocated block ids so the worker's
+    KVBlockZeroer can wipe a reused block's previous tenant's bytes."""
+    block_size = 2
+    sliding_window_spec = SlidingWindowSpec(
+        block_size=block_size,
+        num_kv_heads=1,
+        head_size=1,
+        dtype=torch.float32,
+        sliding_window=4,
+    )
+    block_pool = BlockPool(
+        num_gpu_blocks=100, enable_caching=False, hash_block_size=block_size
+    )
+    manager = SlidingWindowManager(
+        sliding_window_spec,
+        block_pool=block_pool,
+        enable_caching=False,
+        kv_cache_group_id=0,
+        scheduler_block_size=block_size,
+        max_admission_blocks_per_request=10**9,
+        needs_kv_cache_zeroing=True,
+    )
+    assert manager.records_new_block_ids
+
+    manager.allocate_new_blocks("req0", 3 * block_size, 3 * block_size)
+    recorded = manager.take_new_block_ids()
+    assert len(recorded) == 3
+    assert recorded == [b.block_id for b in manager.req_to_blocks["req0"]]
+    # Drained: a second take returns nothing new without further allocation.
+    assert manager.take_new_block_ids() == []
+
+    manager.allocate_new_blocks("req0", 4 * block_size, 4 * block_size)
+    assert len(manager.take_new_block_ids()) == 1
+
+
+def test_zeroing_recording_disabled_without_zeroing_need():
+    block_size = 2
+    sliding_window_spec = SlidingWindowSpec(
+        block_size=block_size,
+        num_kv_heads=1,
+        head_size=1,
+        dtype=torch.float32,
+        sliding_window=4,
+    )
+    block_pool = BlockPool(
+        num_gpu_blocks=100, enable_caching=False, hash_block_size=block_size
+    )
+    manager = SlidingWindowManager(
+        sliding_window_spec,
+        block_pool=block_pool,
+        enable_caching=False,
+        kv_cache_group_id=0,
+        scheduler_block_size=block_size,
+        max_admission_blocks_per_request=10**9,
+        needs_kv_cache_zeroing=False,
+    )
+    assert not manager.records_new_block_ids
+    manager.allocate_new_blocks("req0", 2 * block_size, 2 * block_size)
+    assert manager.take_new_block_ids() == []
