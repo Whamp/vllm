@@ -463,7 +463,7 @@ __device__ void histogram_4096_topk(const float* __restrict__ scores,
   const auto [thr_bin, num_above, num_equal] = smem->match;
   const bool need_tie = (num_equal + num_above > TopK);
 
-  uint32_t exact_thr = 0;  // full ordered key of the k-th value
+  uint32_t exact_thr = 0;                 // full ordered key of the k-th value
   uint32_t tie_slots = TopK - num_above;  // slots for key == exact_thr
 
   if (need_tie) {
@@ -584,9 +584,8 @@ __device__ void histogram_4096_topk(const float* __restrict__ scores,
       }
     }
 
-    const uint32_t packed =
-        (static_cast<uint32_t>(__popc(def_bits)) << 16) |
-        static_cast<uint32_t>(__popc(tie_bits));
+    const uint32_t packed = (static_cast<uint32_t>(__popc(def_bits)) << 16) |
+                            static_cast<uint32_t>(__popc(tie_bits));
     const uint32_t winc = warp_inclusive_sum(lane_id, packed);
     if (lane_id == kWarpSize - 1) smem->warp_sum[warp_id] = winc;
     __syncthreads();

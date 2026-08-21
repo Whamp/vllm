@@ -507,7 +507,6 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             moe_config=self.moe,
             experts_cls=self.experts_cls,
             backend=self.wna16_backend,
-            layer=layer,
             routing_tables=layer._expert_routing_tables(),
             **marlin_args,
         )

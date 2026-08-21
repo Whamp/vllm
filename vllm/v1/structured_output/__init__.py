@@ -58,7 +58,7 @@ class StructuredOutputManager:
         self._full_mask = torch.tensor(-1, dtype=torch.int32)
         # Set when the configured backend is explicit; see _start_eager_init.
         self._backend_init_future: (
-            Future[tuple[StructuredOutputBackend, "torch.Tensor"]] | None
+            Future[tuple[StructuredOutputBackend, torch.Tensor]] | None
         ) = None
 
         max_batch_size = self.vllm_config.scheduler_config.max_num_seqs
@@ -195,9 +195,11 @@ class StructuredOutputManager:
             return
 
         assert request.sampling_params is not None
-        self.backend = self._construct_backend(
-            request.sampling_params.structured_outputs._backend
-        )
+        structured_outputs = request.sampling_params.structured_outputs
+        assert structured_outputs is not None
+        backend = structured_outputs._backend
+        assert isinstance(backend, str)
+        self.backend = self._construct_backend(backend)
 
     def _get_reasoner(self, request: "Request") -> "ReasoningParser | None":
         structured_req = request.structured_output_request
@@ -253,7 +255,14 @@ class StructuredOutputManager:
         try:
             request_type, grammar_spec = struct_request.structured_output_key
             assert self.backend is not None
-            return self.backend.compile_grammar(request_type, grammar_spec)
+            stop_token_ids = (
+                request.sampling_params.all_stop_token_ids
+                if request.sampling_params is not None
+                else None
+            )
+            return self.backend.compile_grammar(
+                request_type, grammar_spec, stop_token_ids=stop_token_ids
+            )
         except Exception:
             logger.exception(
                 "Failed to compile grammar for request %s", request.request_id

@@ -57,7 +57,7 @@ def hier_allreduce_matches_nccl(
             # sequence-token parity, so the second call takes the other half.
             for _ in range(2):
                 out = comm.all_reduce(inp)
-                torch.cuda.synchronize()
+                torch.accelerator.synchronize()
                 # Reduction order differs from NCCL's, so compare within the
                 # dtype's tolerance rather than bit-exactly.
                 torch.testing.assert_close(out, ref, atol=2e-2, rtol=2e-2)

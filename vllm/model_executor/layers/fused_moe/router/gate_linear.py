@@ -7,10 +7,6 @@ import vllm._custom_ops as ops
 from vllm.config import get_current_vllm_config_or_none
 from vllm.logger import init_logger
 from vllm.model_executor.custom_op import PluggableLayer
-from vllm.model_executor.kernels.linear.gemv_triton import (
-    bf16_gemv,
-    should_use_triton_gemv,
-)
 from vllm.model_executor.layers.linear import ReplicatedLinear
 from vllm.platforms import current_platform
 from vllm.utils.torch_utils import direct_register_custom_op
@@ -118,9 +114,17 @@ class GateLinear(ReplicatedLinear):
         if self.allow_bf16x3_router_gemm:
             logger.info_once("Enabled experimental SM100 BF16x3 router GEMM.")
 
-        # cuBLAS bf16→fp32 eligibility
+        # Fused bf16 x bf16 -> fp32 GEMM eligibility. torch.mm's out_dtype
+        # epilogue folds the fp32 cast into the GEMM, removing the standalone
+        # bf16->fp32 copy kernel that otherwise runs before grouped_topk.
+        # cuBLAS on CUDA (SM90+, via allow_specialized_router_gemm); hipBLASLt on
+        # ROCm, which supports the same out_dtype epilogue.
+        self._router_gemm_no_bias = not bias
         self.allow_cublas_router_gemm = (
-            self.allow_specialized_router_gemm
+            (
+                self.allow_specialized_router_gemm
+                or (current_platform.is_rocm() and self._router_gemm_no_bias)
+            )
             and self.weight.dtype == torch.bfloat16
             and self.out_dtype == torch.float32
         )
@@ -152,7 +156,10 @@ class GateLinear(ReplicatedLinear):
 
         if (
             not self.allow_cublas_router_gemm
-            and self.allow_specialized_router_gemm
+            and (
+                self.allow_specialized_router_gemm
+                or (current_platform.is_rocm() and self._router_gemm_no_bias)
+            )
             and out_dtype == torch.float32
         ):
             self.allow_cublas_router_gemm = self.weight.dtype == torch.bfloat16
@@ -226,9 +233,16 @@ class GateLinear(ReplicatedLinear):
         if (
             not self.allow_specialized_router_gemm
             and self.weight.dtype == torch.bfloat16
-            and should_use_triton_gemv(x, self.weight)
         ):
-            return bf16_gemv(x, self.weight, self.out_dtype), None
+            # Import lazily: the linear package imports Humming kernels, which
+            # import fused_moe while this module is still being initialized.
+            from vllm.model_executor.kernels.linear.gemv_triton import (
+                bf16_gemv,
+                should_use_triton_gemv,
+            )
+
+            if should_use_triton_gemv(x, self.weight):
+                return bf16_gemv(x, self.weight, self.out_dtype), None
 
         # Tier 6: F.linear (ReplicatedLinear)
         if self.out_dtype is not None and x.dtype != self.weight.dtype:

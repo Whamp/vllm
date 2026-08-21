@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import math
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from itertools import product as iprod
 from typing import Any
@@ -29,7 +29,6 @@ from vllm.v1.core.kv_cache_utils import KVCacheBlockCopy
 from vllm.v1.kv_cache_interface import (
     AttentionSpec,
     EncoderOnlyAttentionSpec,
-    FullAttentionSpec,
     KVCacheConfig,
     KVCacheGroupSpec,
     KVCacheSpec,
@@ -41,7 +40,19 @@ from vllm.v1.worker.block_table import get_block_table_width
 logger = init_logger(__name__)
 
 
-@triton.jit(do_not_specialize=["n_blocks"])
+def raise_if_nan_logits(num_nans_in_logits: Mapping[str, int]) -> None:
+    if not any(num_nans_in_logits.values()):
+        return
+
+    corrupted_requests = {
+        req_id: num_nans
+        for req_id, num_nans in num_nans_in_logits.items()
+        if num_nans > 0
+    }
+    raise RuntimeError(f"NaNs detected in logits: {corrupted_requests}")
+
+
+@triton.jit
 def _zero_kv_blocks_kernel(
     seg_addrs_ptr,
     seg_period_ptr,
@@ -129,8 +140,14 @@ class KVBlockZeroer:
         self.device = device
         self._group_meta: dict[
             int,
-            tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor,
-                  torch.Tensor, int],
+            tuple[
+                torch.Tensor,
+                torch.Tensor,
+                torch.Tensor,
+                torch.Tensor,
+                torch.Tensor,
+                int,
+            ],
         ] = {}
 
         if runner_only_attn_layers is None:
@@ -140,11 +157,12 @@ class KVBlockZeroer:
 
         for group in attn_groups_iter:
             spec = group.kv_cache_spec
-            if not isinstance(spec, FullAttentionSpec):
+            if not isinstance(spec, AttentionSpec):
                 continue
             if group.kv_cache_group_id >= len(kernel_block_sizes):
                 continue
             kernel_bs = kernel_block_sizes[group.kv_cache_group_id]
+            assert spec.block_size % kernel_bs == 0
             ratio = spec.block_size // kernel_bs
             block_dim = group.backend.get_kv_cache_block_dim(
                 kernel_bs,
@@ -199,9 +217,12 @@ class KVBlockZeroer:
                     seg_extents.append(extent_bytes // 4)
                     seg_ratios.append(ratio)
 
-        for group_id, (seg_addrs, seg_strides, seg_extents, seg_ratios) in (
-            group_segs.items()
-        ):
+        for group_id, (
+            seg_addrs,
+            seg_strides,
+            seg_extents,
+            seg_ratios,
+        ) in group_segs.items():
             meta = self.build_meta(
                 seg_addrs, seg_strides, seg_extents, seg_ratios, self.device
             )
@@ -222,8 +243,7 @@ class KVBlockZeroer:
         seg_ratios: list[int],
         device: torch.device,
     ) -> (
-        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor,
-              torch.Tensor, int]
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, int]
         | None
     ):
         """Flatten (segment, sub-block, chunk) triples so no launched program
@@ -342,6 +362,17 @@ class AttentionGroup:
     def get_metadata_builder(self, ubatch_id: int = 0) -> AttentionMetadataBuilder:
         assert len(self.metadata_builders) > ubatch_id
         return self.metadata_builders[ubatch_id]
+
+    @property
+    def supports_draft_decode_metadata_update(self) -> bool:
+        return self.get_metadata_builder().supports_draft_decode_metadata_update
+
+    def update_draft_decode_metadata(
+        self,
+        attn_metadata: Mapping[str, Any],
+    ) -> None:
+        metadata = attn_metadata[self.layer_names[0]]
+        self.get_metadata_builder().update_draft_decode_metadata(metadata)
 
 
 def select_common_block_size(
@@ -645,6 +676,24 @@ def copy_kv_cache_blocks_inplace(
         blocks[dst_indices] = blocks[src_indices]
 
 
+def is_uniform_query_len(num_reqs: int, num_tokens: int, max_query_len: int) -> bool:
+    """Whether every request in the batch has the same query length.
+
+    Shape test only; use ``get_uniform_decode_token_count`` to classify a
+    scheduled batch, since a prompt chunk can have a decode batch's shape.
+    """
+    return num_reqs > 0 and num_tokens == max_query_len * num_reqs
+
+
+def get_uniform_decode_token_count(
+    num_reqs: int, num_tokens: int, max_query_len: int, has_prefill: bool
+) -> int | None:
+    """Per-request token count of a uniform decode batch, or None."""
+    if not has_prefill and is_uniform_query_len(num_reqs, num_tokens, max_query_len):
+        return max_query_len
+    return None
+
+
 def is_residual_scattered_for_sp(
     vllm_config: VllmConfig, num_input_tokens: int
 ) -> bool:
@@ -672,3 +721,20 @@ def is_residual_scattered_for_sp(
     assert num_input_tokens % tp == 0
 
     return True
+
+
+@dataclass
+class EncoderTimingStats:
+    """Per-request timing statistics for encoder forward pass."""
+
+    encoder_forward_secs: float = 0.0
+    """Time spent in vision encoder forward pass (seconds)."""
+
+    num_encoder_calls: int = 0
+    """Number of times encoder was called for this request."""
+
+    def to_dict(self) -> dict[str, float | int]:
+        return {
+            "encoder_forward_secs": self.encoder_forward_secs,
+            "num_encoder_calls": self.num_encoder_calls,
+        }

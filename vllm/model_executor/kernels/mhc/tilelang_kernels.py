@@ -1138,7 +1138,7 @@ def mhc_fused_block_m_tilelang(
         pm = T.alloc_local((hc,), T.float32)
         cm = T.alloc_local((hc, hc), T.float32)
         new_r = T.alloc_local((hc,), T.float32)
-        rin = T.alloc_local((hc,), T.float32)
+        residual_values = T.alloc_local((hc,), T.float32)
         xv = T.alloc_local((1,), T.float32)
 
         T.clear(acc)
@@ -1174,12 +1174,12 @@ def mhc_fused_block_m_tilelang(
 
                     xv[0] = x_in[m_start + mm, h_idx]
                     for k in T.unroll(hc):
-                        rin[k] = residual_in[m_start + mm, k, h_idx]
+                        residual_values[k] = residual_in[m_start + mm, k, h_idx]
 
                     for j in T.unroll(hc):
                         new_r[j] = pm[j] * xv[0]
                         for k in T.unroll(hc):
-                            new_r[j] += cm[k, j] * rin[k]
+                            new_r[j] += cm[k, j] * residual_values[k]
 
                     if i_nt == 0:
                         for j in T.unroll(hc):

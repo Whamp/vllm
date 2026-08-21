@@ -766,9 +766,7 @@ def _c128_prefill_inputs(m_tokens: int, depth: int, device: torch.device) -> dic
     gather_start = seq_len - gather_len
     row_stride = n_rows + SWA_LEN + m_tokens
     ratio = _PREFILL_COMPRESS_RATIO
-    top_k = min(
-        max(triton.next_power_of_2(max(seq_len // ratio, 1)), ratio), n_rows
-    )
+    top_k = min(max(triton.next_power_of_2(max(seq_len // ratio, 1)), ratio), n_rows)
 
     positions = torch.arange(depth, seq_len, device=device, dtype=torch.int32)
     topk_len = torch.clamp(
@@ -909,9 +907,7 @@ def _c128_prefill_fp32_error(inp: dict, out: torch.Tensor, samples: int = 24) ->
     those are the two the block's masks treat specially.
     """
     m_tokens = inp["q"].shape[0]
-    picks = sorted(
-        {0, m_tokens - 1, *torch.randint(0, m_tokens, (samples,)).tolist()}
-    )
+    picks = sorted({0, m_tokens - 1, *torch.randint(0, m_tokens, (samples,)).tolist()})
     worst = 0.0
     for t in picks:
         n = int(inp["lens"][t])
@@ -963,9 +959,7 @@ def bench_sparse_prefill_c128(
                 ]
             )
 
-        for block_m, block_k, num_warps in itertools.product(
-            block_ms, block_ks, warps
-        ):
+        for block_m, block_k, num_warps in itertools.product(block_ms, block_ks, warps):
             fn = partial(
                 _launch_c128_prefill_blocked,
                 inp,
@@ -1050,8 +1044,10 @@ def _c128_decode_inputs(
         torch.div(positions + 1, _PREFILL_COMPRESS_RATIO, rounding_mode="floor"),
         max=comp_per_req,
     ).reshape(-1)
-    comp_dense = comp_slots[:, None, :].expand(batch, next_n, comp_per_req).reshape(
-        batch * next_n, comp_per_req
+    comp_dense = (
+        comp_slots[:, None, :]
+        .expand(batch, next_n, comp_per_req)
+        .reshape(batch * next_n, comp_per_req)
     )
     comp_dense = torch.where(
         torch.arange(comp_per_req, device=device)[None, :] < comp_lens[:, None],
@@ -1229,14 +1225,14 @@ def bench_sparse_decode_c128(
 
         reference = None
 
-        def _err(got: torch.Tensor) -> str:
+        def _err(got: torch.Tensor) -> str:  # noqa: B023
             # Scaled by the output's own magnitude, not per element: attention
             # over ~1,700 rows of random KV has components scattered around
             # zero, and a per-element ratio divides by that noise.
-            if reference is None:
+            if reference is None:  # noqa: B023
                 return "-"
-            scale = reference.abs().max().clamp(min=1e-6)
-            err = (got.to(torch.float32) - reference).abs().max() / scale
+            scale = reference.abs().max().clamp(min=1e-6)  # noqa: B023
+            err = (got.to(torch.float32) - reference).abs().max() / scale  # noqa: B023
             return f"{float(err):.1e}"
 
         for s in all_splits:
@@ -1521,9 +1517,7 @@ def bench_mhc_pre(
 # ---------------------------------------------------------------------------
 
 
-def _mhc_fused_inputs(
-    num_tokens: int, device: torch.device
-) -> dict[str, torch.Tensor]:
+def _mhc_fused_inputs(num_tokens: int, device: torch.device) -> dict[str, torch.Tensor]:
     torch.manual_seed(0)
     return {
         "comb_mix": torch.randn(
@@ -1644,8 +1638,7 @@ def bench_mhc_fused(
                 variants.append(
                     (
                         f"block_m/{wname}",
-                        f"bm={block_m},tile_n={tile_n},"
-                        f"split_k={split_k},thr={n_thr}",
+                        (f"bm={block_m},tile_n={tile_n},split_k={split_k},thr={n_thr}"),
                         split_k,
                         partial(
                             mhc_fused_block_m_tilelang,
@@ -3772,7 +3765,10 @@ def _mxfp4_checkpoint_experts(
         0, 255, (num_experts, k, n // 2), dtype=torch.uint8, device=device
     )
     w13_scale = torch.randint(
-        120, 134, (num_experts, 2 * n, k // _MXFP4_GROUP), dtype=torch.uint8,
+        120,
+        134,
+        (num_experts, 2 * n, k // _MXFP4_GROUP),
+        dtype=torch.uint8,
         device=device,
     )
     w2_scale = torch.randint(
@@ -3843,8 +3839,8 @@ def bench_moe_dequant_route(
     dq_us = _time_us(run_dequant)
     dq_gbs = (fp4_bytes + bf16_bytes) / (dq_us * 1e-6) / 1e9 if dq_us == dq_us else 0.0
 
-    marlin_w13, marlin_w2, marlin_w13_s, marlin_w2_s, _, _ = (
-        _make_mxfp4_marlin_experts(num_experts, n, k, device, dtype)
+    marlin_w13, marlin_w2, marlin_w13_s, marlin_w2_s, _, _ = _make_mxfp4_marlin_experts(
+        num_experts, n, k, device, dtype
     )
     workspace = marlin_make_workspace_new(device, 4)
     generator = torch.Generator(device=device).manual_seed(0)
@@ -3886,7 +3882,12 @@ def bench_moe_dequant_route(
         out = torch.empty((m, k), dtype=dtype, device=device)
 
         def run_marlin(
-            hidden=hidden, topk_ids=topk_ids, topk_weights=topk_weights, out=out
+            hidden=hidden,
+            topk_ids=topk_ids,
+            topk_weights=topk_weights,
+            cache13=cache13,
+            cache2=cache2,
+            out=out,
         ) -> None:
             fused_marlin_moe(
                 hidden_states=hidden,
@@ -4058,9 +4059,7 @@ def bench_moe_int8_ceiling(
         (q13, s13, a13s), (q2, s2, a2s) = _make_u4b8_marlin_experts(
             num_experts, n, k, group_size, a_dtype, device, dtype, qtype
         )
-        arms.append(
-            (label, (q13, q2, s13, s2, a13s, a2s), a_dtype, qtype.id)
-        )
+        arms.append((label, (q13, q2, s13, s2, a13s, a2s), a_dtype, qtype.id))
 
     rows = []
     baseline: dict[int, float] = {}
@@ -4085,6 +4084,12 @@ def bench_moe_int8_ceiling(
                 gs2=gs2,
                 a_dtype=a_dtype,
                 quant_id=quant_id,
+                hidden=hidden,
+                topk_weights=topk_weights,
+                topk_ids=topk_ids,
+                cache13=cache13,
+                cache2=cache2,
+                out=out,
             ) -> None:
                 fused_marlin_moe(
                     hidden_states=hidden,
@@ -4217,6 +4222,11 @@ def bench_moe_thread_config(
                         thread_n=thread_n,
                         blocks_per_sm=blocks_per_sm,
                         mul_w=mul_w,
+                        sorted_ids=sorted_ids,
+                        expert_ids=expert_ids,
+                        num_padded=num_padded,
+                        topk_weights=topk_weights,
+                        block_m=block_m,
                     ) -> None:
                         ops.moe_wna16_marlin_gemm(
                             a,

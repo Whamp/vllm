@@ -109,10 +109,13 @@ struct __align__(16) QBlock {
 // with a runtime rank causes a register spill that would confound the
 // rotated-vs-absolute comparison.
 template <int ngpus, bool ABSOLUTE = false>
-__global__ void __launch_bounds__(512, 1) cross_device_reduce_2stage_int8(
-    RankData* _dp, RankSignals sg, Signal* self_sg, int8_t* __restrict__ result,
-    nv_bfloat16* __restrict__ result_s, int rank, int nblk, int64_t scale_off,
-    int64_t tmp_scale_off) {
+__global__ void __launch_bounds__(512, 1)
+    cross_device_reduce_2stage_int8(RankData* _dp, RankSignals sg,
+                                    Signal* self_sg,
+                                    int8_t* __restrict__ result,
+                                    nv_bfloat16* __restrict__ result_s,
+                                    int rank, int nblk, int64_t scale_off,
+                                    int64_t tmp_scale_off) {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   int stride = gridDim.x * blockDim.x;
   // Shard by quantization BLOCK, never by element: a block's codes and its
@@ -198,9 +201,10 @@ __global__ void __launch_bounds__(512, 1) cross_device_reduce_2stage_int8(
 // One thread per 32-element block keeps the block max in registers.
 // static: this header is included by more than one translation unit, and unlike
 // the templated kernels a plain __global__ would get external linkage in each.
-static __global__ void __launch_bounds__(256) quantize_blockwise_int8(
-    const nv_bfloat16* __restrict__ inp, int8_t* __restrict__ out, int nblk,
-    int64_t scale_off) {
+static __global__ void __launch_bounds__(256)
+    quantize_blockwise_int8(const nv_bfloat16* __restrict__ inp,
+                            int8_t* __restrict__ out, int nblk,
+                            int64_t scale_off) {
   auto out_s = (nv_bfloat16*)(out + scale_off);
   for (int idx = blockIdx.x * blockDim.x + threadIdx.x; idx < nblk;
        idx += gridDim.x * blockDim.x) {
@@ -554,16 +558,16 @@ class CustomAllreduce {
     const char* abs_env = std::getenv("VLLM_AR_INT8_ABSOLUTE_ORDER");
     bool absolute = abs_env != nullptr && std::strcmp(abs_env, "1") == 0;
 
-#define KL_INT8(ngpus)                                                         \
-  if (absolute)                                                                \
-    cross_device_reduce_2stage_int8<ngpus, true>                               \
-        <<<blocks, threads, 0, stream>>>(ptrs, sg_, self_sg_, output,          \
-                                         output_scales, rank_, nblk,           \
-                                         scale_off, tmp_scale_off);            \
-  else                                                                         \
-    cross_device_reduce_2stage_int8<ngpus, false>                              \
-        <<<blocks, threads, 0, stream>>>(ptrs, sg_, self_sg_, output,          \
-                                         output_scales, rank_, nblk,           \
+#define KL_INT8(ngpus)                                                \
+  if (absolute)                                                       \
+    cross_device_reduce_2stage_int8<ngpus, true>                      \
+        <<<blocks, threads, 0, stream>>>(ptrs, sg_, self_sg_, output, \
+                                         output_scales, rank_, nblk,  \
+                                         scale_off, tmp_scale_off);   \
+  else                                                                \
+    cross_device_reduce_2stage_int8<ngpus, false>                     \
+        <<<blocks, threads, 0, stream>>>(ptrs, sg_, self_sg_, output, \
+                                         output_scales, rank_, nblk,  \
                                          scale_off, tmp_scale_off);
 
     switch (world_size_) {

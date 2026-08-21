@@ -14,9 +14,9 @@ from vllm.forward_context import get_forward_context
 from vllm.models.deepseek_v4.attention import DeepseekV4Attention
 from vllm.models.deepseek_v4.common.ops import dequantize_and_gather_k_cache
 from vllm.models.deepseek_v4.sparse_mla import (
-    DeepseekV4FlashMLABackend,
     DeepseekV4FlashMLAMetadata,
-    DeepseekV4FlashMLAMetadataBuilder,
+    DeepseekV4SparseMLABackend,
+    DeepseekV4SparseMLAMetadataBuilder,
 )
 from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
@@ -388,7 +388,7 @@ class DeepseekV4ROCMAiterSparseSWAMetadata(DeepseekSparseSWAMetadata):
     )
 
 
-class DeepseekV4ROCMAiterMLASparseMetadataBuilder(DeepseekV4FlashMLAMetadataBuilder):
+class DeepseekV4ROCMAiterMLASparseMetadataBuilder(DeepseekV4SparseMLAMetadataBuilder):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.c128a_decode_topk_ragged_indices_buffer: torch.Tensor | None = None
@@ -442,6 +442,10 @@ class DeepseekV4ROCMAiterMLASparseMetadataBuilder(DeepseekV4FlashMLAMetadataBuil
 
 
 class DeepseekV4ROCMAiterSparseSWAMetadataBuilder(DeepseekSparseSWAMetadataBuilder):
+    # Keep fused multi-step decode disabled until update_draft_decode_metadata()
+    # also refreshes the ROCm-specific ragged SWA indices and indptrs.
+    supports_draft_decode_metadata_update = False
+
     def build_tile_scheduler(
         self, num_decode_tokens: int
     ) -> dict[str, FlashMLASchedMeta | None]:
@@ -510,7 +514,7 @@ class DeepseekV4ROCMAiterSparseSWAMetadataBuilder(DeepseekSparseSWAMetadataBuild
         )
 
 
-class DeepseekV4ROCMAiterMLASparseBackend(DeepseekV4FlashMLABackend):
+class DeepseekV4ROCMAiterMLASparseBackend(DeepseekV4SparseMLABackend):
     @staticmethod
     def get_name() -> str:
         return "ROCM_FLASHMLA_SPARSE_DSV4"

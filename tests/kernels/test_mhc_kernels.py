@@ -383,9 +383,7 @@ def test_prenorm_router_drops_sqrsum_when_already_produced(monkeypatch, sqrsum_r
 
     from vllm.model_executor.kernels.mhc import tilelang as tl_mod
 
-    mhc_triton = importlib.import_module(
-        "vllm.model_executor.kernels.mhc.triton"
-    )
+    mhc_triton = importlib.import_module("vllm.model_executor.kernels.mhc.triton")
 
     seen = {}
 
@@ -422,9 +420,14 @@ def test_prenorm_shard_requires_the_sqrsum_fold(monkeypatch):
     monkeypatch.setattr(mhc_triton.envs, "VLLM_MHC_PRENORM_SHARD", True)
 
     reached = []
+
+    def record_model_parallel_check() -> bool:
+        reached.append(True)
+        return False
+
     monkeypatch.setattr(
         "vllm.distributed.parallel_state.model_parallel_is_initialized",
-        lambda: reached.append(True) or False,
+        record_model_parallel_check,
     )
 
     # Real device tensors: the not-None branch runs _row_sqrsum_kernel for
@@ -475,9 +478,7 @@ def test_prenorm_shard_rows_partition_exactly(num_tokens, tp_size):
 @pytest.mark.parametrize("num_tokens", [1, 4, 128, 2048])
 @pytest.mark.parametrize("hidden_size", [4096, 7168])
 @pytest.mark.parametrize("hc_mult", [4])
-def test_mhc_post_sqrsum_matches_standalone_reduction(
-    num_tokens, hidden_size, hc_mult
-):
+def test_mhc_post_sqrsum_matches_standalone_reduction(num_tokens, hidden_size, hc_mult):
     """The fused sqrsum must equal the separate pass it replaces.
 
     Above the cuBLAS crossover the prenorm GEMM's companion reduction is a

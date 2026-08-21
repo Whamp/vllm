@@ -238,7 +238,6 @@ def test_moe_wna16_setup_forwards_selected_backend(monkeypatch):
 
     assert method.moe_kernel is kernel
     assert captured["backend"] == WNA16MoEBackend.HUMMING
-    assert captured["layer"] is layer
 
 
 def test_moe_wna16_humming_adapter_repacks_uint8_tensors():
@@ -318,7 +317,11 @@ def test_humming_conversion_uses_per_sublayer_weight_schemas(monkeypatch):
     def fake_process_single_sublayer(**kwargs):
         sublayer_name = kwargs["sublayer_name"]
         captured[sublayer_name] = kwargs["weight_schema"]
-        return kwargs["weight_schema"], kwargs["input_schema"]
+        return (
+            kwargs["weight_schema"],
+            kwargs["input_schema"],
+            f"{sublayer_name}_config",
+        )
 
     monkeypatch.setattr(
         humming_utils,
@@ -342,6 +345,10 @@ def test_humming_conversion_uses_per_sublayer_weight_schemas(monkeypatch):
 
     assert captured == {"w13": w13_schema, "w2": w2_schema}
     assert layer.weight_schemas == {"w13": w13_schema, "w2": w2_schema}
+    assert layer.humming_configs == {
+        "w13": "w13_config",
+        "w2": "w2_config",
+    }
 
 
 def test_humming_quant_config_preserves_separate_w13_w2_schemas():
@@ -367,6 +374,7 @@ def test_humming_quant_config_preserves_separate_w13_w2_schemas():
         },
         w13_weight_scale=torch.ones(1),
         w2_weight_scale=torch.ones(1),
+        humming_configs={"w13": object(), "w2": object()},
     )
 
     quant_config = get_humming_moe_quant_config(layer)
@@ -396,6 +404,7 @@ def test_humming_quant_config_preserves_swiglu_parameters():
         swiglu_alpha=1.25,
         swiglu_beta=0.5,
         swiglu_limit=10.0,
+        humming_configs={"w13": object(), "w2": object()},
     )
 
     quant_config = get_humming_moe_quant_config(layer)
@@ -415,7 +424,9 @@ def test_moe_wna16_uses_humming_quant_config(monkeypatch):
     monkeypatch.setattr(
         humming_utils,
         "get_humming_moe_quant_config",
-        lambda actual_layer: quant_config if actual_layer is layer else None,
+        lambda actual_layer, *args, **kwargs: (
+            quant_config if actual_layer is layer else None
+        ),
     )
 
     assert method.get_fused_moe_quant_config(layer) is quant_config

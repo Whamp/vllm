@@ -812,7 +812,6 @@ def test_lengths_to_indptr_stays_one_block_at_prefill_width() -> None:
     checks the result is still correct.
     """
     import vllm.envs as envs
-
     from vllm.v1.attention.ops import rocm_aiter_mla_sparse as ops
 
     if not envs.VLLM_SPARSE_RAGGED_FAST_SCAN:
@@ -823,7 +822,7 @@ def test_lengths_to_indptr_stays_one_block_at_prefill_width() -> None:
 
     device = torch.device("cuda")
     num_rows = 8192
-    assert ops._MAX_ONE_BLOCK_INDPTR_ROWS >= num_rows, (
+    assert num_rows <= ops._MAX_ONE_BLOCK_INDPTR_ROWS, (
         "the one-block cap no longer covers the 8K prefill shape; every "
         "prefill layer will take the pageable-H2D fallback"
     )

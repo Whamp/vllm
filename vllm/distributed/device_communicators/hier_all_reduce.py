@@ -475,8 +475,8 @@ class HierarchicalAllReduce:
 
         rt = _get_cudart()
         _check(rt.cudaSetDevice(ctypes.c_int(device.index)), "cudaSetDevice")
-        self._own = []
-        self._opened = []
+        self._own: list[int] = []
+        self._opened: list[int] = []
         # data slots (bf16), partial slots (fp32) — double-buffered; flags
         # [phase(2) x writer(world)] int32
         data_ptr = self._alloc(rt, 2 * _MAX_ELEMS * 2)
@@ -497,8 +497,10 @@ class HierarchicalAllReduce:
         ptr = ctypes.c_void_p()
         _check(rt.cudaMalloc(ctypes.byref(ptr), nbytes), "cudaMalloc")
         _check(rt.cudaMemset(ptr, 0, nbytes), "cudaMemset")
-        self._own.append(ptr.value)
-        return ptr.value
+        ptr_value = ptr.value
+        assert ptr_value is not None
+        self._own.append(ptr_value)
+        return ptr_value
 
     def _exchange_ptrs(self, rt, local_ptr: int) -> torch.Tensor:
         """Share a raw device allocation with all ranks via CUDA IPC and
@@ -523,8 +525,10 @@ class HierarchicalAllReduce:
                 rt.cudaIpcOpenMemHandle(ctypes.byref(peer_ptr), h, ctypes.c_uint(1)),
                 "cudaIpcOpenMemHandle",
             )
-            self._opened.append(peer_ptr.value)
-            ptrs[rank] = peer_ptr.value
+            peer_ptr_value = peer_ptr.value
+            assert peer_ptr_value is not None
+            self._opened.append(peer_ptr_value)
+            ptrs[rank] = peer_ptr_value
         return ptrs
 
     def __del__(self):

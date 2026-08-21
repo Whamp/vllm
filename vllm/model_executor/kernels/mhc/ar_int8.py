@@ -53,8 +53,21 @@ def ar_hoisted(vllm_config) -> bool:
     return get_tp_group().world_size > 1
 
 
-def assert_hoist_preconditions(vllm_config, moe_config=None,
-                               routed_output_transform=None) -> None:
+def _cuda_communicator():
+    """Return the CUDA communicator required by compressed MHC all-reduce."""
+    from vllm.distributed.device_communicators.cuda_communicator import (
+        CudaCommunicator,
+    )
+    from vllm.distributed.parallel_state import get_tp_group
+
+    communicator = get_tp_group().device_communicator
+    assert isinstance(communicator, CudaCommunicator)
+    return communicator
+
+
+def assert_hoist_preconditions(
+    vllm_config, moe_config=None, routed_output_transform=None
+) -> None:
     """Turn every remaining unknown into a startup failure.
 
     Called at construction with whatever is in scope; each check is skipped only
@@ -68,7 +81,7 @@ def assert_hoist_preconditions(vllm_config, moe_config=None,
     # than merely unlikely. A comment cannot survive someone raising the cap or
     # lowering the threshold; this can.
     cap = getattr(vllm_config.compilation_config, "max_cudagraph_capture_size", 0) or 0
-    assert MIN_INT8_TOKENS > cap, (
+    assert cap < MIN_INT8_TOKENS, (
         f"VLLM_MHC_AR_INT8 requires the int8 token threshold to exceed the "
         f"cudagraph capture cap so prefill is always eager and no replayed "
         f"graph can contain the int8 op; got threshold={MIN_INT8_TOKENS} "
@@ -81,9 +94,7 @@ def assert_hoist_preconditions(vllm_config, moe_config=None,
     # AND their scales straight into that buffer. Without this the failure lands
     # deep in the op at first prefill; with it, at startup with the number
     # needed. Largest payload is max_num_batched_tokens x hidden x (1 + 1/16).
-    from vllm.distributed.parallel_state import get_tp_group
-
-    ca = get_tp_group().device_communicator.ca_comm
+    ca = _cuda_communicator().ca_comm
     if ca is not None and not ca.disabled:
         max_tokens = vllm_config.scheduler_config.max_num_batched_tokens
         hidden = vllm_config.model_config.get_hidden_size()
@@ -148,9 +159,7 @@ def _ca_comm():
     `assert_hoist_preconditions` already validated it at startup; the
     communicator is created before the first forward and never replaced.
     """
-    from vllm.distributed.parallel_state import get_tp_group
-
-    ca = get_tp_group().device_communicator.ca_comm
+    ca = _cuda_communicator().ca_comm
     assert ca is not None and not ca.disabled, (
         "VLLM_MHC_AR_INT8 requires the custom all-reduce communicator"
     )

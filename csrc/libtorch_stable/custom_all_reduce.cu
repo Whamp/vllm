@@ -135,7 +135,8 @@ void all_reduce_int8(fptr_t _fa, torch::stable::Tensor& inp,
   STD_TORCH_CHECK(inp.scalar_type() == torch::headeronly::ScalarType::BFloat16,
                   "int8 custom allreduce takes a bf16 input");
   STD_TORCH_CHECK(out_q.scalar_type() == torch::headeronly::ScalarType::Char);
-  STD_TORCH_CHECK(out_s.scalar_type() == torch::headeronly::ScalarType::BFloat16);
+  STD_TORCH_CHECK(out_s.scalar_type() ==
+                  torch::headeronly::ScalarType::BFloat16);
   STD_TORCH_CHECK(_is_weak_contiguous(inp));
   STD_TORCH_CHECK(_is_weak_contiguous(out_q));
   STD_TORCH_CHECK(_is_weak_contiguous(out_s));
@@ -168,10 +169,10 @@ void all_reduce_int8(fptr_t _fa, torch::stable::Tensor& inp,
   int64_t largest_part = part + nblk % fa->world_size_;
   int64_t tmp_scale_off = ((largest_part * vllm::kQBlock + 15) / 16) * 16;
 
-  fa->allreduce_int8(
-      stream, reg_buffer, reinterpret_cast<int8_t*>(out_q.mutable_data_ptr()),
-      reinterpret_cast<nv_bfloat16*>(out_s.mutable_data_ptr()), nblk, scale_off,
-      tmp_scale_off);
+  fa->allreduce_int8(stream, reg_buffer,
+                     reinterpret_cast<int8_t*>(out_q.mutable_data_ptr()),
+                     reinterpret_cast<nv_bfloat16*>(out_s.mutable_data_ptr()),
+                     nblk, scale_off, tmp_scale_off);
 }
 
 void dispose(fptr_t _fa) {

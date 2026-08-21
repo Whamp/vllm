@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+
 """CPU tests for the decode half of the indexer query shard: the query-group
 partition, the batch-absolute row offsets it writes at, its gate, and the
 float32 reduction that reassembles the batch.
@@ -324,6 +327,7 @@ def test_the_offset_guard_can_actually_fail():
     real = indexer_decode_shard_rows
     saved = list(FAILURES)
     try:
+
         def group_relative_rows(bounds, batch_size, next_n):
             if bounds is None:
                 return 0, batch_size * next_n

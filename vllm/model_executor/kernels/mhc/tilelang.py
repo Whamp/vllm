@@ -39,6 +39,7 @@ def _fuse_sqrsum_enabled() -> bool:
     # environment set after import but before the first forward.
     return envs.VLLM_MHC_POST_FUSE_SQRSUM
 
+
 # (tile_n, split_k, n_thr) for the small-token fused post+prenorm kernel.
 # Swept over the full product at the shapes decode runs (m=5, 6, 12, 16;
 # benchmark_dsv4_sm80.py --kernel mhc-fused). Scored on the *pair*, because
@@ -548,8 +549,9 @@ def mhc_post_tilelang(
     every decode step and every flag-off run -- passes None.
     """
     if x_scales is not None:
-        return mhc_post_int8_tilelang(x, x_scales, residual, post_layer_mix,
-                                      comb_res_mix)
+        return mhc_post_int8_tilelang(
+            x, x_scales, residual, post_layer_mix, comb_res_mix
+        )
     from vllm.model_executor.kernels.mhc.tilelang_kernels import (
         mhc_post_tilelang as _mhc_post_kernel,
     )
@@ -617,8 +619,7 @@ def mhc_fused_post_pre_tilelang(
     # one dtype: that is what makes "quantized codes with no scales" and
     # "scales with an unquantized x" both unrepresentable.
     assert x.dtype == (torch.int8 if x_scales is not None else torch.bfloat16), (
-        f"x is {x.dtype} but x_scales is "
-        f"{'set' if x_scales is not None else 'None'}"
+        f"x is {x.dtype} but x_scales is {'set' if x_scales is not None else 'None'}"
     )
     assert post_layer_mix.dtype == torch.float32
     assert comb_res_mix.dtype == torch.float32
@@ -772,6 +773,7 @@ def mhc_fused_post_pre_tilelang(
         }[(use_int8_x, fuse_sqrsum)]
         post_args = [comb_res_mix_flat, residual_flat, post_layer_mix_flat, x_flat]
         if use_int8_x:
+            assert x_scales is not None
             post_args.append(x_scales.view(num_tokens, -1))
         post_args.append(residual_cur)
         if fuse_sqrsum:

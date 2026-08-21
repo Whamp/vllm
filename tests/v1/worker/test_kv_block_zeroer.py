@@ -1,10 +1,71 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+from types import SimpleNamespace
+
 import pytest
 import torch
 
-from vllm.v1.worker.utils import KVBlockZeroer, _zero_kv_blocks_kernel
+from vllm.v1.kv_cache_interface import (
+    ChunkedLocalAttentionSpec,
+    SlidingWindowSpec,
+)
+from vllm.v1.worker.utils import (
+    AttentionGroup,
+    KVBlockZeroer,
+    _zero_kv_blocks_kernel,
+)
+
+
+class _BlockFirstBackend:
+    @staticmethod
+    def get_kv_cache_block_dim(*args, **kwargs):
+        return 0
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
+@pytest.mark.parametrize(
+    "spec",
+    [
+        SlidingWindowSpec(
+            block_size=2,
+            num_kv_heads=1,
+            head_size=1,
+            dtype=torch.uint8,
+            sliding_window=4,
+        ),
+        ChunkedLocalAttentionSpec(
+            block_size=2,
+            num_kv_heads=1,
+            head_size=1,
+            dtype=torch.uint8,
+            attention_chunk_size=4,
+        ),
+    ],
+    ids=["sliding-window", "chunked-local"],
+)
+def test_attention_blocks_are_zeroed(spec):
+    device = torch.device("cuda")
+    storage = torch.ones((4, 1, 2, 2), dtype=torch.uint8, device=device)
+    layer_name = "draft.self_attn"
+    zeroer = KVBlockZeroer(
+        device,
+        attn_groups_iter=[
+            AttentionGroup(_BlockFirstBackend, [layer_name], spec, 0)  # type: ignore[arg-type]
+        ],
+        kernel_block_sizes=[2],
+        cache_dtype="fp8",
+        static_forward_context={
+            layer_name: SimpleNamespace(kv_cache=storage),
+        },
+    )
+
+    zeroer.zero_block_ids([[1]])
+    torch.accelerator.synchronize()
+
+    expected = torch.ones_like(storage)
+    expected[1] = 0
+    assert torch.equal(storage, expected)
 
 
 def _zeroer_for(
@@ -93,9 +154,7 @@ def test_interleaved_layer_views_zero_only_their_own_bytes():
     """
     device = torch.device("cuda")
     num_blocks, num_layers, page = 4, 3, 64
-    pool = torch.ones(
-        (num_blocks, num_layers, page), dtype=torch.int32, device=device
-    )
+    pool = torch.ones((num_blocks, num_layers, page), dtype=torch.int32, device=device)
     stride = num_layers * page
     # One segment per layer view, addressed from the layer's first block.
     meta = KVBlockZeroer.build_meta(
@@ -110,7 +169,7 @@ def test_interleaved_layer_views_zero_only_their_own_bytes():
     zeroer._group_meta = {0: meta}
 
     zeroer.zero_block_ids([[1]])
-    torch.cuda.synchronize()
+    torch.accelerator.synchronize()
 
     assert torch.all(pool[0] == 1) and torch.all(pool[2:] == 1)
     assert torch.all(pool[1, 0] == 0), "layer 0's block 1 must be zeroed"
@@ -132,16 +191,14 @@ def test_block_ids_are_group_scoped():
     storage_a = torch.ones((4, 128), dtype=torch.int32, device=device)
     storage_b = torch.ones((4, 96), dtype=torch.int32, device=device)
 
-    meta_a = KVBlockZeroer.build_meta(
-        [storage_a.data_ptr()], [128], [128], [1], device
-    )
+    meta_a = KVBlockZeroer.build_meta([storage_a.data_ptr()], [128], [128], [1], device)
     meta_b = KVBlockZeroer.build_meta([storage_b.data_ptr()], [96], [96], [1], device)
     zeroer = KVBlockZeroer.__new__(KVBlockZeroer)
     zeroer.device = device
     zeroer._group_meta = {0: meta_a, 1: meta_b}
 
     zeroer.zero_block_ids([[1], [3]])
-    torch.cuda.synchronize()
+    torch.accelerator.synchronize()
 
     assert torch.all(storage_a[1] == 0) and torch.all(storage_b[3] == 0)
     # The flat-list bug applied every id to every group.
@@ -157,16 +214,14 @@ def test_virtual_block_split_zeroes_every_sub_block():
     num_kernel_blocks, page = 8, 48
     stride = 2 * page  # interleaved with a neighbor view that must survive
     pool = torch.ones((num_kernel_blocks, 2, page), dtype=torch.int32, device=device)
-    meta = KVBlockZeroer.build_meta(
-        [pool.data_ptr()], [stride], [page], [2], device
-    )
+    meta = KVBlockZeroer.build_meta([pool.data_ptr()], [stride], [page], [2], device)
     zeroer = KVBlockZeroer.__new__(KVBlockZeroer)
     zeroer.device = device
     zeroer._group_meta = {0: meta}
 
     # Logical block 1 = kernel blocks 2 and 3.
     zeroer.zero_block_ids([[1]])
-    torch.cuda.synchronize()
+    torch.accelerator.synchronize()
 
     assert torch.all(pool[:2, 0] == 1) and torch.all(pool[4:, 0] == 1)
     assert torch.all(pool[2, 0] == 0) and torch.all(pool[3, 0] == 0)
@@ -177,8 +232,8 @@ def test_virtual_block_split_zeroes_every_sub_block():
 def test_warmup_compiles_every_n_blocks_specialization():
     """After warmup, no launch should trigger a first-request JIT compile.
 
-    ``n_blocks`` is ``do_not_specialize``, so a single warmup launch must
-    cover every block count.
+    The block count is carried by the launch grid, so changing it must reuse
+    the warmup's compiled kernel.
     """
     device = torch.device("cuda")
     num_blocks = 64
@@ -268,8 +323,7 @@ def test_every_launched_program_has_work():
     chunk_elems = KVBlockZeroer.CHUNK_ELEMS
 
     expected = sum(
-        r * ((ps + chunk_elems - 1) // chunk_elems)
-        for ps, r in zip(page_sizes, ratios)
+        r * ((ps + chunk_elems - 1) // chunk_elems) for ps, r in zip(page_sizes, ratios)
     )
     assert n_chunks == expected
     assert chunk_seg.numel() == n_chunks

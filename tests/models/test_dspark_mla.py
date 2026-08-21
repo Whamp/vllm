@@ -67,6 +67,7 @@ def test_dspark_markov_head_is_replicated(
     monkeypatch: pytest.MonkeyPatch,
 ):
     from vllm.model_executor.layers import logits_processor, vocab_parallel_embedding
+    from vllm.model_executor.layers.utils import dispatch_cpu_unquantized_gemm
 
     monkeypatch.setattr(
         vocab_parallel_embedding, "get_tensor_model_parallel_rank", lambda: 3
@@ -97,6 +98,7 @@ def test_dspark_markov_head_is_replicated(
     )
     logits_processor = LogitsProcessor(128)
     monkeypatch.setattr(logits_processor, "_gather_logits", fail_collective)
+    dispatch_cpu_unquantized_gemm(head.markov_w2, remove_weight=False)
 
     markov_embed = head.embed(torch.tensor([1, 2]))
     bias = head.bias(markov_embed, logits_processor)
@@ -107,6 +109,7 @@ def test_dspark_markov_head_is_replicated(
 @pytest.mark.cpu_test
 def test_k3_dspark_uses_replicated_markov_head(monkeypatch: pytest.MonkeyPatch):
     markov_head_calls = []
+    context_kv_proj_calls = []
 
     class DummyModule(nn.Module):
         def __init__(self, *args, **kwargs):
@@ -116,8 +119,13 @@ def test_k3_dspark_uses_replicated_markov_head(monkeypatch: pytest.MonkeyPatch):
         markov_head_calls.append((args, kwargs))
         return DummyModule()
 
+    def make_context_kv_proj(*args, **kwargs):
+        context_kv_proj_calls.append((args, kwargs))
+        return DummyModule()
+
     monkeypatch.setattr(dspark_mla, "get_draft_quant_config", lambda _: None)
     monkeypatch.setattr(dspark_mla, "ReplicatedLinear", DummyModule)
+    monkeypatch.setattr(dspark_mla, "MergedColumnParallelLinear", make_context_kv_proj)
     monkeypatch.setattr(dspark_mla, "RMSNorm", DummyModule)
     monkeypatch.setattr(dspark_mla, "K3DSparkDecoderLayer", DummyModule)
     monkeypatch.setattr(dspark_mla, "DSparkMarkovHead", make_markov_head)
@@ -126,6 +134,8 @@ def test_k3_dspark_uses_replicated_markov_head(monkeypatch: pytest.MonkeyPatch):
         target_hidden_size=16,
         num_target_layers=2,
         hidden_size=8,
+        kv_lora_rank=3,
+        qk_rope_head_dim=1,
         rms_norm_eps=1e-6,
         num_hidden_layers=1,
         vocab_size=128,
@@ -136,13 +146,47 @@ def test_k3_dspark_uses_replicated_markov_head(monkeypatch: pytest.MonkeyPatch):
         speculative_config=SimpleNamespace(
             draft_model_config=SimpleNamespace(hf_config=config)
         ),
-        # K3DSparkModel.__init__ sizes its context-KV buffer from the scheduler
-        # budget (dspark_mla.py:150-152), so the stand-in config has to carry
-        # it. The value is arbitrary here -- nothing in this test reaches the
-        # buffer -- but it must exist.
-        scheduler_config=SimpleNamespace(max_num_batched_tokens=2048),
+        scheduler_config=SimpleNamespace(max_num_batched_tokens=16),
     )
 
     K3DSparkModel(vllm_config=vllm_config, start_layer_id=0, prefix="model")
 
     assert len(markov_head_calls) == 1
+    assert context_kv_proj_calls == [
+        (
+            (8, [4]),
+            {
+                "bias": False,
+                "return_bias": False,
+                "quant_config": None,
+                "prefix": "model.layers.0.self_attn.fused_qkv_a_proj",
+                "disable_tp": True,
+            },
+        )
+    ]
+
+
+def test_context_kv_weights_are_loaded_as_merged_linear_shards():
+    weights = [
+        (
+            "layers.0.self_attn.kv_a_proj_with_mqa.weight_packed",
+            torch.arange(4),
+        ),
+        (
+            "layers.1.self_attn.kv_a_proj_with_mqa.weight_scale",
+            torch.tensor(0.5),
+        ),
+    ]
+
+    duplicated = dspark_mla._duplicate_context_kv_weights(weights, 2)
+    mapped = list(K3DSparkForCausalLM.hf_to_vllm_mapper.apply(duplicated))
+
+    assert [name for name, _ in mapped] == [
+        "model.layers.0.self_attn.fused_qkv_a_proj.weight_packed",
+        "model.context_kv_proj.weight_packed",
+        "model.layers.1.self_attn.fused_qkv_a_proj.weight_scale",
+        "model.context_kv_proj.weight_scale",
+    ]
+    assert [weight.shard_id for _, weight in mapped] == [1, 0, 1, 1]
+    assert mapped[0][1].data_ptr() == mapped[1][1].data_ptr()
+    assert mapped[2][1].data_ptr() == mapped[3][1].data_ptr()

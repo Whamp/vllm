@@ -329,7 +329,8 @@ __device__ bool processHistogramStep(
     const uint32_t threadExcl = interPrefix + (winc - packed);
 
     if (isDef) {
-      const int dstIdx = foundBase + defRun + static_cast<int>(threadExcl >> 16);
+      const int dstIdx =
+          foundBase + defRun + static_cast<int>(threadExcl >> 16);
       if constexpr (mergeBlocks) {
         smemOutput[dstIdx] = indices[procIdx];
       } else if constexpr (multipleBlocksPerRow) {

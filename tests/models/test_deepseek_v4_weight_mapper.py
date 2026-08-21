@@ -58,8 +58,8 @@ def test_hybrid_config_delegates_only_routed_experts(monkeypatch) -> None:
     monkeypatch.setattr(quant_config_module, "RoutedExperts", FakeRoutedExperts)
     config = DeepseekV4FP8Config.from_config(_hybrid_quantization_config())
     delegated_method = object()
-    config._compressed_tensors_config.get_quant_method = (
-        lambda layer, prefix: delegated_method
+    config._compressed_tensors_config.get_quant_method = lambda layer, prefix: (
+        delegated_method
     )
 
     method = config.get_quant_method(FakeRoutedExperts(), "model.layers.0.ffn.experts")

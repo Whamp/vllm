@@ -422,7 +422,7 @@ def rocm_fp8_paged_mqa_logits(
     batch_size, next_n = q_fp8.shape[:2]
     block_size = kv_cache_fp8.shape[1]
 
-    if rocm_aiter_ops.is_enabled():
+    if rocm_aiter_ops.is_enabled() or rocm_aiter_ops.is_rdna_aiter_enabled():
         aiter_paged_mqa_logits_module = paged_mqa_logits_module()
 
     if aiter_paged_mqa_logits_module is not None:
@@ -587,7 +587,7 @@ def rocm_fp8_mqa_logits(
         )
 
     aiter_mqa_logits_module = None
-    if rocm_aiter_ops.is_enabled():
+    if rocm_aiter_ops.is_enabled() or rocm_aiter_ops.is_rdna_aiter_enabled():
         aiter_mqa_logits_module = mqa_logits_module()
 
     if aiter_mqa_logits_module is not None:
@@ -1329,10 +1329,7 @@ def _sparse_attn_prefill_ragged_kernel(
         )
 
         scores = tl.dot(q, tl.trans(kv)) * scale
-        if EXACT_TILE:
-            keep = valid[None, :]
-        else:
-            keep = head_mask[:, None] & valid[None, :]
+        keep = valid[None, :] if EXACT_TILE else head_mask[:, None] & valid[None, :]
         scores = tl.where(keep, scores, neg_large)
 
         m_block = tl.max(scores, axis=1)

@@ -10,10 +10,6 @@ import torch
 import vllm.envs as envs
 
 
-class AuxStreamType(Enum):
-    Attention = 1
-
-
 class EventType(Enum):
     Main = 0
     Attention = 1

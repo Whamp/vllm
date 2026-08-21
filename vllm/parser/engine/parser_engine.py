@@ -671,9 +671,7 @@ class ParserEngine(Parser):
 
     # ── Single-pass parse helper ────────────────────────────────────────
 
-    def _orphan_reasoning_prefix_events(
-        self, text: str
-    ) -> "list[SemanticEvent]":
+    def _orphan_reasoning_prefix_events(self, text: str) -> list[SemanticEvent]:
         """Seed the state machine when reasoning was opened in the PROMPT.
 
         DSv4's thinking template ends the prompt with the reasoning start

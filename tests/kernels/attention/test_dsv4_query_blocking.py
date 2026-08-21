@@ -18,6 +18,8 @@ tests here pin the two together, on CPU, without needing a GPU:
   per-query kernel.
 """
 
+from typing import cast
+
 import pytest
 import torch
 
@@ -279,15 +281,19 @@ def test_decode_union_reproduces_each_query_list(start_pos: int, group: int) -> 
 
     # The union as the kernel materialises it: coordinates below `front` come
     # from the first query's list, the rest from the last query's.
+    front = cast(int, geo["front"])
+    main_union = cast(int, geo["main_union"])
+    main_lo = cast(list[int], geo["main_lo"])
+    main_hi = cast(list[int], geo["main_hi"])
+    extra_hi = cast(list[int], geo["extra_hi"])
     union = [
-        main[0][j] if j < geo["front"] else main[-1][j - geo["front"]]
-        for j in range(geo["main_union"])
+        main[0][j] if j < front else main[-1][j - front] for j in range(main_union)
     ]
     for m in range(group):
-        assert union[geo["main_lo"][m] : geo["main_hi"][m]] == main[m], (
+        assert union[main_lo[m] : main_hi[m]] == main[m], (
             f"SWA window of query {m} at position {positions[m]}"
         )
-        assert extra[-1][: geo["extra_hi"][m]] == extra[m], (
+        assert extra[-1][: extra_hi[m]] == extra[m], (
             f"compressed prefix of query {m} at position {positions[m]}"
         )
 
@@ -519,9 +525,7 @@ def test_blocked_decode_kernel_matches_the_per_query_kernel(
         for t in range(group):
             pos = depth + t
             swa_len = min(pos + 1, window)
-            main_rows.append(
-                [slot(req, p) for p in range(pos + 1 - swa_len, pos + 1)]
-            )
+            main_rows.append([slot(req, p) for p in range(pos + 1 - swa_len, pos + 1)])
             extra_rows.append(
                 [slot(req + 64, i) for i in range((pos + 1) // COMPRESS_RATIO)]
             )

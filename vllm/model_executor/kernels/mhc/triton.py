@@ -154,6 +154,7 @@ def hc_prenorm_gemm_cublas(
     # Order matters: the token threshold is checked before anything reaches for
     # the TP group, because get_tp_group() asserts when the group is not
     # initialized and this kernel is also exercised single-process by the tests.
+    tp = None
     if (
         envs.VLLM_MHC_PRENORM_SHARD
         and sqrsum is None
@@ -181,7 +182,10 @@ def hc_prenorm_gemm_cublas(
     # only the work is divided and nothing is scattered first. The gather
     # carries the 24-wide output rather than the 16384-wide input, which is
     # the entire reason this pays.
-    start = sum(rows[: tp.rank_in_group])
+    assert tp is not None
+    start = 0
+    for row_count in rows[: tp.rank_in_group]:
+        start += row_count
     x_shard = x[start : start + rows[tp.rank_in_group]]
     out[0].copy_(tp.all_gatherv(x_shard @ fn_bf16.t(), dim=0, sizes=rows))
 

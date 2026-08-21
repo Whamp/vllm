@@ -36,7 +36,7 @@ def _dequant_excluded(layer: torch.nn.Module) -> bool:
     if not patterns:
         return False
     prefix = getattr(layer, "prefix", "")
-    excluded = is_layer_skipped(prefix, patterns, skip_with_substr=True)
+    excluded = is_layer_skipped(prefix, patterns, match_mode="substring")
     if excluded:
         logger.debug("keeping %s on Marlin (dequant exclusion)", prefix)
     return excluded
@@ -66,8 +66,10 @@ class MarlinFP8ScaledMMLinearKernel(FP8ScaledMMLinearKernel):
         ):
             return (
                 False,
-                "To apply FP8 Marlin on high-capability GPUs, please set "
-                "VLLM_TEST_FORCE_FP8_MARLIN=1",
+                (
+                    "To apply FP8 Marlin on high-capability GPUs, please set "
+                    "VLLM_TEST_FORCE_FP8_MARLIN=1"
+                ),
             )
         return True, None
 

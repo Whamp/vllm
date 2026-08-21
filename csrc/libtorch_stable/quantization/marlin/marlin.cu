@@ -145,10 +145,7 @@ typedef struct {
 // VLLM_MARLIN_DENSE_OCCUPANCY and VLLM_MARLIN_RIGHTSIZE_SMEM moved together
 // and which is the shared mechanism of both refutations.
 thread_config_t spike_warp_thread_configs[] = {
-    {128, 64, 256},
-    {128, 128, 256},
-    {64, 128, 128},
-    {128, 64, 128}};
+    {128, 64, 256}, {128, 128, 256}, {64, 128, 128}, {128, 64, 128}};
 
 bool spike_more_warps_enabled() {
   static const bool enabled = []() {
@@ -340,9 +337,9 @@ exec_config_t determine_exec_config(
   exec_config_t exec_cfg = exec_config_t{1, thread_config_t{-1, -1, -1}};
   bool spike = spike_more_warps_enabled() && thread_m_blocks == 1;
   thread_config_t* thread_configs =
-      thread_m_blocks > 1 ? large_batch_thread_configs
-                          : (spike ? spike_warp_thread_configs
-                                   : small_batch_thread_configs);
+      thread_m_blocks > 1
+          ? large_batch_thread_configs
+          : (spike ? spike_warp_thread_configs : small_batch_thread_configs);
   int thread_configs_size =
       thread_m_blocks > 1
           ? sizeof(large_batch_thread_configs) / sizeof(thread_config_t)
@@ -351,8 +348,8 @@ exec_config_t determine_exec_config(
                          sizeof(thread_config_t));
 
   int occupancy_mode = dense_occupancy_selection_mode();
-  bool by_occupancy = occupancy_mode == 2 ||
-                      (occupancy_mode == 1 && thread_m_blocks == 1);
+  bool by_occupancy =
+      occupancy_mode == 2 || (occupancy_mode == 1 && thread_m_blocks == 1);
   int best_count = 0;
   constexpr int device_max_reg_size = 255 * 1024;
 
