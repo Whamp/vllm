@@ -201,7 +201,8 @@ __global__ void k_quant_q8_1_matvec_kernel(
     const __half* __restrict__ activation_scales,
     const int8_t* __restrict__ activation_codes,
     const uint8_t* __restrict__ weights, float* __restrict__ output,
-    int token_count, int output_rows, int input_columns, int raw_row_bytes) {
+    int token_count, int output_rows, int input_columns, int raw_row_bytes,
+    int output_row_stride) {
   const int lane = threadIdx.x & 31;
   const int warp_in_block = threadIdx.x >> 5;
   const int output_index = blockIdx.x * kWarpsPerBlock + warp_in_block;
@@ -214,7 +215,7 @@ __global__ void k_quant_q8_1_matvec_kernel(
       activation_scales, activation_codes, weights + output_row * raw_row_bytes,
       token_index, input_columns);
   if (lane == 0) {
-    output[output_index] = sum;
+    output[token_index * output_row_stride + output_row] = sum;
   }
 }
 
@@ -258,14 +259,20 @@ void launch_k_quant_raw_matvec(const torch::stable::Tensor& activation_scales,
                                const torch::stable::Tensor& weights,
                                torch::stable::Tensor& output) {
   using torch::headeronly::ScalarType;
-  const torch::stable::Tensor* tensors[] = {
-      &activation_scales, &activation_codes, &weights, &output};
-  for (const auto* tensor : tensors) {
-    STD_TORCH_CHECK(tensor->device().is_cuda() && tensor->is_contiguous(),
-                    "GGUF Q4/Q5/Q6 tensors must be contiguous CUDA tensors");
-    STD_TORCH_CHECK(tensor->get_device_index() == output.get_device_index(),
-                    "GGUF Q4/Q5/Q6 tensors must share one CUDA device");
-  }
+  STD_TORCH_CHECK(activation_scales.device().is_cuda() &&
+                      activation_scales.is_contiguous() &&
+                      activation_codes.device().is_cuda() &&
+                      activation_codes.is_contiguous() &&
+                      weights.device().is_cuda() && weights.is_contiguous(),
+                  "GGUF Q4/Q5/Q6 inputs must be contiguous CUDA tensors");
+  STD_TORCH_CHECK(output.device().is_cuda() && output.dim() == 2 &&
+                      output.stride(1) == 1,
+                  "GGUF Q4/Q5/Q6 output must be a 2D CUDA tensor with "
+                  "unit-stride columns; row stride may come from a wider "
+                  "combined buffer");
+  STD_TORCH_CHECK(activation_scales.get_device_index() ==
+                      output.get_device_index(),
+                  "GGUF Q4/Q5/Q6 tensors must share one CUDA device");
   STD_TORCH_CHECK(activation_scales.scalar_type() == ScalarType::Half &&
                       activation_codes.scalar_type() == ScalarType::Char &&
                       weights.scalar_type() == ScalarType::Byte &&
@@ -296,7 +303,8 @@ void launch_k_quant_raw_matvec(const torch::stable::Tensor& activation_scales,
           reinterpret_cast<const __half*>(activation_scales.const_data_ptr()),
           reinterpret_cast<const int8_t*>(activation_codes.const_data_ptr()),
           weights.const_data_ptr<uint8_t>(), output.mutable_data_ptr<float>(),
-          token_count, output_rows, input_columns, weights.size(1));
+          token_count, output_rows, input_columns, weights.size(1),
+          static_cast<int>(output.stride(0)));
 }
 
 }  // namespace

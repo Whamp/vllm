@@ -409,6 +409,48 @@ class GGUFDSV4LinearMethod(LinearMethodBase):
                 layer, x, layer.output_size_per_partition, ""
             )
         flat_input = x.reshape(-1, x.shape[-1])
+        if all(type_spec.name != "Q8_0" for type_spec in self.source_type_specs):
+            # All-K-quant linears (shared-expert gate/up and down on Unsloth
+            # IQ1 artifacts): write every partition into one combined FP32
+            # buffer via its row stride, then convert once. This replaces
+            # per-partition conversions plus a final concatenation with a
+            # single elementwise kernel; values are bit-identical because
+            # each output element is rounded FP32->BF16 exactly once either
+            # way.
+            combined_fp32 = torch.empty(
+                flat_input.shape[0],
+                layer.output_size_per_partition,
+                device=x.device,
+                dtype=torch.float32,
+            )
+            activation_scales = torch.empty(
+                flat_input.shape[0],
+                flat_input.shape[1] // _Q8_BLOCK_ELEMENTS,
+                device=x.device,
+                dtype=torch.float16,
+            )
+            activation_codes = torch.empty_like(flat_input, dtype=torch.int8)
+            torch.ops._C.gguf_quantize_bf16_to_q8_1(
+                flat_input, activation_scales, activation_codes
+            )
+            offset = 0
+            for partition_index, (type_spec, output_rows) in enumerate(
+                zip(
+                    self.source_type_specs,
+                    layer.output_partition_sizes,
+                    strict=True,
+                )
+            ):
+                self._apply_raw_k_quant(
+                    type_spec.name,
+                    activation_scales,
+                    activation_codes,
+                    getattr(layer, self._raw_parameter_name(partition_index)),
+                    combined_fp32[:, offset : offset + output_rows],
+                )
+                offset += output_rows
+            output = combined_fp32.to(x.dtype)
+            return output.reshape(*x.shape[:-1], output.shape[-1])
         activation_scales = torch.empty(
             flat_input.shape[0],
             flat_input.shape[1] // _Q8_BLOCK_ELEMENTS,
