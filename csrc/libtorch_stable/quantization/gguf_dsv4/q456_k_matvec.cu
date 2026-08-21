@@ -27,7 +27,7 @@ constexpr int kThreadsPerBlock = 32 * kWarpsPerBlock;
 enum class KQuantFormat { kQ4, kQ5, kQ6 };
 
 template <KQuantFormat kFormat>
-constexpr int block_bytes() {
+__host__ __device__ constexpr int block_bytes() {
   if constexpr (kFormat == KQuantFormat::kQ4) {
     return 144;
   } else if constexpr (kFormat == KQuantFormat::kQ5) {

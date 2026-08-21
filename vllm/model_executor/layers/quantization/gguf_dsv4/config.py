@@ -46,6 +46,65 @@ _Q8_BLOCK_ELEMENTS = 32
 _Q8_BLOCK_BYTES = 34
 _LAYER_PREFIX_PATTERN = re.compile(r"(?:^|\.)layers\.(\d+)(?:\.|$)")
 
+# Custom-op dispatch tables, keyed by source type (and grouped? for
+# K-quant linears). Values are custom-op names, resolved lazily through
+# _registered_op so importing this module never requires the CUDA
+# extension. Indexed kernels run below the grouped token thresholds;
+# grouped kernels consume moe_align_block_size schedules above them.
+_K_QUANT_LINEAR_OPS = {
+    ("Q4_K", False): "gguf_q4_k_q8_1_raw_matvec",
+    ("Q4_K", True): "gguf_q4_k_q8_1_grouped_matmul",
+    ("Q5_K", False): "gguf_q5_k_q8_1_raw_matvec",
+    ("Q5_K", True): "gguf_q5_k_q8_1_grouped_matmul",
+    ("Q6_K", False): "gguf_q6_k_q8_1_raw_matvec",
+    ("Q6_K", True): "gguf_q6_k_q8_1_grouped_matmul",
+}
+_EXPERT_GATE_UP_INDEXED_OPS = {
+    "IQ1_S": "gguf_iq1_s_q8_1_indexed_gate_up",
+    "IQ1_M": "gguf_iq1_m_q8_1_indexed_gate_up",
+    "IQ2_XXS": "gguf_iq2_xxs_q8_1_indexed_gate_up",
+}
+_EXPERT_GATE_UP_GROUPED_OPS = {
+    "IQ1_S": "gguf_iq1_s_q8_1_grouped_gate_up",
+    "IQ1_M": "gguf_iq1_m_q8_1_grouped_gate_up",
+    "IQ2_XXS": "gguf_iq2_xxs_q8_1_grouped_gate_up",
+}
+_EXPERT_DOWN_INDEXED_OPS = {
+    "IQ3_XXS": "gguf_iq3_xxs_q8_1_indexed_down",
+    "MXFP4": "gguf_mxfp4_q8_1_indexed_down",
+    "Q2_K": "gguf_q2_k_q8_1_indexed_down",
+}
+_EXPERT_DOWN_GROUPED_OPS = {
+    "IQ3_XXS": "gguf_iq3_xxs_q8_1_grouped_down",
+    "MXFP4": "gguf_mxfp4_q8_1_grouped_down",
+    "Q2_K": "gguf_q2_k_q8_1_grouped_down",
+}
+
+
+def _registered_op(table, type_name: str, action: str):
+    try:
+        op_name = table[type_name]
+    except KeyError:
+        raise RuntimeError(
+            f"GGUF DSv4 {type_name} {action} execution is not registered"
+        ) from None
+    return getattr(torch.ops._C, op_name)
+
+
+def _quantize_bf16_activation(
+    flat_input: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Quantize BF16 activations to shared Q8_1 scales plus codes."""
+    scales = torch.empty(
+        flat_input.shape[0],
+        flat_input.shape[1] // _Q8_BLOCK_ELEMENTS,
+        device=flat_input.device,
+        dtype=torch.float16,
+    )
+    codes = torch.empty_like(flat_input, dtype=torch.int8)
+    torch.ops._C.gguf_quantize_bf16_to_q8_1(flat_input, scales, codes)
+    return scales, codes
+
 
 @dataclass(frozen=True)
 class _GateUpResult:
@@ -364,37 +423,13 @@ class GGUFDSV4LinearMethod(LinearMethodBase):
         output: torch.Tensor,
     ) -> None:
         use_grouped = activation_codes.shape[0] >= _GROUPED_LINEAR_MIN_TOKENS
-        if type_name == "Q4_K":
-            if use_grouped:
-                torch.ops._C.gguf_q4_k_q8_1_grouped_matmul(
-                    activation_scales, activation_codes, weights, output
-                )
-            else:
-                torch.ops._C.gguf_q4_k_q8_1_raw_matvec(
-                    activation_scales, activation_codes, weights, output
-                )
-        elif type_name == "Q5_K":
-            if use_grouped:
-                torch.ops._C.gguf_q5_k_q8_1_grouped_matmul(
-                    activation_scales, activation_codes, weights, output
-                )
-            else:
-                torch.ops._C.gguf_q5_k_q8_1_raw_matvec(
-                    activation_scales, activation_codes, weights, output
-                )
-        elif type_name == "Q6_K":
-            if use_grouped:
-                torch.ops._C.gguf_q6_k_q8_1_grouped_matmul(
-                    activation_scales, activation_codes, weights, output
-                )
-            else:
-                torch.ops._C.gguf_q6_k_q8_1_raw_matvec(
-                    activation_scales, activation_codes, weights, output
-                )
-        else:
+        try:
+            op = _K_QUANT_LINEAR_OPS[(type_name, use_grouped)]
+        except KeyError:
             raise RuntimeError(
                 f"GGUF DSv4 linear execution is not registered for {type_name}"
-            )
+            ) from None
+        op(activation_scales, activation_codes, weights, output)
 
     def apply(
         self,
@@ -409,6 +444,7 @@ class GGUFDSV4LinearMethod(LinearMethodBase):
                 layer, x, layer.output_size_per_partition, ""
             )
         flat_input = x.reshape(-1, x.shape[-1])
+        activation_scales, activation_codes = _quantize_bf16_activation(flat_input)
         if all(type_spec.name != "Q8_0" for type_spec in self.source_type_specs):
             # All-K-quant linears (shared-expert gate/up and down on Unsloth
             # IQ1 artifacts): write every partition into one combined FP32
@@ -422,16 +458,6 @@ class GGUFDSV4LinearMethod(LinearMethodBase):
                 layer.output_size_per_partition,
                 device=x.device,
                 dtype=torch.float32,
-            )
-            activation_scales = torch.empty(
-                flat_input.shape[0],
-                flat_input.shape[1] // _Q8_BLOCK_ELEMENTS,
-                device=x.device,
-                dtype=torch.float16,
-            )
-            activation_codes = torch.empty_like(flat_input, dtype=torch.int8)
-            torch.ops._C.gguf_quantize_bf16_to_q8_1(
-                flat_input, activation_scales, activation_codes
             )
             offset = 0
             for partition_index, (type_spec, output_rows) in enumerate(
@@ -451,16 +477,6 @@ class GGUFDSV4LinearMethod(LinearMethodBase):
                 offset += output_rows
             output = combined_fp32.to(x.dtype)
             return output.reshape(*x.shape[:-1], output.shape[-1])
-        activation_scales = torch.empty(
-            flat_input.shape[0],
-            flat_input.shape[1] // _Q8_BLOCK_ELEMENTS,
-            device=x.device,
-            dtype=torch.float16,
-        )
-        activation_codes = torch.empty_like(flat_input, dtype=torch.int8)
-        torch.ops._C.gguf_quantize_bf16_to_q8_1(
-            flat_input, activation_scales, activation_codes
-        )
         outputs: list[torch.Tensor] = []
         for partition_index, (type_spec, output_rows) in enumerate(
             zip(
@@ -615,13 +631,7 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
         token_count = hidden_states.shape[0]
         topk = topk_ids.shape[1]
         intermediate_size = layer.intermediate_size_per_partition
-        gate_scales = torch.empty(
-            token_count,
-            hidden_states.shape[1] // _Q8_BLOCK_ELEMENTS,
-            device=hidden_states.device,
-            dtype=torch.float16,
-        )
-        gate_codes = torch.empty_like(hidden_states, dtype=torch.int8)
+        gate_scales, gate_codes = _quantize_bf16_activation(hidden_states)
         gate_output = torch.empty(
             token_count,
             topk,
@@ -630,70 +640,10 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
             dtype=torch.float32,
         )
         up_output = torch.empty_like(gate_output)
-        torch.ops._C.gguf_quantize_bf16_to_q8_1(hidden_states, gate_scales, gate_codes)
-        if self.gate_type_spec.name == "IQ1_S":
-            if token_count < _GROUPED_EXPERT_MIN_TOKENS:
-                torch.ops._C.gguf_iq1_s_q8_1_indexed_gate_up(
-                    gate_scales,
-                    gate_codes,
-                    layer.gate_raw,
-                    layer.up_raw,
-                    topk_ids,
-                    gate_output,
-                    up_output,
-                )
-                return _GateUpResult(gate_output, up_output, None)
-            schedule = moe_align_block_size(
-                topk_ids=topk_ids,
-                block_size=8,
-                num_experts=layer.global_num_experts,
-            )
-            torch.ops._C.gguf_iq1_s_q8_1_grouped_gate_up(
-                gate_scales,
-                gate_codes,
-                layer.gate_raw,
-                layer.up_raw,
-                *schedule,
-                gate_output,
-                up_output,
-                topk,
-            )
-            return _GateUpResult(gate_output, up_output, schedule)
-        if self.gate_type_spec.name == "IQ1_M":
-            if token_count < _GROUPED_EXPERT_MIN_TOKENS:
-                torch.ops._C.gguf_iq1_m_q8_1_indexed_gate_up(
-                    gate_scales,
-                    gate_codes,
-                    layer.gate_raw,
-                    layer.up_raw,
-                    topk_ids,
-                    gate_output,
-                    up_output,
-                )
-                return _GateUpResult(gate_output, up_output, None)
-            schedule = moe_align_block_size(
-                topk_ids=topk_ids,
-                block_size=8,
-                num_experts=layer.global_num_experts,
-            )
-            torch.ops._C.gguf_iq1_m_q8_1_grouped_gate_up(
-                gate_scales,
-                gate_codes,
-                layer.gate_raw,
-                layer.up_raw,
-                *schedule,
-                gate_output,
-                up_output,
-                topk,
-            )
-            return _GateUpResult(gate_output, up_output, schedule)
-        if self.gate_type_spec.name != "IQ2_XXS":
-            raise RuntimeError(
-                f"GGUF DSv4 {self.gate_type_spec.name} gate/up execution is not "
-                "registered"
-            )
         if token_count < _GROUPED_EXPERT_MIN_TOKENS:
-            torch.ops._C.gguf_iq2_xxs_q8_1_indexed_gate_up(
+            _registered_op(
+                _EXPERT_GATE_UP_INDEXED_OPS, self.gate_type_spec.name, "gate/up"
+            )(
                 gate_scales,
                 gate_codes,
                 layer.gate_raw,
@@ -703,13 +653,14 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
                 up_output,
             )
             return _GateUpResult(gate_output, up_output, None)
-
         schedule = moe_align_block_size(
             topk_ids=topk_ids,
             block_size=8,
             num_experts=layer.global_num_experts,
         )
-        torch.ops._C.gguf_iq2_xxs_q8_1_grouped_gate_up(
+        _registered_op(
+            _EXPERT_GATE_UP_GROUPED_OPS, self.gate_type_spec.name, "gate/up"
+        )(
             gate_scales,
             gate_codes,
             layer.gate_raw,
@@ -743,6 +694,13 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
             device=hidden_states.device,
             dtype=torch.int8,
         )
+        down_output = torch.empty(
+            token_count,
+            topk,
+            hidden_states.shape[1],
+            device=hidden_states.device,
+            dtype=torch.float32,
+        )
         if layer.swiglu_limit is None:
             raise ValueError("GGUF DSv4 requires a SwiGLU clamp limit")
         torch.ops._C.gguf_swiglu_weighted_q8_1(
@@ -753,55 +711,8 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
             down_codes,
             float(layer.swiglu_limit),
         )
-        down_output = torch.empty(
-            token_count,
-            topk,
-            hidden_states.shape[1],
-            device=hidden_states.device,
-            dtype=torch.float32,
-        )
-        if self.down_type_spec.name == "IQ3_XXS":
-            if gate_up.schedule is None:
-                torch.ops._C.gguf_iq3_xxs_q8_1_indexed_down(
-                    down_scales,
-                    down_codes,
-                    layer.down_raw,
-                    topk_ids,
-                    down_output,
-                )
-            else:
-                torch.ops._C.gguf_iq3_xxs_q8_1_grouped_down(
-                    down_scales,
-                    down_codes,
-                    layer.down_raw,
-                    *gate_up.schedule,
-                    down_output,
-                    topk,
-                )
-        elif self.down_type_spec.name == "MXFP4":
-            if gate_up.schedule is None:
-                torch.ops._C.gguf_mxfp4_q8_1_indexed_down(
-                    down_scales,
-                    down_codes,
-                    layer.down_raw,
-                    topk_ids,
-                    down_output,
-                )
-            else:
-                torch.ops._C.gguf_mxfp4_q8_1_grouped_down(
-                    down_scales,
-                    down_codes,
-                    layer.down_raw,
-                    *gate_up.schedule,
-                    down_output,
-                    topk,
-                )
-        elif self.down_type_spec.name != "Q2_K":
-            raise RuntimeError(
-                f"GGUF DSv4 {self.down_type_spec.name} down execution is not registered"
-            )
-        elif gate_up.schedule is None:
-            torch.ops._C.gguf_q2_k_q8_1_indexed_down(
+        if gate_up.schedule is None:
+            _registered_op(_EXPERT_DOWN_INDEXED_OPS, self.down_type_spec.name, "down")(
                 down_scales,
                 down_codes,
                 layer.down_raw,
@@ -809,13 +720,28 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
                 down_output,
             )
         else:
-            torch.ops._C.gguf_q2_k_q8_1_grouped_down(
-                down_scales,
-                down_codes,
-                layer.down_raw,
-                *gate_up.schedule,
-                down_output,
+            op = _registered_op(
+                _EXPERT_DOWN_GROUPED_OPS, self.down_type_spec.name, "down"
             )
+            if self.down_type_spec.name == "Q2_K":
+                # gguf_q2_k_q8_1_grouped_down predates the trailing topk
+                # argument its sibling grouped downs take.
+                op(
+                    down_scales,
+                    down_codes,
+                    layer.down_raw,
+                    *gate_up.schedule,
+                    down_output,
+                )
+            else:
+                op(
+                    down_scales,
+                    down_codes,
+                    layer.down_raw,
+                    *gate_up.schedule,
+                    down_output,
+                    topk,
+                )
         return down_output.sum(dim=1).to(hidden_states.dtype)
 
     def apply(
