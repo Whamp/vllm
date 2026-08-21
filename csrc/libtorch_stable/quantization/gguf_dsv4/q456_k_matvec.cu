@@ -69,6 +69,19 @@ __device__ __forceinline__ void decode_scale_min(const uint8_t* scales,
   }
 }
 
+__device__ __forceinline__ uint32_t load_u32(const uint8_t* address) {
+  uint32_t value;
+  memcpy(&value, address, sizeof(value));
+  return value;
+}
+
+// 16-byte vector load. Callers must guarantee 16-byte alignment: Q4_K/Q5_K
+// blocks are 144/176 bytes and rows are block-strided, so every quant segment
+// sits at a multiple of 16 from the tensor base.
+__device__ __forceinline__ uint4 load_u16x(const uint8_t* address) {
+  return *reinterpret_cast<const uint4*>(address);
+}
+
 template <KQuantFormat kFormat>
 __device__ __forceinline__ float q45_group_dot(const uint8_t* block,
                                                int group_index,
@@ -76,32 +89,34 @@ __device__ __forceinline__ float q45_group_dot(const uint8_t* block,
   const __half2 scales = *reinterpret_cast<const __half2*>(block);
   const float2 decoded_scales = __half22float2(scales);
   const uint8_t* packed_scales = block + 4;
-  const uint8_t* high_bits =
-      kFormat == KQuantFormat::kQ5 ? block + 16 : nullptr;
   const uint8_t* quants =
       kFormat == KQuantFormat::kQ5 ? block + 48 : block + 16;
   const int segment = group_index / 2;
   const bool high_nibble = (group_index & 1) != 0;
+  // Each group consumes a full 32-byte quant window (one byte per element);
+  // adjacent groups share the window and select low/high nibbles.
   const uint8_t* segment_quants = quants + segment * 32;
+  const uint4 quant_words[2] = {load_u16x(segment_quants),
+                                load_u16x(segment_quants + 8)};
+  const uint32_t nibble_mask = high_nibble ? 0xf0f0f0f0U : 0x0f0f0f0fU;
+  const uint32_t nibble_shift = high_nibble ? 4 : 0;
+  const uint32_t words[8] = {
+      quant_words[0].x, quant_words[0].y, quant_words[0].z, quant_words[0].w,
+      quant_words[1].x, quant_words[1].y, quant_words[1].z, quant_words[1].w};
   int dot = 0;
   int code_sum = 0;
 #pragma unroll
   for (int pack_index = 0; pack_index < 8; ++pack_index) {
-    int8_t values[4];
-#pragma unroll
-    for (int byte_index = 0; byte_index < 4; ++byte_index) {
-      const int element = 4 * pack_index + byte_index;
-      const uint8_t packed = segment_quants[element];
-      uint8_t value = high_nibble ? packed >> 4 : packed & 15;
-      if constexpr (kFormat == KQuantFormat::kQ5) {
-        if ((high_bits[element] & (1U << group_index)) != 0) {
-          value |= 16;
-        }
-      }
-      values[byte_index] = static_cast<int8_t>(value);
+    uint32_t packed = (words[pack_index] >> nibble_shift) & 0x0f0f0f0fU;
+    if constexpr (kFormat == KQuantFormat::kQ5) {
+      // High bits are bit-plane-per-position: byte element at block+16,
+      // bit group_index. One aligned 32-bit load covers this pack's four
+      // elements; shift the plane bit into each byte's value bit 4.
+      const uint32_t plane =
+          load_u32(block + 16 + 4 * pack_index) >> group_index;
+      packed |= (plane & 0x01010101U) << 4;
     }
-    dot = __dp4a(static_cast<int>(pack_four_bytes(values)),
-                 activation_packs[pack_index], dot);
+    dot = __dp4a(static_cast<int>(packed), activation_packs[pack_index], dot);
     code_sum = __dp4a(0x01010101, activation_packs[pack_index], code_sum);
   }
   int scale;

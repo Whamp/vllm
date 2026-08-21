@@ -72,21 +72,16 @@ __device__ __forceinline__ int sum_q8_codes(const int* code_packs) {
   return sum;
 }
 
-__device__ __forceinline__ int pack_iq1_grid_parity(uint32_t grid, int parity) {
-  uint32_t packed = 0;
-#pragma unroll
-  for (int index = 0; index < 4; ++index) {
-    const int value_index = 2 * index + parity;
-    packed |= ((grid >> (4 * value_index)) & 15U) << (8 * index);
-  }
-  return static_cast<int>(packed);
-}
-
-__device__ __forceinline__ int iq1_grid_dot(uint32_t grid,
+// Grid words are consumed through the pre-split parity tables
+// (kIq1SGridEven/kIq1SGridOdd) so the per-group nibble extraction is done
+// once at table-generation time instead of per dot product.
+__device__ __forceinline__ int iq1_grid_dot(uint32_t table_index,
                                             const int* code_packs,
                                             int first_pack) {
-  int sum = __dp4a(pack_iq1_grid_parity(grid, 0), code_packs[first_pack], 0);
-  return __dp4a(pack_iq1_grid_parity(grid, 1), code_packs[first_pack + 1], sum);
+  int sum = __dp4a(static_cast<int>(kIq1SGridEven[table_index]),
+                   code_packs[first_pack], 0);
+  return __dp4a(static_cast<int>(kIq1SGridOdd[table_index]),
+                code_packs[first_pack + 1], sum);
 }
 
 __device__ __forceinline__ float iq1_s_group_dot(const uint8_t* block,
@@ -101,8 +96,7 @@ __device__ __forceinline__ float iq1_s_group_dot(const uint8_t* block,
   for (int grid_index = 0; grid_index < 4; ++grid_index) {
     const int table_index =
         grid_indices[grid_index] | (((high >> (3 * grid_index)) & 7) << 8);
-    integer_sum +=
-        iq1_grid_dot(kIq1SGrid[table_index], code_packs, 2 * grid_index);
+    integer_sum += iq1_grid_dot(table_index, code_packs, 2 * grid_index);
   }
   const int scale = 2 * ((high >> 12) & 7) + 1;
   const float delta = (high & 0x8000) != 0 ? -1.125f : -0.875f;
@@ -126,7 +120,7 @@ __device__ __forceinline__ float iq1_m_group_dot(const uint8_t* block,
     const int table_index = grid_indices[grid_index] | ((high & 7) << 8);
     const int half_index = grid_index / 2;
     integer_sums[half_index] +=
-        iq1_grid_dot(kIq1SGrid[table_index], code_packs, 2 * grid_index);
+        iq1_grid_dot(table_index, code_packs, 2 * grid_index);
     deltas[grid_index] = (high & 8) != 0 ? -1.125f : -0.875f;
   }
   const uint16_t scale_words[4] = {load_u16(scales), load_u16(scales + 2),
