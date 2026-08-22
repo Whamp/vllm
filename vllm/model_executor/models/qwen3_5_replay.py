@@ -159,6 +159,12 @@ class Qwen3_5ReplayModel(Qwen3_5Model):
 
         replay_spans_raw = getattr(config, "replay_spans", None)
         if replay_spans_raw is None:
+            # hf-overrides may land custom fields on the top-level config
+            # rather than the nested text config; accept either location.
+            replay_spans_raw = getattr(
+                vllm_config.model_config.hf_config, "replay_spans", None
+            )
+        if replay_spans_raw is None:
             raise ValueError(
                 "Qwen3_5ReplayModel requires 'replay_spans' in the model "
                 "config; pass them via --hf-overrides. Pass [] for an "
