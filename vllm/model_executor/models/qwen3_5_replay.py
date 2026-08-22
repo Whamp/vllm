@@ -158,10 +158,11 @@ class Qwen3_5ReplayModel(Qwen3_5Model):
         config = vllm_config.model_config.hf_text_config
 
         replay_spans_raw = getattr(config, "replay_spans", None)
-        if not replay_spans_raw:
+        if replay_spans_raw is None:
             raise ValueError(
                 "Qwen3_5ReplayModel requires 'replay_spans' in the model "
-                "config; pass them via --hf-overrides."
+                "config; pass them via --hf-overrides. Pass [] for an "
+                "identity (no-replay) execution schedule."
             )
         spans = normalize_replay_spans(replay_spans_raw,
                                        config.num_hidden_layers)
