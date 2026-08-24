@@ -104,6 +104,21 @@ class TestBandwidthProfileArtifact:
             quant_format=None,
         )
 
+    def test_numa_node_participates_when_supplied(self):
+        profile = HybridBandwidthProfile(
+            gpu_name="g",
+            cpu_model="c",
+            interconnect="i",
+            quant_format="q",
+            host_moe_gbps=50.0,
+            pcie_h2d_gbps=25.0,
+            numa_node=1,
+        )
+        assert profile_matches_hardware(profile, cpu_model="c", numa_node=1)
+        assert not profile_matches_hardware(profile, cpu_model="c", numa_node=0)
+        # Caller that does not track locality still matches.
+        assert profile_matches_hardware(profile, cpu_model="c")
+
 
 class TestBalancedMissSplit:
     def test_equal_bandwidth_splits_evenly(self):

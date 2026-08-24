@@ -41,6 +41,7 @@ class HybridBandwidthProfile(BaseModel):
     quant_format: str
     host_moe_gbps: float = Field(gt=0)
     pcie_h2d_gbps: float = Field(gt=0)
+    numa_node: int | None = None
 
     @field_validator("gpu_name", "cpu_model", "interconnect", "quant_format")
     @classmethod
@@ -82,6 +83,7 @@ def profile_matches_hardware(
     cpu_model: str | None = None,
     interconnect: str | None = None,
     quant_format: str | None = None,
+    numa_node: int | None = None,
 ) -> bool:
     """Whether the profile was measured on this machine.
 
@@ -89,13 +91,14 @@ def profile_matches_hardware(
     ``None`` fields are skipped. Calling with no supplied fields returns
     ``False`` so an empty identity never silently trusts a profile.
     """
-    checks = (
+    checks: tuple[tuple[object, object], ...] = (
         (gpu_name, profile.gpu_name),
         (cpu_model, profile.cpu_model),
         (interconnect, profile.interconnect),
         (quant_format, profile.quant_format),
+        (numa_node, profile.numa_node),
     )
-    supplied = [actual for actual, expected in checks if actual is not None]
+    supplied = [pair for pair in checks if pair[0] is not None]
     if not supplied:
         return False
-    return all(actual == expected for actual, expected in checks if actual is not None)
+    return all(actual == expected for actual, expected in supplied)

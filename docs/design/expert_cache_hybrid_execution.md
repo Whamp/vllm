@@ -27,7 +27,9 @@ Both are meaningful only in combination with the hardware they were
 measured on, so the artifact carries the full identity (`gpu_name`,
 `cpu_model`, `interconnect`, `quant_format`) and
 `profile_matches_hardware()` requires **every supplied identity field**
-to match before a plan may trust the numbers. A profile benched on an
+to match before a plan may trust the numbers (optionally including
+``numa_node`` for multi-socket hosts, where locality shifts both
+bandwidths). A profile benched on an
 EPYC workstation must not silently set fetch/host policy for a desktop
 Ryzen: CPU-execution throughput varies by more than the entire PCIe
 bandwidth across host CPUs, so keying on GPU name alone (as FreeToken
