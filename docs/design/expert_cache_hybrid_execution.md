@@ -113,23 +113,76 @@ Findings so far, all on synthetic traffic:
 Neither finding should be trusted beyond the synthetic generator. The
 harness exists so real captured sessions decide the policy question.
 
+## GPU-window execution plan
+
+The steps below are written so a future hardware session can execute
+them directly, in order, with each step gated on the previous one's
+evidence. Nothing here should be coded before its step's hardware
+prerequisite exists.
+
+### Step 1 — Miss-classification kernel (graph-compatible)
+
+Contract (fixed here so the planner seam and kernel agree):
+
+- Inputs: the active expert-id tensor after top-k rewrite
+  `(num_slots_per_rank,)`-style layout used by fused MoE, a device-side
+  cached-key set (sorted id array + count, updated in-graph), the
+  balanced fetch count `f` from `balanced_miss_split` (host-computed per
+  profile, passed as a captured scalar), and LRU metadata.
+- Outputs: a per-miss fetch/host bitmap, rewritten expert ids (GPU slot
+  or host-execution sentinel), an in-graph updated miss count for the
+  scheduler, and eviction victims.
+
+Two capture strategies to A/B, since they trade graph compatibility
+against split accuracy:
+
+1. **In-graph Triton kernel** (FreeToken's approach): classification,
+   eviction, and rewrite all run inside capture; no graph cuts; the
+   split is exact every step. Cost: sorted-set update and LRU bookkeeping
+   must be atomic-friendly single-pass kernels — the main engineering
+   risk.
+2. **Graph cut at the decision point**: capture two subgraphs and choose
+   between them on a host-synchronized miss count. Simpler kernels, but
+   pays a sync per decode step and bounds the win at low batch exactly
+   where hybrid execution matters.
+
+Decision rule: implement 1 only if 2's measured per-step sync overhead
+exceeds ~2% of step time at the target batch size; otherwise ship 2 and
+revisit.
+
+### Step 2 — Host execution path
+
+Add a CPU branch to fused MoE dispatch that executes nonresident misses'
+expert math on pinned host weights, producing partial outputs summed in
+the same order as the all-GPU reference (expert-split rounding: sum per
+expert then accumulate token-side, matching FreeToken's finding that
+order determines bit-exactness). Gate: max-abs-diff parity vs the GPU
+reference within quantization tolerance on randomized routing, plus
+identical argmax/top-k behavior on downstream samples.
+
+### Step 3 — Overlap and latency evidence
+
+Nsight trace of the balanced split vs all-fetch and all-host baselines:
+confirm H2D gather and host expert math actually overlap (the model
+`balanced_miss_split` minimizes assumes concurrent paths), record
+effective bandwidths, and regenerate the profile artifact from the same
+machine so planning uses measured numbers. Report p50/p99 step time and
+tok/s at batch sizes 1–8 against PR #51710 prefetch alone.
+
+### Step 4 — Policy decision from real traces
+
+Capture routed-expert traces (`RoutedExpertsLists` concatenation) from
+representative agent sessions, replay through
+`benchmarks/expert_cache_policy_sim.py`, and pick the production policy
+on measured hit-rate deltas — not on the synthetic table above.
+
 ## Runtime integration status
 
-The planners above are complete and CPU-validated. What remains needs a
-GPU and is intentionally not implemented blind:
-
-1. Device-resident miss classification. During CUDA-graph capture the
-   miss count exists only on-device, so the split decision must run in
-   a graph-compatible kernel (FreeToken does this in Triton) or the
-   graph must be cut at the decision point. Kernel choice and capture
-   strategy require profiling on target hardware.
-2. Host-side expert execution path. vLLM has no CPU MoE execution branch
-   for offloaded experts today; UVA and prefetch offloading both move
-   weights to the GPU. Adding one touches fused-MoE method dispatch and
-   must be validated for numerical parity.
-3. End-to-end latency evidence. The balanced split minimizes modeled
-   miss time; whether the model holds depends on overlap between the
-   two paths, measurable only with Nsight on hardware.
+The planners above are complete and CPU-validated. What remains —
+device-resident miss classification, the host expert-execution path,
+and overlap/latency evidence — needs a GPU and is intentionally not
+implemented blind; each is specified step by step in the GPU-window
+execution plan above, ordered by hardware prerequisite.
 
 ## Recurrent-state anchors for replay serving
 
