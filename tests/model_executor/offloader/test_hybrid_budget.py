@@ -21,6 +21,7 @@ from vllm.model_executor.offloader.bandwidth_profile import (
 from vllm.model_executor.offloader.hybrid_budget import (
     balanced_miss_split,
     plan_expert_kv_budget,
+    split_miss_keys,
 )
 
 
@@ -143,6 +144,27 @@ class TestBalancedMissSplit:
     def test_negative_misses_rejected(self):
         with pytest.raises(ValueError, match="non-negative"):
             balanced_miss_split(-1, 512, _rtx3090_epyc_profile())
+
+
+class TestSplitMissKeys:
+    def test_partition_is_disjoint_and_complete(self):
+        profile = _rtx3090_epyc_profile()
+        keys = [(3, 7), (0, 1), (9, 2), (3, 0), (5, 5)]
+        fetched, hosted = split_miss_keys(keys, profile)
+        assert sorted(fetched + hosted) == sorted(keys)
+        assert not set(fetched) & set(hosted)
+        expected_fetches = balanced_miss_split(len(keys), 512, profile)[0]
+        assert len(fetched) == expected_fetches
+
+    def test_sorted_order_is_deterministic(self):
+        profile = _rtx3090_epyc_profile()
+        a = split_miss_keys([(2, 1), (0, 3), (1, 9)], profile)
+        b = split_miss_keys([(1, 9), (2, 1), (0, 3)], profile)
+        assert a == b
+
+    def test_empty_miss_set(self):
+        fetched, hosted = split_miss_keys([], _rtx3090_epyc_profile())
+        assert fetched == [] and hosted == []
 
 
 class TestPlanExpertKvBudget:

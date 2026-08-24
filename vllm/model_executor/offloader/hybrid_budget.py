@@ -37,12 +37,34 @@ def balanced_miss_split(
         raise ValueError("num_missed_experts must be non-negative")
     if num_missed_experts == 0:
         return 0, 0
+    fetched = _balanced_fetch_count(num_missed_experts, profile)
+    return fetched, num_missed_experts - fetched
+
+
+def _balanced_fetch_count(
+    num_missed_experts: int, profile: HybridBandwidthProfile
+) -> int:
+    """Fetch count equalizing H2D transfer and host execution time."""
     fetch_fraction = profile.pcie_h2d_gbps / (
         profile.pcie_h2d_gbps + profile.host_moe_gbps
     )
-    fetched = round(num_missed_experts * fetch_fraction)
-    fetched = max(0, min(num_missed_experts, fetched))
-    return fetched, num_missed_experts - fetched
+    return max(0, min(num_missed_experts, round(num_missed_experts * fetch_fraction)))
+
+
+def split_miss_keys(
+    missed_expert_keys: list[tuple[int, int]], profile: HybridBandwidthProfile
+) -> tuple[list[tuple[int, int]], list[tuple[int, int]]]:
+    """Partition ``(layer, expert)`` miss keys into fetch and host lists.
+
+    The fetch-list length comes from :func:`balanced_miss_split`; keys
+    are taken in sorted order so callers get a deterministic plan for a
+    given miss set. This is the seam contract the device-side wrapper
+    will implement: classify misses, then route each key to either the
+    H2D gather or the host execution path.
+    """
+    fetched_count = _balanced_fetch_count(len(missed_expert_keys), profile)
+    ordered = sorted(missed_expert_keys)
+    return ordered[:fetched_count], ordered[fetched_count:]
 
 
 def plan_expert_kv_budget(

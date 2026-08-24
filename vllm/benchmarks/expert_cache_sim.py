@@ -108,7 +108,18 @@ def load_routing_trace(path: Path) -> RoutingTrace:
                 f"trace file {path} is missing 'routing_data'; regenerate "
                 "the capture with write_routing_trace"
             )
-        return RoutingTrace(routing_data=data["routing_data"])
+        routing_data = data["routing_data"]
+        if (rank := routing_data.ndim) != 3:
+            raise ValueError(
+                f"trace file {path}: expected rank 3 "
+                f"(steps, layers, top_k) routing_data, got rank {rank}"
+            )
+        if not np.issubdtype(routing_data.dtype, np.integer):
+            raise ValueError(
+                f"trace file {path}: expected integer expert ids, got "
+                f"dtype {routing_data.dtype}"
+            )
+        return RoutingTrace(routing_data=routing_data)
 
 
 def simulate_expert_cache(

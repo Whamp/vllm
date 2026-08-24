@@ -7,6 +7,8 @@ cache policies (LRU, FIFO, LFU, LFRU, Belady) to compare hit rates before
 any GPU work is attempted. All logic is pure Python/numpy.
 """
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -126,6 +128,26 @@ class TestSimulateExpertCache:
         with pytest.raises(ValueError, match="missing 'routing_data'"):
             load_routing_trace(path)
 
+    @pytest.mark.parametrize(
+        "routing",
+        [np.zeros((4, 8), dtype=np.int32), np.zeros((2, 3, 4, 5), np.int32)],
+    )
+    def test_load_rejects_wrong_rank(self, tmp_path, routing):
+        path = tmp_path / "badrank.npz"
+        np.savez(path, routing_data=routing)
+        from vllm.benchmarks.expert_cache_sim import load_routing_trace
+
+        with pytest.raises(ValueError, match=r"expected rank 3.*got rank"):
+            load_routing_trace(path)
+
+    def test_load_rejects_float_dtype(self, tmp_path):
+        path = tmp_path / "float.npz"
+        np.savez(path, routing_data=np.zeros((2, 3, 4), dtype=np.float32))
+        from vllm.benchmarks.expert_cache_sim import load_routing_trace
+
+        with pytest.raises(ValueError, match="integer expert ids"):
+            load_routing_trace(path)
+
 
 class TestPolicySimCli:
     def test_synthetic_trace_is_seeded_and_in_range(self):
@@ -150,3 +172,34 @@ class TestPolicySimCli:
         assert lines[0].startswith("| policy | slots | touches | hits |")
         assert "belady" in lines[2]
         assert "fifo" in lines[-1]
+
+    def test_cli_runs_end_to_end(self, tmp_path):
+        import os
+        import subprocess
+        import sys
+
+        repo_root = Path(__file__).resolve().parents[2]
+        env = {
+            **os.environ,
+            "PYTHONPATH": str(repo_root)
+            + os.pathsep
+            + os.environ.get("PYTHONPATH", ""),
+        }
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(repo_root / "benchmarks" / "expert_cache_policy_sim.py"),
+                "--slots",
+                "64",
+                "--num-steps",
+                "40",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "| policy | slots | touches | hits | misses | hit rate |" in (
+            result.stdout
+        )
