@@ -82,6 +82,9 @@ def plan_expert_kv_budget(
     spend; experts then take the remainder up to ``num_experts``, and any
     leftover after the expert cap flows back into additional KV pages.
     Returns ``(expert_slots, kv_pages)`` whose footprint fits the budget.
+    Expert slots never decrease as the budget grows; the bonus pages
+    above the floor come from indivisible slack and may sawtooth when a
+    larger budget is absorbed by another expert slot.
 
     ``min_expert_slots`` is enforced only when affordable without touching
     the KV floor: a slot demand that cannot fit relaxes to what remains

@@ -203,3 +203,54 @@ class TestPolicySimCli:
         assert "| policy | slots | touches | hits | misses | hit rate |" in (
             result.stdout
         )
+
+
+class TestSimulatorInvariants:
+    """Randomized invariants that hold for any correct cache simulator."""
+
+    def test_belady_dominates_every_policy(self):
+        from vllm.benchmarks.expert_cache_sim import (
+            POLICY_NAMES,
+            simulate_expert_cache,
+        )
+
+        rng = np.random.default_rng(7)
+        for trial in range(10):
+            routing = rng.integers(0, 24, size=(80, 3, 2), dtype=np.int32)
+            hits = {
+                name: simulate_expert_cache(routing, 20, name).hits
+                for name in POLICY_NAMES
+            }
+            for name in POLICY_NAMES:
+                assert hits["belady"] >= hits[name], (trial, name, hits)
+
+    def test_full_capacity_misses_each_key_exactly_once(self):
+        from vllm.benchmarks.expert_cache_sim import simulate_expert_cache
+
+        # Collision-free construction: within a step, layer l uses ids
+        # base[(s+k) % E] + l*E, so no (layer, expert) pair repeats inside
+        # a step and the first occurrence of every key misses exactly one
+        # raw lookup.
+        steps, layers, top_k, experts_per_layer = 60, 4, 3, 12
+        s = np.arange(steps)[:, None, None]
+        k = np.arange(top_k)[None, None, :]
+        base = np.random.default_rng(3).permutation(experts_per_layer)
+        idx = (s + k) % experts_per_layer
+        routing = base[idx] + np.arange(layers)[None, :, None] * experts_per_layer
+        routing = routing.astype(np.int32)
+        distinct = {
+            (layer, int(e))
+            for step in routing
+            for layer, row in enumerate(step)
+            for e in row
+        }
+        result = simulate_expert_cache(routing, len(distinct), "lru")
+        assert result.hits == result.touches - len(distinct)
+
+    def test_streaming_steps_never_insert(self):
+        from vllm.benchmarks.expert_cache_sim import simulate_expert_cache
+
+        # Every step touches more distinct keys than the cache holds.
+        routing = np.arange(30 * 2 * 4, dtype=np.int32).reshape(30, 2, 4) % 100
+        result = simulate_expert_cache(routing, 6, "lru")
+        assert result.hits == 0

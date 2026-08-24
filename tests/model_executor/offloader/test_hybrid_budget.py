@@ -181,6 +181,25 @@ class TestSplitMissKeys:
         fetched, hosted = split_miss_keys([], _rtx3090_epyc_profile())
         assert fetched == [] and hosted == []
 
+    def test_plan_is_monotonic_in_budget(self):
+        kv_page_bytes, per_expert_bytes = 16, 100
+        prev_slots, prev_pages = 0, 0
+        for budget in range(1000, 20000, 137):
+            slots, pages = plan_expert_kv_budget(
+                budget_bytes=budget,
+                per_expert_bytes=per_expert_bytes,
+                kv_page_bytes=kv_page_bytes,
+                num_experts=64,
+                kv_floor_pages=20,
+            )
+            assert slots >= prev_slots, budget
+            assert pages >= 20, budget
+            assert slots * per_expert_bytes + pages * kv_page_bytes <= budget
+            # While the slot count holds steady the slack cannot shrink.
+            if slots == prev_slots:
+                assert pages >= prev_pages, budget
+            prev_slots, prev_pages = slots, pages
+
 
 class TestPlanExpertKvBudget:
     def test_kv_floor_first_then_experts(self):
