@@ -35,9 +35,13 @@ from vllm.models.deepseek_v4.amd.rocm import (
 from vllm.models.deepseek_v4.cache_layout import get_deepseek_v4_cache_layout
 from vllm.models.deepseek_v4.common.ops.cache_utils import (
     compute_global_topk_indices_and_lens,
+    sm86_dcp_allgather_k_entries,
 )
 from vllm.models.deepseek_v4.common.ops.dcp import dcp_merge_flashmla_output
 from vllm.platforms.interface import DeviceCapability
+from vllm.v1.attention.backends.mla.sm86_dcp_layout import (
+    sm86_dcp_local_to_global,
+)
 from vllm.v1.worker.workspace import current_workspace_manager
 
 logger = init_logger(__name__)
@@ -158,6 +162,11 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
         self._flash_mla_partial_decode = (
             load_ampere_flash_mla_decode(self.kv_cache_dtype, partial=True)
             if envs.VLLM_DSV4_FLASH_MLA_DECODE and self._use_sm86_dcp
+            else None
+        )
+        self._flash_mla_reference_decode = (
+            load_ampere_flash_mla_decode(self.kv_cache_dtype)
+            if self._use_sm86_dcp and envs.VLLM_SM86_DCP_VALIDATE_TOPK
             else None
         )
         if self._use_sm86_dcp:
@@ -442,6 +451,107 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                 output=output[query_start:query_end],
             )
 
+    def _validate_dcp_decode_against_global_cache(
+        self,
+        q: torch.Tensor,
+        kv_cache: torch.Tensor,
+        swa_metadata: DeepseekV4ROCMAiterSparseSWAMetadata,
+        attn_metadata: DeepseekV4ROCMAiterMLASparseMetadata,
+        local_entry_indices: torch.Tensor,
+        output: torch.Tensor,
+    ) -> None:
+        """Compare DCP partial decode with a full-cache combined reference."""
+        reference_decode = self._flash_mla_reference_decode
+        assert reference_decode is not None
+        dcp_group = get_dcp_group()
+        num_tokens = local_entry_indices.shape[0]
+        num_decodes = swa_metadata.num_decodes
+        if swa_metadata.seq_lens is None:
+            raise RuntimeError("DCP decode validation requires global seq_lens")
+        global_entry_lens = (
+            swa_metadata.seq_lens[:num_decodes] // self.compress_ratio
+        )
+        max_entries = int(global_entry_lens.max().item())
+        gathered_rows, virtual_block_table = sm86_dcp_allgather_k_entries(
+            kv_cache,
+            global_entry_lens,
+            attn_metadata.block_table[:num_decodes],
+            attn_metadata.block_size // self.compress_ratio,
+            dcp_group,
+            self._dcp_entry_interleave,
+            max_entries,
+        )
+
+        gathered_local = dcp_group.all_gather(
+            local_entry_indices.contiguous(), dim=1
+        )
+        topk_width = local_entry_indices.shape[1]
+        rank_by_column = (
+            torch.arange(
+                gathered_local.shape[1],
+                dtype=torch.int64,
+                device=gathered_local.device,
+            )
+            // topk_width
+        )
+        global_entries = sm86_dcp_local_to_global(
+            gathered_local,
+            rank_by_column,
+            dcp_group.world_size,
+            self._dcp_entry_interleave,
+        )
+        sortable = torch.where(
+            global_entries >= 0,
+            global_entries,
+            torch.full_like(global_entries, torch.iinfo(torch.int64).max),
+        )
+        order = torch.argsort(sortable, dim=-1, stable=True)[:, :topk_width]
+        global_entries = torch.gather(global_entries, 1, order)
+        valid = global_entries >= 0
+        req_ids = swa_metadata.token_to_req_indices
+        if req_ids is None:
+            raise RuntimeError("DCP decode validation requires request indices")
+        safe_entries = torch.clamp(global_entries, min=0, max=max_entries - 1)
+        physical_rows = virtual_block_table[
+            req_ids[:num_tokens].to(torch.int64).unsqueeze(1),
+            safe_entries.to(torch.int64),
+        ]
+        physical_rows = torch.where(
+            valid,
+            physical_rows,
+            torch.full_like(physical_rows, -1),
+        )
+        global_lens = valid.sum(dim=1).to(torch.int32)
+
+        decode_swa_indices = swa_metadata.decode_swa_indices
+        decode_swa_lens = swa_metadata.decode_swa_lens
+        if decode_swa_indices is None or decode_swa_lens is None:
+            raise RuntimeError("DCP decode validation requires SWA metadata")
+        reference = reference_decode(
+            q=q,
+            swa_cache=self.swa_cache_layer.kv_cache,
+            swa_indices=decode_swa_indices[:num_tokens],
+            swa_lens=decode_swa_lens[:num_tokens],
+            scale=self.scale,
+            attn_sink=self.attn_sink,
+            extra_cache=gathered_rows.reshape(-1, 1, gathered_rows.shape[-1]),
+            extra_indices=physical_rows,
+            extra_lens=global_lens,
+        )
+        error = (output[:num_tokens] - reference).float()
+        max_abs = float(error.abs().max().item())
+        cosine = float(
+            torch.nn.functional.cosine_similarity(
+                output[:num_tokens].float().reshape(1, -1),
+                reference.float().reshape(1, -1),
+            ).item()
+        )
+        if max_abs > 0.05 or cosine < 0.999:
+            raise RuntimeError(
+                "SM86 DCP partial decode mismatch against global-cache "
+                f"reference: max_abs={max_abs:.6f}, cosine={cosine:.9f}"
+            )
+
     def _forward_decode(
         self,
         q: torch.Tensor,
@@ -473,6 +583,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
         num_decode_tokens = swa_metadata.num_decode_tokens
         topk_indices = None
         topk_lens = None
+        local_entry_indices = None
         if not swa_only:
             assert attn_metadata is not None
             if self.compress_ratio == 4:
@@ -480,6 +591,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                 assert self.topk_indices_buffer is not None
                 block_size = attn_metadata.block_size // self.compress_ratio
                 source_indices = self.topk_indices_buffer[:num_decode_tokens]
+                local_entry_indices = source_indices
                 global_indices, topk_lens = compute_global_topk_indices_and_lens(
                     source_indices,
                     swa_metadata.token_to_req_indices,
@@ -492,6 +604,8 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
             else:
                 topk_indices = attn_metadata.c128a_global_decode_topk_indices
                 topk_lens = attn_metadata.c128a_decode_topk_lens
+                if topk_indices is not None:
+                    local_entry_indices = topk_indices.reshape(num_decode_tokens, -1)
 
         extra_indices = None
         if topk_indices is not None:
@@ -547,6 +661,18 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                 dcp_group,
                 use_a2a=True,
             )
+            if self._flash_mla_reference_decode is not None and not swa_only:
+                assert kv_cache is not None
+                assert attn_metadata is not None
+                assert local_entry_indices is not None
+                self._validate_dcp_decode_against_global_cache(
+                    q=q,
+                    kv_cache=kv_cache,
+                    swa_metadata=swa_metadata,
+                    attn_metadata=attn_metadata,
+                    local_entry_indices=local_entry_indices,
+                    output=output,
+                )
             return
 
         assert flash_mla_decode is not None
