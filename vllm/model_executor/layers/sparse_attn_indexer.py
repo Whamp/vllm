@@ -398,11 +398,41 @@ def _sm86_dcp_topk_decode(
         dcp_world_size,
         cp_interleave,
     )
-    return torch.where(
+    local_out = torch.where(
         owned_sorted,
         local_out,
         torch.full_like(local_out, -1),
     )
+    if envs.VLLM_SM86_DCP_VALIDATE_TOPK:
+        dcp_group = get_dcp_group()
+        gathered_local = dcp_group.all_gather(local_out.contiguous(), dim=1)
+        gathered_width = gathered_local.shape[1]
+        rank_by_column = (
+            torch.arange(
+                gathered_width,
+                device=local_out.device,
+                dtype=torch.int64,
+            )
+            // topk_tokens
+        )
+        gathered_global = sm86_dcp_local_to_global(
+            gathered_local,
+            rank_by_column,
+            dcp_world_size,
+            cp_interleave,
+        )
+        expected_sets = torch.sort(global_indices, dim=-1).values
+        reconstructed_sets = torch.sort(gathered_global, dim=-1).values[
+            :, -topk_tokens:
+        ]
+        mismatch = torch.any(expected_sets != reconstructed_sets, dim=-1)
+        if bool(torch.any(mismatch).item()):
+            row = int(torch.nonzero(mismatch, as_tuple=False)[0].item())
+            raise RuntimeError(
+                "SM86 DCP owned top-k localization mismatch: "
+                f"row={row}, rank={dcp_rank}"
+            )
+    return local_out
 
 
 def _all_reduce_decode_topk(
