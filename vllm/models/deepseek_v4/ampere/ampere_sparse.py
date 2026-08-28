@@ -458,6 +458,8 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
         swa_metadata: DeepseekV4ROCMAiterSparseSWAMetadata,
         attn_metadata: DeepseekV4ROCMAiterMLASparseMetadata,
         local_entry_indices: torch.Tensor,
+        partial_out: torch.Tensor,
+        partial_lse: torch.Tensor,
         output: torch.Tensor,
     ) -> None:
         """Compare DCP partial decode with a full-cache combined reference."""
@@ -540,18 +542,36 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
             extra_indices=physical_rows,
             extra_lens=global_lens,
         )
-        error = (output[:num_tokens] - reference).float()
-        max_abs = float(error.abs().max().item())
-        cosine = float(
-            torch.nn.functional.cosine_similarity(
-                output[:num_tokens].float().reshape(1, -1),
-                reference.float().reshape(1, -1),
-            ).item()
+        ag_rs_output = torch.empty_like(output[:num_tokens])
+        dcp_merge_flashmla_output(
+            partial_out,
+            partial_lse,
+            self.attn_sink,
+            ag_rs_output,
+            dcp_group,
+            use_a2a=False,
         )
-        if max_abs > 0.05 or cosine < 0.999:
+
+        def metrics(actual: torch.Tensor) -> tuple[float, float]:
+            error = (actual - reference).float()
+            max_abs = float(error.abs().max().item())
+            cosine = float(
+                torch.nn.functional.cosine_similarity(
+                    actual.float().reshape(1, -1),
+                    reference.float().reshape(1, -1),
+                ).item()
+            )
+            return max_abs, cosine
+
+        a2a_max_abs, a2a_cosine = metrics(output[:num_tokens])
+        ag_max_abs, ag_cosine = metrics(ag_rs_output)
+        if a2a_max_abs > 0.05 or a2a_cosine < 0.999:
             raise RuntimeError(
                 "SM86 DCP partial decode mismatch against global-cache "
-                f"reference: max_abs={max_abs:.6f}, cosine={cosine:.9f}"
+                f"reference: a2a_max_abs={a2a_max_abs:.6f}, "
+                f"a2a_cosine={a2a_cosine:.9f}, "
+                f"ag_rs_max_abs={ag_max_abs:.6f}, "
+                f"ag_rs_cosine={ag_cosine:.9f}"
             )
 
     def _forward_decode(
@@ -673,6 +693,8 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                     swa_metadata=swa_metadata,
                     attn_metadata=attn_metadata,
                     local_entry_indices=local_entry_indices,
+                    partial_out=partial_out,
+                    partial_lse=partial_lse,
                     output=output,
                 )
             return
