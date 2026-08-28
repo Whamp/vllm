@@ -576,6 +576,18 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
             use_a2a=False,
         )
 
+        reference_nonfinite = int((~torch.isfinite(reference)).sum().item())
+        partial_nonfinite = int(
+            (~torch.isfinite(output[:num_tokens])).sum().item()
+        )
+        ag_rs_nonfinite = int((~torch.isfinite(ag_rs_output)).sum().item())
+        if reference_nonfinite or partial_nonfinite or ag_rs_nonfinite:
+            raise RuntimeError(
+                "SM86 DCP decode produced non-finite values: "
+                f"layer={self.prefix}, reference={reference_nonfinite}, "
+                f"a2a={partial_nonfinite}, ag_rs={ag_rs_nonfinite}"
+            )
+
         def metrics(actual: torch.Tensor) -> tuple[float, float]:
             error = (actual - reference).float()
             max_abs = float(error.abs().max().item())
