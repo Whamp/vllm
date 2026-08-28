@@ -649,6 +649,9 @@ class DeepseekV32IndexerMetadata:
 
 
 def get_max_prefill_buffer_size(vllm_config: VllmConfig):
+    override = envs.VLLM_DSV4_INDEXER_PREFILL_BUFFER_TOKENS
+    if override > 0:
+        return override
     max_model_len = vllm_config.model_config.max_model_len
     # NOTE(Chen): 40 is a magic number for controlling the prefill buffer size.
     # Each entry is 128 fp8 bytes and 4 scale bytes for a total of 132 bytes.

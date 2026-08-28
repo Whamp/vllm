@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+from types import SimpleNamespace
+
 import torch
 
 from vllm.models.deepseek_v4.common.ops.cache_utils import (
@@ -9,6 +11,7 @@ from vllm.models.deepseek_v4.common.ops.cache_utils import (
 from vllm.models.deepseek_v4.sparse_mla import (
     build_sm86_dcp_c128_decode_entries,
 )
+from vllm.v1.attention.backends.mla.indexer import get_max_prefill_buffer_size
 
 
 def _owned_count(num_entries: int, rank: int, world: int) -> int:
@@ -37,6 +40,18 @@ def test_c128_decode_metadata_uses_contiguous_rank_local_entries() -> None:
         count = int(length)
         assert row[:count].tolist() == list(range(count))
         assert row[count:].tolist() == [-1] * (width - count)
+
+
+def test_indexer_prefill_buffer_override_bounds_persistent_workspace(
+    monkeypatch,
+) -> None:
+    config = SimpleNamespace(
+        model_config=SimpleNamespace(max_model_len=99)
+    )
+    monkeypatch.delenv("VLLM_DSV4_INDEXER_PREFILL_BUFFER_TOKENS", raising=False)
+    assert get_max_prefill_buffer_size(config) == 99 * 40
+    monkeypatch.setenv("VLLM_DSV4_INDEXER_PREFILL_BUFFER_TOKENS", "1234")
+    assert get_max_prefill_buffer_size(config) == 1234
 
 
 def test_dcp_virtual_block_table_addresses_rank_major_staging() -> None:
