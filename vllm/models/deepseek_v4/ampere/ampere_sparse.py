@@ -675,8 +675,25 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
             else:
                 topk_indices = attn_metadata.c128a_global_decode_topk_indices
                 topk_lens = attn_metadata.c128a_decode_topk_lens
-                if topk_indices is not None:
-                    local_entry_indices = topk_indices.reshape(num_decode_tokens, -1)
+                if topk_indices is not None and self._use_sm86_dcp:
+                    assert swa_metadata.is_valid_token is not None
+                    assert swa_metadata.token_to_req_indices is not None
+                    local_entry_indices = topk_indices.reshape(
+                        num_decode_tokens, -1
+                    )
+                    global_indices, topk_lens = (
+                        compute_global_topk_indices_and_lens(
+                            local_entry_indices,
+                            swa_metadata.token_to_req_indices,
+                            attn_metadata.block_table[:num_decodes],
+                            attn_metadata.block_size // self.compress_ratio,
+                            swa_metadata.is_valid_token[:num_decode_tokens],
+                            output_buffers=self._global_topk_output_buffers(
+                                local_entry_indices
+                            ),
+                        )
+                    )
+                    topk_indices = global_indices.view(num_decode_tokens, 1, -1)
 
         extra_indices = None
         if topk_indices is not None:
