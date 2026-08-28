@@ -644,6 +644,8 @@ class DeepseekV32IndexerMetadata:
     prefill: DeepseekV32IndexerPrefillMetadata | None = None
     # Select the pure-Torch deterministic global top-k for compressed SM86 DCP.
     use_sm86_dcp_topk: bool = False
+    # Rank-invariant global compressed-entry bound for identity top-k.
+    max_global_compressed_entries: int = -1
 
 
 def get_max_prefill_buffer_size(vllm_config: VllmConfig):
@@ -1294,6 +1296,11 @@ class DeepseekV32IndexerMetadataBuilder(AttentionMetadataBuilder):
             prefill=prefill_metadata,
             decode=decode_metadata,
             use_sm86_dcp_topk=self.use_sm86_dcp,
+            max_global_compressed_entries=(
+                common_attn_metadata.max_seq_len // self.compress_ratio
+                if self.use_sm86_dcp
+                else -1
+            ),
         )
 
         return attn_metadata

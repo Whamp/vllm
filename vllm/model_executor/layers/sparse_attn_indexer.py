@@ -142,6 +142,24 @@ def _merge_dcp_topk_global(
 _SM86_DCP_INVALID_SCORE = float("-inf")
 
 
+def _sm86_dcp_identity_selection(
+    row_lens: torch.Tensor,
+    topk_tokens: int,
+) -> torch.Tensor:
+    """Return every valid prefix entry when global candidate count is <= K."""
+    columns = torch.arange(
+        topk_tokens,
+        dtype=torch.int32,
+        device=row_lens.device,
+    ).unsqueeze(0)
+    lengths = row_lens.to(torch.int32).reshape(-1, 1)
+    return torch.where(
+        columns < lengths,
+        columns,
+        torch.full_like(columns, -1),
+    )
+
+
 def _sm86_dcp_global_topk(
     local_values: torch.Tensor,
     local_global_indices: torch.Tensor,
@@ -244,10 +262,13 @@ def _sm86_dcp_topk_decode(
     dcp_rank: int,
     dcp_world_size: int,
     cp_interleave: int,
+    identity_selection: bool = False,
 ) -> torch.Tensor:
     """Select global decode top-k and return this rank's local owned entries."""
     num_rows = local_topk_indices.shape[0]
     row_lens = local_seq_lens.reshape(-1)[:num_rows]
+    if identity_selection:
+        return _sm86_dcp_identity_selection(row_lens, topk_tokens)
     valid = (local_topk_indices >= 0) & (
         local_topk_indices < row_lens.unsqueeze(1)
     )
@@ -667,6 +688,10 @@ def sparse_attn_indexer(
         topk_indices_buffer[: hidden_states.shape[0]] = -1
     # DeepGEMM availability is constant per process; check once for both branches.
     use_deep_gemm = is_deep_gemm_supported()
+    sm86_dcp_identity_topk = (
+        attn_metadata_narrowed.use_sm86_dcp_topk
+        and 0 <= attn_metadata_narrowed.max_global_compressed_entries <= topk_tokens
+    )
     if not use_deep_gemm:
         assert not use_fp4_cache, (
             "Triton sparse-MLA fallback does not support FP4 KV cache"
@@ -1000,6 +1025,7 @@ def sparse_attn_indexer(
                     dcp_rank,
                     dcp_world_size,
                     cp_kv_cache_interleave_size,
+                    identity_selection=sm86_dcp_identity_topk,
                 )
             )
         elif decode_metadata.global_seq_lens is not None:

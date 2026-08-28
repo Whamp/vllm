@@ -4,7 +4,10 @@
 import torch
 
 import vllm.model_executor.layers.sparse_attn_indexer as indexer_module
-from vllm.model_executor.layers.sparse_attn_indexer import _sm86_dcp_global_topk
+from vllm.model_executor.layers.sparse_attn_indexer import (
+    _sm86_dcp_global_topk,
+    _sm86_dcp_identity_selection,
+)
 
 
 class _FakeDCPGroup:
@@ -34,6 +37,16 @@ def test_sm86_dcp_global_topk_is_score_ordered_with_index_ties(monkeypatch) -> N
 
     assert torch.equal(indices, torch.tensor([[2, 5, 1]], dtype=torch.int32))
     assert torch.allclose(values, torch.tensor([[0.8, 0.8, 0.7]]))
+
+
+def test_sm86_dcp_identity_selection_is_prefix_compact() -> None:
+    row_lens = torch.tensor([0, 2, 4], dtype=torch.int32)
+    actual = _sm86_dcp_identity_selection(row_lens, 4)
+    assert actual.tolist() == [
+        [-1, -1, -1, -1],
+        [0, 1, -1, -1],
+        [0, 1, 2, 3],
+    ]
 
 
 def test_sm86_dcp_global_topk_keeps_invalid_padding_out(monkeypatch) -> None:
