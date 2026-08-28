@@ -1062,6 +1062,8 @@ class DeepseekV4DecoderLayer(nn.Module):
             x_scales=x_scales,
         )
 
+        if layer_oracle_recorder is not None and layer_oracle_recorder.is_capturing:
+            layer_oracle_recorder.record_ffn_input(self.layer_oracle_index, x[-1])
         x = self.ffn(x, input_ids)
         x, x_scales = self._hoisted_all_reduce(x)
         return x, residual, post_mix, res_mix, x_scales

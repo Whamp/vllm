@@ -107,8 +107,22 @@ def test_layer_oracle_records_exact_trigger_once(tmp_path, monkeypatch):
     assert recorder.matches_forward(torch.tensor(token_ids), torch.tensor([0, 1, 2]))
 
     recorder.record_attention_layer(0, torch.tensor([[0.5, 1.0], [1.5, 2.0]]))
+    recorder.record_ffn_input(0, torch.tensor([0.1, 0.2]))
+    recorder.record_ffn_routing(0, torch.tensor([1, 2]), torch.tensor([0.25, 0.75]))
+    recorder.record_ffn_gate_up(
+        0, torch.tensor([[1.0, 1.5]]), torch.tensor([[2.0, 2.5]])
+    )
+    recorder.record_ffn_component(0, "routed", torch.tensor([[1.0, 1.5]]))
+    recorder.record_ffn_component(0, "shared", torch.tensor([[2.0, 2.5]]))
     recorder.record_layer(0, torch.tensor([[1.0, 2.0], [3.0, 4.0]]))
     recorder.record_attention_layer(1, torch.tensor([[2.5, 3.0], [3.5, 4.0]]))
+    recorder.record_ffn_input(1, torch.tensor([0.3, 0.4]))
+    recorder.record_ffn_routing(1, torch.tensor([3, 4]), torch.tensor([0.4, 0.6]))
+    recorder.record_ffn_gate_up(
+        1, torch.tensor([[3.0, 3.5]]), torch.tensor([[4.0, 4.5]])
+    )
+    recorder.record_ffn_component(1, "routed", torch.tensor([[3.0, 3.5]]))
+    recorder.record_ffn_component(1, "shared", torch.tensor([[4.0, 4.5]]))
     recorder.record_layer(1, torch.tensor([[5.0, 6.0], [7.0, 8.0]]))
     recorder.record_logits(torch.tensor([[-1.0, 0.0], [1.0, 2.0]]))
     recorder.finish()
@@ -121,6 +135,13 @@ def test_layer_oracle_records_exact_trigger_once(tmp_path, monkeypatch):
         == hashlib.sha256(token_path.read_bytes()).hexdigest()
     )
     assert [entry["layer"] for entry in manifest["attention_layers"]] == [0, 1]
+    assert [entry["layer"] for entry in manifest["ffn_inputs"]] == [0, 1]
+    assert [entry["layer"] for entry in manifest["ffn_routes"]] == [0, 1]
+    assert [entry["layer"] for entry in manifest["ffn_route_weights"]] == [0, 1]
+    assert [entry["layer"] for entry in manifest["ffn_gate_layers"]] == [0, 1]
+    assert [entry["layer"] for entry in manifest["ffn_up_layers"]] == [0, 1]
+    assert [entry["layer"] for entry in manifest["ffn_routed_layers"]] == [0, 1]
+    assert [entry["layer"] for entry in manifest["ffn_shared_layers"]] == [0, 1]
     assert [entry["layer"] for entry in manifest["layers"]] == [0, 1]
     logits_entry = manifest["logits"]
     logits_path = output_dir / logits_entry["path"]
@@ -156,6 +177,11 @@ def test_layer_oracle_rejects_incomplete_or_duplicate_layers(tmp_path, monkeypat
         torch.tensor([128000, 123, 456]), torch.tensor([0, 1, 2])
     )
     recorder.record_attention_layer(0, torch.zeros(4))
+    recorder.record_ffn_input(0, torch.zeros(4))
+    recorder.record_ffn_routing(0, torch.tensor([1, 2]), torch.tensor([0.5, 0.5]))
+    recorder.record_ffn_gate_up(0, torch.zeros(4), torch.zeros(4))
+    recorder.record_ffn_component(0, "routed", torch.zeros(4))
+    recorder.record_ffn_component(0, "shared", torch.zeros(4))
     recorder.record_layer(0, torch.zeros(4))
     with pytest.raises(ValueError, match="duplicate post-FFN layer 0"):
         recorder.record_layer(0, torch.zeros(4))

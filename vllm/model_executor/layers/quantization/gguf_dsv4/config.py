@@ -2,7 +2,11 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 """Quantization ownership for native DeepSeek V4 GGUF weights."""
 
+import hashlib
+import json
+import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import regex as re
@@ -45,6 +49,9 @@ _GROUPED_LINEAR_MIN_TOKENS = 8
 _Q8_BLOCK_ELEMENTS = 32
 _Q8_BLOCK_BYTES = 34
 _LAYER_PREFIX_PATTERN = re.compile(r"(?:^|\.)layers\.(\d+)(?:\.|$)")
+_GGUF_DSV4_WEIGHT_DUMP_DIR = "VLLM_GGUF_DSV4_WEIGHT_DUMP_DIR"
+_GGUF_DSV4_DUMP_EXPERT = 107
+_GGUF_DSV4_DUMPED_WEIGHT_RANKS: set[int] = set()
 
 
 @dataclass(frozen=True)
@@ -468,6 +475,61 @@ class GGUFDSV4LinearMethod(LinearMethodBase):
         return output
 
 
+def _maybe_dump_gguf_dsv4_layer0_expert_weights(layer: RoutedExperts) -> None:
+    """Dump one selected real expert's TP-local raw bytes for loader diagnosis."""
+    output_dir_value = os.getenv(_GGUF_DSV4_WEIGHT_DUMP_DIR)
+    if output_dir_value is None:
+        return
+    match = _LAYER_PREFIX_PATTERN.search(layer.layer_name)
+    if match is None or int(match.group(1)) != 0:
+        return
+    from vllm.distributed import (  # noqa: PLC0415
+        get_tensor_model_parallel_rank,
+    )
+
+    rank = get_tensor_model_parallel_rank()
+    if rank in _GGUF_DSV4_DUMPED_WEIGHT_RANKS:
+        return
+    output_dir = Path(output_dir_value)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    entries = {}
+    for projection, parameter in (
+        ("gate", layer.gate_raw),
+        ("up", layer.up_raw),
+        ("down", layer.down_raw),
+    ):
+        payload = (
+            parameter[_GGUF_DSV4_DUMP_EXPERT]
+            .detach()
+            .to(device="cpu")
+            .contiguous()
+            .numpy()
+            .tobytes()
+        )
+        relative_path = f"layer0-expert107-{projection}-rank{rank}.bin"
+        destination = output_dir / relative_path
+        temporary = destination.with_suffix(".bin.tmp")
+        temporary.write_bytes(payload)
+        os.replace(temporary, destination)
+        entries[projection] = {
+            "path": relative_path,
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "size": len(payload),
+        }
+    manifest = {
+        "format": "gguf-dsv4-weight-dump-v1",
+        "expert": _GGUF_DSV4_DUMP_EXPERT,
+        "layer": 0,
+        "rank": rank,
+        "entries": entries,
+    }
+    destination = output_dir / f"rank-{rank}.json"
+    temporary = destination.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    os.replace(temporary, destination)
+    _GGUF_DSV4_DUMPED_WEIGHT_RANKS.add(rank)
+
+
 class GGUFDSV4MoEMethod(FusedMoEMethodBase):
     """Execute all 256 profiled GGUF experts with TP-sharded widths."""
 
@@ -792,8 +854,29 @@ class GGUFDSV4MoEMethod(FusedMoEMethodBase):
             raise ValueError(
                 "GGUF DSv4 folds router weights after gate/up, not on input"
             )
+        _maybe_dump_gguf_dsv4_layer0_expert_weights(layer)
+        if os.getenv("VLLM_GGUF_DSV4_LAYER_ORACLE_TOKEN_IDS_FILE") is not None:
+            from vllm.models.deepseek_v4.gguf_dsv4_layer_oracle import (  # noqa: PLC0415
+                maybe_record_gguf_dsv4_ffn_routing,
+            )
+
+            maybe_record_gguf_dsv4_ffn_routing(
+                layer_name=layer.layer_name,
+                topk_ids=topk_ids,
+                topk_weights=topk_weights,
+            )
         original_shape = x.shape
         hidden_states = x.reshape(-1, x.shape[-1])
         gate_up = self._run_gate_up(layer, hidden_states, topk_ids)
+        if os.getenv("VLLM_GGUF_DSV4_LAYER_ORACLE_TOKEN_IDS_FILE") is not None:
+            from vllm.models.deepseek_v4.gguf_dsv4_layer_oracle import (  # noqa: PLC0415
+                maybe_record_gguf_dsv4_ffn_gate_up,
+            )
+
+            maybe_record_gguf_dsv4_ffn_gate_up(
+                layer_name=layer.layer_name,
+                gate=gate_up.gate,
+                up=gate_up.up,
+            )
         output = self._run_down(layer, hidden_states, topk_weights, topk_ids, gate_up)
         return output.reshape(*original_shape[:-1], output.shape[-1])

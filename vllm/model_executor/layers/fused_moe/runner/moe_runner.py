@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+import os
 from collections.abc import Callable, Iterable
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
@@ -767,6 +768,19 @@ class MoERunner(MoERunnerInterface):
 
         # Apply output transform (e.g. latent -> full dim)
         fused_output = self.apply_routed_output_transform(fused_output)
+
+        if os.getenv("VLLM_GGUF_DSV4_LAYER_ORACLE_TOKEN_IDS_FILE") is not None:
+            from vllm.models.deepseek_v4.gguf_dsv4_layer_oracle import (  # noqa: PLC0415
+                maybe_record_gguf_dsv4_ffn_components,
+            )
+
+            maybe_record_gguf_dsv4_ffn_components(
+                layer_name=self.layer_name,
+                input_ids=input_ids,
+                routed_output=fused_output,
+                shared_output=shared_output,
+                outputs_reduced=fused_output_is_reduced,
+            )
 
         if shared_output is not None:
             result = shared_output + fused_output
