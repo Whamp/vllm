@@ -754,9 +754,11 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                     (~torch.isfinite(partial_lse)).sum().item()
                 )
                 if partial_out_nonfinite or partial_lse_nonfinite:
+                    q_nonfinite = int((~torch.isfinite(gathered_q)).sum().item())
                     raise RuntimeError(
                         "SM86 DCP local partial decode produced non-finite "
                         f"values: layer={self.prefix}, "
+                        f"q={q_nonfinite}, "
                         f"rank={dcp_group.rank_in_group}, "
                         f"output={partial_out_nonfinite}, "
                         f"lse={partial_lse_nonfinite}, "
