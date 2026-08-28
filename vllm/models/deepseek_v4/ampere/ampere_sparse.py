@@ -746,6 +746,25 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                 out=partial_out,
                 lse_out=partial_lse,
             )
+            if envs.VLLM_SM86_DCP_VALIDATE_TOPK:
+                partial_out_nonfinite = int(
+                    (~torch.isfinite(partial_out)).sum().item()
+                )
+                partial_lse_nonfinite = int(
+                    (~torch.isfinite(partial_lse)).sum().item()
+                )
+                if partial_out_nonfinite or partial_lse_nonfinite:
+                    raise RuntimeError(
+                        "SM86 DCP local partial decode produced non-finite "
+                        f"values: layer={self.prefix}, "
+                        f"rank={dcp_group.rank_in_group}, "
+                        f"output={partial_out_nonfinite}, "
+                        f"lse={partial_lse_nonfinite}, "
+                        f"extra_lens_min={int(topk_lens.min().item())}, "
+                        f"extra_lens_max={int(topk_lens.max().item())}, "
+                        f"swa_lens_min={int(partial_swa_lens.min().item())}, "
+                        f"swa_lens_max={int(partial_swa_lens.max().item())}"
+                    )
             dcp_merge_flashmla_output(
                 partial_out,
                 partial_lse,
