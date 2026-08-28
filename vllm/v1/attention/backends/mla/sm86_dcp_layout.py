@@ -76,6 +76,19 @@ def sm86_dcp_owns(
     )
 
 
+def sm86_dcp_replicated_swa_owner(
+    positions: torch.Tensor,
+    compressed_block_size: int,
+    dcp_world_size: int,
+    cp_interleave: int,
+) -> torch.Tensor:
+    """Assign replicated SWA work to exactly one DCP rank per query."""
+    virtual_block_size = compressed_block_size * dcp_world_size
+    return (
+        (positions % virtual_block_size) // cp_interleave
+    ) % dcp_world_size
+
+
 def sm86_dcp_global_to_local(
     global_indices: torch.Tensor,
     dcp_rank: int | torch.Tensor,

@@ -41,6 +41,7 @@ from vllm.models.deepseek_v4.common.ops.dcp import dcp_merge_flashmla_output
 from vllm.platforms.interface import DeviceCapability
 from vllm.v1.attention.backends.mla.sm86_dcp_layout import (
     sm86_dcp_local_to_global,
+    sm86_dcp_replicated_swa_owner,
 )
 from vllm.v1.worker.workspace import current_workspace_manager
 
@@ -188,9 +189,16 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                 dtype=torch.float32,
                 device=self.attn_sink.device,
             )
+            self._dcp_swa_lens = torch.empty(
+                (max_decode_rows,),
+                dtype=torch.int32,
+                device=self.attn_sink.device,
+            )
         else:
             self._dcp_partial_out = None
             self._dcp_partial_lse = None
+            self._dcp_swa_lens = None
+        self._dcp_positions: torch.Tensor | None = None
         self._flash_mla_prefill = (
             load_ampere_flash_mla_prefill(self.kv_cache_dtype)
             if self.kv_cache_dtype == "fp4_ds_mla" and envs.VLLM_DSV4_FLASH_MLA_DECODE
@@ -211,6 +219,22 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                 self.kv_cache_dtype,
                 " and native sparse prefill" if self._flash_mla_prefill else "",
             )
+
+    def forward_mqa(
+        self,
+        q: torch.Tensor,
+        kv: torch.Tensor,
+        positions: torch.Tensor,
+        output: torch.Tensor,
+    ) -> None:
+        if not self._use_sm86_dcp:
+            super().forward_mqa(q, kv, positions, output)
+            return
+        self._dcp_positions = positions
+        try:
+            super().forward_mqa(q, kv, positions, output)
+        finally:
+            self._dcp_positions = None
 
     def _uses_native_sparse_prefill(self) -> bool:
         return self._flash_mla_prefill is not None
@@ -583,6 +607,16 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
         swa_only: bool,
         output: torch.Tensor,
     ) -> None:
+        if self._use_sm86_dcp and swa_only:
+            super()._forward_decode(
+                q=q,
+                kv_cache=kv_cache,
+                swa_metadata=swa_metadata,
+                attn_metadata=attn_metadata,
+                swa_only=True,
+                output=output,
+            )
+            return
         flash_mla_decode = self._flash_mla_decode
         flash_mla_partial_decode = self._flash_mla_partial_decode
         if flash_mla_decode is None and flash_mla_partial_decode is None:
@@ -654,7 +688,24 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
         decode_swa_lens = swa_metadata.decode_swa_lens
         if decode_swa_indices is None or decode_swa_lens is None:
             raise RuntimeError("sparse decode SWA metadata is missing")
+        partial_swa_lens = decode_swa_lens[:num_decode_tokens]
         if flash_mla_partial_decode is not None:
+            if self._dcp_positions is None:
+                raise RuntimeError("DCP decode requires absolute query positions")
+            assert self._dcp_swa_lens is not None
+            swa_owners = sm86_dcp_replicated_swa_owner(
+                self._dcp_positions[:num_decode_tokens],
+                compressed_block_size=attn_metadata.block_size,
+                dcp_world_size=get_dcp_group().world_size,
+                cp_interleave=self._dcp_entry_interleave,
+            )
+            torch.where(
+                swa_owners == get_dcp_group().rank_in_group,
+                partial_swa_lens,
+                torch.zeros_like(partial_swa_lens),
+                out=self._dcp_swa_lens[:num_decode_tokens],
+            )
+            partial_swa_lens = self._dcp_swa_lens[:num_decode_tokens]
             dcp_group = get_dcp_group()
             gathered_q = dcp_group.all_gather(
                 q[:, : self.n_local_heads, :].contiguous(), dim=1
@@ -667,7 +718,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                 q=gathered_q,
                 swa_cache=self.swa_cache_layer.kv_cache,
                 swa_indices=decode_swa_indices[:num_decode_tokens],
-                swa_lens=decode_swa_lens[:num_decode_tokens],
+                swa_lens=partial_swa_lens,
                 scale=self.scale,
                 extra_cache=None if swa_only else kv_cache,
                 extra_indices=extra_indices,

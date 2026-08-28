@@ -10,6 +10,7 @@ from vllm.v1.attention.backends.mla.sm86_dcp_layout import (
     sm86_dcp_local_to_global,
     sm86_dcp_owner,
     sm86_dcp_owns,
+    sm86_dcp_replicated_swa_owner,
 )
 
 
@@ -73,6 +74,17 @@ def test_sm86_dcp_layout_preserves_invalid_entry_sentinel() -> None:
     assert sm86_dcp_local_to_global(invalid, 2, 4, 1).item() == -1
     assert sm86_dcp_global_to_local(invalid, 2, 4, 1).item() == -1
     assert not sm86_dcp_owns(invalid, 2, 4, 1).item()
+
+
+def test_replicated_swa_owner_assigns_each_query_to_one_rank() -> None:
+    positions = torch.tensor([0, 1, 2, 3, 4, 1023, 1024], dtype=torch.int64)
+    owners = sm86_dcp_replicated_swa_owner(
+        positions,
+        compressed_block_size=256,
+        dcp_world_size=4,
+        cp_interleave=1,
+    )
+    assert owners.tolist() == [0, 1, 2, 3, 0, 3, 0]
 
 
 def test_compressed_length_is_localized_after_compression() -> None:
