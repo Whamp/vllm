@@ -8,7 +8,10 @@ import math
 from dataclasses import dataclass
 from enum import Enum
 
-from vllm.model_executor.model_loader.gguf_dsv4_index import GGUFTensorEntry
+from vllm.model_executor.model_loader.gguf_dsv4_index import (
+    GGUF_QUANTIZED_TYPE_NAMES,
+    GGUFTensorEntry,
+)
 
 
 class GGUFShardKind(str, Enum):
@@ -247,6 +250,37 @@ def classify_gguf_dsv4_tensor(name: str) -> GGUFTensorClassification:
     return GGUFTensorClassification(name, target, shard, stack_after)
 
 
+def classify_profiled_gguf_dsv4_tensor(
+    entry: GGUFTensorEntry,
+) -> GGUFTensorClassification:
+    """Map a profiled quantized source to its format-specific raw parameter."""
+    classification = classify_gguf_dsv4_tensor(entry.name)
+    if entry.type_name not in GGUF_QUANTIZED_TYPE_NAMES:
+        return classification
+    source_name = entry.name
+    target_name = classification.target_name
+    if source_name == "token_embd.weight":
+        target_name = "model.embed_tokens.weight_raw"
+    elif source_name.endswith("attn_q_a.weight"):
+        target_name = f"{target_name}_0"
+    elif source_name.endswith("attn_kv.weight"):
+        target_name = f"{target_name}_1"
+    elif source_name.endswith("ffn_gate_shexp.weight"):
+        target_name = f"{target_name}_0"
+    elif source_name.endswith("ffn_up_shexp.weight"):
+        target_name = f"{target_name}_1"
+    elif source_name.endswith(("_compressor_kv.weight", "_compressor_gate.weight")):
+        partition = 0 if source_name.endswith("_kv.weight") else 1
+        target_name = f"{target_name.removesuffix('.weight')}.weight_raw_{partition}"
+    elif target_name.endswith(".weight"):
+        target_name = f"{target_name.removesuffix('.weight')}.weight_raw"
+    return GGUFTensorClassification(
+        source_name=source_name,
+        target_name=target_name,
+        shard_kind=classification.shard_kind,
+    )
+
+
 def _matrix_row_bytes(entry: GGUFTensorEntry) -> int:
     spec = entry.type_spec
     return math.ceil(entry.dims[0] / spec.block_elements) * spec.block_bytes
@@ -322,6 +356,7 @@ def build_gguf_dsv4_load_plan(
     *,
     tp_rank: int,
     tp_size: int,
+    profiled_quantization: bool = False,
 ) -> tuple[GGUFTensorLoadPlan, ...]:
     """Build source/target byte spans for every supported tensor on one TP rank."""
     entries_by_name = {entry.name: entry for entry in entries}
@@ -329,7 +364,11 @@ def build_gguf_dsv4_load_plan(
         raise ValueError("GGUF load plan received duplicate tensor names")
     partial: dict[str, tuple[GGUFTensorClassification, tuple[GGUFSpan, ...], int]] = {}
     for entry in entries:
-        classification = classify_gguf_dsv4_tensor(entry.name)
+        classification = (
+            classify_profiled_gguf_dsv4_tensor(entry)
+            if profiled_quantization
+            else classify_gguf_dsv4_tensor(entry.name)
+        )
         spans, target_nbytes = _plan_entry_spans(
             entry, classification.shard_kind, tp_rank, tp_size
         )

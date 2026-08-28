@@ -74,6 +74,75 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C, ops) {
       "gguf_q2_k_q8_1_indexed_down(Tensor activation_scales, "
       "Tensor activation_codes, Tensor down_weights, Tensor topk_ids, "
       "Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_iq1_s_q8_1_raw_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor weights, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_iq1_m_q8_1_raw_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor weights, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_iq3_xxs_q8_1_raw_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor weights, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_iq1_s_q8_1_indexed_gate_up(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor gate_weights, Tensor up_weights, "
+      "Tensor topk_ids, Tensor(a!) gate_output, Tensor(b!) up_output) -> ()");
+  ops.def(
+      "gguf_iq1_m_q8_1_indexed_gate_up(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor gate_weights, Tensor up_weights, "
+      "Tensor topk_ids, Tensor(a!) gate_output, Tensor(b!) up_output) -> ()");
+  ops.def(
+      "gguf_iq1_s_q8_1_grouped_gate_up(Tensor token_scales, "
+      "Tensor token_codes, Tensor gate_weights, Tensor up_weights, "
+      "Tensor sorted_token_ids, Tensor expert_ids, Tensor num_tokens_padded, "
+      "Tensor(a!) gate_output, Tensor(b!) up_output, int topk) -> ()");
+  ops.def(
+      "gguf_iq1_m_q8_1_grouped_gate_up(Tensor token_scales, "
+      "Tensor token_codes, Tensor gate_weights, Tensor up_weights, "
+      "Tensor sorted_token_ids, Tensor expert_ids, Tensor num_tokens_padded, "
+      "Tensor(a!) gate_output, Tensor(b!) up_output, int topk) -> ()");
+  ops.def(
+      "gguf_iq3_xxs_q8_1_indexed_down(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor down_weights, Tensor topk_ids, "
+      "Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_iq3_xxs_q8_1_grouped_down(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor down_weights, "
+      "Tensor sorted_token_ids, Tensor expert_ids, "
+      "Tensor num_tokens_padded, Tensor(a!) output, int topk) -> ()");
+  ops.def(
+      "gguf_mxfp4_q8_1_raw_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor weights, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_mxfp4_q8_1_indexed_down(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor down_weights, Tensor topk_ids, "
+      "Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_mxfp4_q8_1_grouped_down(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor down_weights, "
+      "Tensor sorted_token_ids, Tensor expert_ids, "
+      "Tensor num_tokens_padded, Tensor(a!) output, int topk) -> ()");
+  ops.def(
+      "gguf_q4_k_q8_1_raw_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor weights, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_q5_k_q8_1_raw_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor weights, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_q6_k_q8_1_raw_matvec(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor weights, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_q4_k_q8_1_grouped_matmul(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor weights, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_q5_k_q8_1_grouped_matmul(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor weights, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_q6_k_q8_1_grouped_matmul(Tensor activation_scales, "
+      "Tensor activation_codes, Tensor weights, Tensor(a!) output) -> ()");
+  ops.def(
+      "gguf_q4_k_embedding(Tensor input_ids, Tensor weights, "
+      "Tensor(a!) output) -> ()");
 
   // Note about marlin kernel 'workspace' arguments:
   // Technically these should be mutable since they are modified by the kernel.
@@ -782,6 +851,44 @@ STABLE_TORCH_LIBRARY_IMPL(_C, CUDA, ops) {
            TORCH_BOX(&vllm::gguf_dsv4::gguf_q2_k_q8_1_grouped_down));
   ops.impl("gguf_q2_k_q8_1_indexed_down",
            TORCH_BOX(&vllm::gguf_dsv4::gguf_q2_k_q8_1_indexed_down));
+  ops.impl("gguf_iq1_s_q8_1_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq1_s_q8_1_raw_matvec));
+  ops.impl("gguf_iq1_m_q8_1_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq1_m_q8_1_raw_matvec));
+  ops.impl("gguf_iq3_xxs_q8_1_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq3_xxs_q8_1_raw_matvec));
+  ops.impl("gguf_iq1_s_q8_1_indexed_gate_up",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq1_s_q8_1_indexed_gate_up));
+  ops.impl("gguf_iq1_m_q8_1_indexed_gate_up",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq1_m_q8_1_indexed_gate_up));
+  ops.impl("gguf_iq1_s_q8_1_grouped_gate_up",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq1_s_q8_1_grouped_gate_up));
+  ops.impl("gguf_iq1_m_q8_1_grouped_gate_up",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq1_m_q8_1_grouped_gate_up));
+  ops.impl("gguf_iq3_xxs_q8_1_indexed_down",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq3_xxs_q8_1_indexed_down));
+  ops.impl("gguf_iq3_xxs_q8_1_grouped_down",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_iq3_xxs_q8_1_grouped_down));
+  ops.impl("gguf_mxfp4_q8_1_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_mxfp4_q8_1_raw_matvec));
+  ops.impl("gguf_mxfp4_q8_1_indexed_down",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_mxfp4_q8_1_indexed_down));
+  ops.impl("gguf_mxfp4_q8_1_grouped_down",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_mxfp4_q8_1_grouped_down));
+  ops.impl("gguf_q4_k_q8_1_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_q4_k_q8_1_raw_matvec));
+  ops.impl("gguf_q5_k_q8_1_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_q5_k_q8_1_raw_matvec));
+  ops.impl("gguf_q6_k_q8_1_raw_matvec",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_q6_k_q8_1_raw_matvec));
+  ops.impl("gguf_q4_k_q8_1_grouped_matmul",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_q4_k_q8_1_grouped_matmul));
+  ops.impl("gguf_q5_k_q8_1_grouped_matmul",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_q5_k_q8_1_grouped_matmul));
+  ops.impl("gguf_q6_k_q8_1_grouped_matmul",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_q6_k_q8_1_grouped_matmul));
+  ops.impl("gguf_q4_k_embedding",
+           TORCH_BOX(&vllm::gguf_dsv4::gguf_q4_k_embedding));
 
   // CUTLASS scaled_mm ops
   ops.impl("cutlass_scaled_mm", TORCH_BOX(&cutlass_scaled_mm));

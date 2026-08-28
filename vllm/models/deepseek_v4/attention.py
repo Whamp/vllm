@@ -399,6 +399,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
                 prefix=f"{prefix}.compressor",
                 k_cache_prefix=self.prefix,
                 eager_scratch_pool=eager_scratch_pool,
+                quant_config=quant_config,
             )
 
         # Built after weight loading by `fuse_input_gemm_weights`; see there.
@@ -445,20 +446,26 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
             # than CUDA keep the three-GEMM path until measured there.
             return
         parts = [
-            self.compressor.fused_wkv_wgate.weight,
-            self.indexer.compressor.fused_wkv_wgate.weight,
-            self.indexer.weights_proj.weight,
+            getattr(self.compressor.fused_wkv_wgate, "weight", None),
+            getattr(self.indexer.compressor.fused_wkv_wgate, "weight", None),
+            getattr(self.indexer.weights_proj, "weight", None),
         ]
-        if any(
-            w is None or w.dtype != torch.bfloat16 or w.shape[1] != self.hidden_size
-            for w in parts
-        ):
-            return
-        merged = torch.cat([w.detach() for w in parts], dim=0).contiguous()
-        splits = [w.shape[0] for w in parts]
+        tensor_parts: list[torch.Tensor] = []
+        for weight in parts:
+            if (
+                weight is None
+                or weight.dtype != torch.bfloat16
+                or weight.shape[1] != self.hidden_size
+            ):
+                return
+            tensor_parts.append(weight)
+        merged = torch.cat(
+            [weight.detach() for weight in tensor_parts], dim=0
+        ).contiguous()
+        splits = [weight.shape[0] for weight in tensor_parts]
         offset = 0
-        for w, n in zip(parts, splits):
-            w.data = merged[offset : offset + n]
+        for weight, n in zip(tensor_parts, splits):
+            weight.data = merged[offset : offset + n]
             offset += n
         self.fused_input_weight = merged
         self.fused_input_splits = splits
@@ -595,6 +602,19 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         qr_kv, _ = self.fused_wqa_wkv(hidden_states)
         return qr_kv
 
+    @staticmethod
+    def _project_compressor_kv_score(
+        compressor: DeepseekCompressor, hidden_states: torch.Tensor
+    ) -> torch.Tensor:
+        """Project compressor KV scores through BF16 or native GGUF weights."""
+        weight = getattr(compressor.fused_wkv_wgate, "weight", None)
+        if weight is not None and weight.dtype == torch.bfloat16:
+            return torch.mm(hidden_states, weight.T, out_dtype=torch.float32)
+        output = compressor.fused_wkv_wgate(hidden_states)
+        if not isinstance(output, torch.Tensor):
+            raise TypeError("DeepSeek V4 compressor projection must return a Tensor")
+        return output
+
     def _run_parallel_input_projections(
         self, hidden_states: torch.Tensor
     ) -> tuple[
@@ -667,11 +687,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
             compressor = self.compressor
 
             def compressor_kv_score() -> torch.Tensor:
-                return torch.mm(
-                    hidden_states,
-                    compressor.fused_wkv_wgate.weight.T,
-                    out_dtype=torch.float32,
-                )
+                return self._project_compressor_kv_score(compressor, hidden_states)
 
             aux_fns[0] = compressor_kv_score
 
@@ -682,18 +698,16 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
                 # N=64 is narrow enough that cuBLAS splits K and reduces --
                 # two launches for a 512 KB weight. One CTA per output row
                 # does it in one; measured 5.4 -> 2.8 us at M=1.
-                w = indexer.weights_proj.weight
-                if should_use_triton_gemv(hidden_states, w):
+                w = getattr(indexer.weights_proj, "weight", None)
+                if w is not None and should_use_triton_gemv(hidden_states, w):
                     return bf16_gemv(hidden_states, w)
                 # ReplicatedLinear returns (output, bias); bias is None.
                 weights, _ = indexer.weights_proj(hidden_states)
                 return weights
 
             def indexer_compressor_kv_score() -> torch.Tensor:
-                return torch.mm(
-                    hidden_states,
-                    indexer.compressor.fused_wkv_wgate.weight.T,
-                    out_dtype=torch.float32,
+                return self._project_compressor_kv_score(
+                    indexer.compressor, hidden_states
                 )
 
             aux_fns[1] = indexer_weights_proj
@@ -1028,6 +1042,7 @@ class DeepseekV4Indexer(nn.Module):
             k_cache_prefix=self.k_cache.prefix,
             use_fp4_cache=self.use_fp4_kv,
             eager_scratch_pool=eager_scratch_pool,
+            quant_config=quant_config,
         )
 
         self.indexer_op = SparseAttnIndexer(
