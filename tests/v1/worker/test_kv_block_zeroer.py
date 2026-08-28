@@ -8,6 +8,7 @@ import torch
 
 from vllm.v1.kv_cache_interface import (
     ChunkedLocalAttentionSpec,
+    FullAttentionSpec,
     SlidingWindowSpec,
 )
 from vllm.v1.worker.utils import (
@@ -345,3 +346,182 @@ def test_every_launched_program_has_work():
     for (seg, _), rows in covered.items():
         assert rows == set(range(page_sizes[seg]))
     assert len(covered) == sum(ratios)
+
+
+class _FakeBackend:
+    """[num_blocks, page] storages: dim 0 is the block dim."""
+
+    @staticmethod
+    def get_kv_cache_block_dim(
+        kernel_block_size, num_kv_heads, head_size, cache_dtype_str
+    ):
+        return 0
+
+
+class _NonAttentionSpec:
+    """Stands in for MambaSpec: a KV spec the zeroer must skip."""
+
+
+def _zeroer_init_for(groups):
+    """Drive KVBlockZeroer.__init__ with fake attention groups.
+
+    groups: list of (group_id, spec, [(layer_name, tensor)]). Only __init__'s
+    segment-table construction runs -- no kernel launch -- so this works on
+    CPU and pins the coverage contract independently of CUDA.
+    """
+    static_ctx = {}
+    fake_groups = []
+    for group_id, spec, layers in groups:
+        for name, tensor in layers:
+            static_ctx[name] = SimpleNamespace(kv_cache=tensor)
+        fake_groups.append(
+            SimpleNamespace(
+                kv_cache_spec=spec,
+                kv_cache_group_id=group_id,
+                backend=_FakeBackend,
+                layer_names=[name for name, _ in layers],
+            )
+        )
+    zeroer = KVBlockZeroer(
+        torch.device("cpu"),
+        attn_groups_iter=fake_groups,
+        kernel_block_sizes=[16, 16],
+        cache_dtype="auto",
+        static_forward_context=static_ctx,
+    )
+    return zeroer
+
+
+def test_sliding_window_group_gets_its_own_segment_table():
+    """The coverage gate widened from FullAttentionSpec to AttentionSpec.
+
+    A SlidingWindowSpec group (the SWA KV window / DeepseekV4 fp32 compressor
+    state) previously produced NO segments, so its newly allocated blocks were
+    never zeroed and a reused block's previous tenant's bytes survived.
+    """
+    page = 16 * 2 * 8  # block_size * num_kv_heads * head_size
+    full = FullAttentionSpec(
+        block_size=16, num_kv_heads=2, head_size=8, dtype=torch.float16
+    )
+    swa = SlidingWindowSpec(
+        block_size=16,
+        num_kv_heads=2,
+        head_size=8,
+        sliding_window=8,
+        dtype=torch.float32,
+    )
+    t_full = torch.empty((4, page), dtype=torch.float16)
+    t_swa = torch.empty((4, page), dtype=torch.float32)
+
+    zeroer = _zeroer_init_for(
+        [
+            (0, full, [("fa.layer0", t_full)]),
+            (1, swa, [("swa.state0", t_swa)]),
+        ]
+    )
+
+    assert set(zeroer._group_meta) == {0, 1}
+
+
+def test_non_attention_spec_is_skipped():
+    page = 16 * 2 * 8
+    full = FullAttentionSpec(
+        block_size=16, num_kv_heads=2, head_size=8, dtype=torch.float16
+    )
+    zeroer = _zeroer_init_for(
+        [
+            (0, full, [("fa.layer0", torch.empty((4, page), dtype=torch.float16))]),
+            (
+                1,
+                _NonAttentionSpec(),
+                [("mamba.state0", torch.empty((4, page), dtype=torch.float32))],
+            ),
+        ]
+    )
+    assert set(zeroer._group_meta) == {0}
+
+
+def test_same_data_ptr_in_two_groups_keeps_both_segments():
+    """Per-group dedup: the packed DeepseekV4 slab layout can surface the
+    same base address to more than one group; a global pointer dedup silently
+    dropped the later group's table entirely."""
+
+    page = 16 * 2 * 8
+    full = FullAttentionSpec(
+        block_size=16, num_kv_heads=2, head_size=8, dtype=torch.float16
+    )
+    swa = SlidingWindowSpec(
+        block_size=16,
+        num_kv_heads=2,
+        head_size=8,
+        sliding_window=8,
+        dtype=torch.float32,
+    )
+    # The SAME tensor object registered under both groups: identical
+    # data_ptr. Group 1's table must survive anyway.
+    shared = torch.empty((4, page), dtype=torch.float32)
+
+    zeroer = _zeroer_init_for(
+        [
+            (0, full, [("g0.l0", shared)]),
+            (1, swa, [("g1.l0", shared)]),
+        ]
+    )
+
+    assert set(zeroer._group_meta) == {0, 1}
+    assert zeroer._group_meta[0][5] >= 1
+    assert zeroer._group_meta[1][5] >= 1
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
+def test_packed_slab_zeroes_only_the_owning_groups_bytes():
+    """Two groups whose layers are strided views into one slab: each group's
+    block step spans BOTH payloads, but a segment must zero only its own
+    span. Zeroing the step wholesale would corrupt the neighbor group."""
+    device = torch.device("cuda")
+    num_blocks, page = 4, 16
+    slab = torch.ones((num_blocks, 2 * page), dtype=torch.int32, device=device)
+    g0_view = slab[:, :page]  # stride(0)=2*page, payload=page
+    g1_view = slab[:, page:]  # same step, disjoint payload
+
+    full = FullAttentionSpec(
+        block_size=16, num_kv_heads=1, head_size=16, dtype=torch.int32
+    )
+    swa = SlidingWindowSpec(
+        block_size=16,
+        num_kv_heads=1,
+        head_size=16,
+        sliding_window=8,
+        dtype=torch.int32,
+    )
+
+    static_ctx = {
+        "g0.l0": SimpleNamespace(kv_cache=g0_view),
+        "g1.l0": SimpleNamespace(kv_cache=g1_view),
+    }
+    groups = [
+        SimpleNamespace(
+            kv_cache_spec=full,
+            kv_cache_group_id=0,
+            backend=_FakeBackend,
+            layer_names=["g0.l0"],
+        ),
+        SimpleNamespace(
+            kv_cache_spec=swa,
+            kv_cache_group_id=1,
+            backend=_FakeBackend,
+            layer_names=["g1.l0"],
+        ),
+    ]
+    zeroer = KVBlockZeroer(
+        device,
+        attn_groups_iter=groups,
+        kernel_block_sizes=[16, 16],
+        cache_dtype="auto",
+        static_forward_context=static_ctx,
+    )
+    zeroer.zero_block_ids([[], [1]])
+
+    assert torch.all(slab[:3, :] == 1), "untouched blocks must survive"
+    assert torch.all(slab[1, :page] == 1), "group 0's payload must survive"
+    assert torch.all(slab[1, page:] == 0), "group 1's payload must be zeroed"

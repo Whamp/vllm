@@ -152,7 +152,16 @@ class KVBlockZeroer:
 
         if runner_only_attn_layers is None:
             runner_only_attn_layers = set()
-        seen_ptrs: set[int] = set()
+        # Per-group dedup key. The packed DeepseekV4 layout restarts every
+        # group's byte offset at 0 inside ONE shared slab, so each group's
+        # first layer has the SAME data_ptr. Deduping that address globally
+        # would silently delete those segments from the group's OWN table --
+        # zero_block_ids would then skip the group entirely and the block's
+        # previous tenant's bytes would survive into the next request. The
+        # flat-table designs dedup globally because their coverage does not
+        # depend on which group registered the address; per-group tables must
+        # dedup per (group, address).
+        seen_group_ptrs: set[tuple[int, int]] = set()
         group_segs: dict[int, tuple[list[int], list[int], list[int], list[int]]] = {}
 
         for group in attn_groups_iter:
@@ -180,36 +189,46 @@ class KVBlockZeroer:
                 if not isinstance(kv, torch.Tensor):
                     continue
                 dp = kv.data_ptr()
-                if dp in seen_ptrs:
+                gkey = (group.kv_cache_group_id, dp)
+                if gkey in seen_group_ptrs:
                     continue
-                seen_ptrs.add(dp)
+                seen_group_ptrs.add(gkey)
 
                 el = kv.element_size()
                 # Addressing step between consecutive kernel blocks (bytes).
                 stride_bytes = kv.stride(block_dim) * el
-                # Logical bytes of one kernel block's data in this view: the
-                # product of the dims inside the block, which must be densely
-                # packed for a single contiguous store range. NOT the block
-                # stride: for interleaved multi-layer pool views the stride
-                # spans every layer, and zeroing that span wipes live
-                # neighboring blocks (#50576).
-                inner_el = 1
-                for d in range(block_dim + 1, kv.dim()):
-                    inner_el *= kv.shape[d]
-                extent_bytes = inner_el * el
-                expected = 1
-                for d in range(kv.dim() - 1, block_dim, -1):
-                    assert kv.stride(d) == expected, (
-                        f"{layer_name}: non-contiguous block interior "
-                        f"(dim {d} stride {kv.stride(d)} != {expected})"
-                    )
-                    expected *= kv.shape[d]
-                assert stride_bytes % 4 == 0 and extent_bytes % 4 == 0
-
                 outer_dims = [
                     d for d in range(block_dim) if kv.stride(d) * el > stride_bytes
                 ]
                 outer_strides = [kv.stride(d) * el for d in outer_dims]
+                # The PAYLOAD one segment owns inside one block: the span of
+                # every dim that is neither the block dim nor split out into
+                # its own segment. (A dim outside the block dim whose stride
+                # is SMALLER than the block step -- the K/V-first storage that
+                # hybrid layout restrides -- lives INSIDE the block's extent
+                # and must be counted here, which is why this is a stride span
+                # and not a product of the trailing shapes.) Equal to the step
+                # for any layer that owns a dense [num_blocks, page]
+                # allocation, but a fraction of it under a packed layout where
+                # the step is the whole slab block stride. Using the step as
+                # the payload there would write into block_id + 1 -- a block
+                # that may be live for another request -- and past the end of
+                # the backing allocation on the last block.
+                inner_dims = [
+                    d for d in range(kv.dim()) if d != block_dim and d not in outer_dims
+                ]
+                span_el = 1 + sum((kv.shape[d] - 1) * kv.stride(d) for d in inner_dims)
+                extent_bytes = span_el * el
+                # A zero payload would make the chunk math below degenerate;
+                # a payload larger than the step would zero into the next
+                # block id. Fail loudly at init rather than corrupt memory at
+                # runtime.
+                assert 0 < extent_bytes <= stride_bytes, (
+                    f"{layer_name}: payload {extent_bytes}B does not fit the "
+                    f"{stride_bytes}B block step (ratio={ratio})"
+                )
+                assert stride_bytes % 4 == 0 and extent_bytes % 4 == 0
+
                 for outer in iprod(*(range(kv.shape[d]) for d in outer_dims)):
                     off_bytes = sum(i * s for i, s in zip(outer, outer_strides))
                     seg_addrs.append(dp + off_bytes)
