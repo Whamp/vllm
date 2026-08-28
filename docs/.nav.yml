@@ -45,6 +45,7 @@ nav:
       - contributing/model/transcription.md
     - CI: contributing/ci
     - Design Documents:
+      - DeepSeek V4 native GGUF research: whamp/deepseek_v4_gguf_tp/README.md
       - Plugins:
         - design/*plugin*.md
       - design/*

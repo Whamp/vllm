@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "repository": "unsloth/DeepSeek-V4-Flash-0731-GGUF",
+  "revision": "109848da2469efe1f1aab9e11acea08a065ccd4f",
+  "aggregate_tensor_count": 1328,
+  "source_profiles": {
+    "path": "models/deepseek-v4-flash-0731/vllm/gguf-tp/UNSLOTH-IQ1-SOURCE-PROFILES.json",
+    "sha256": "367c489edb3390b75f4d290bd2bcf85cccb48841c0bcbe04fc8c0bf4ea6d6c75"
+  },
+  "tokenizer_chat_template": {
+    "json_sha256": "86d162280066a0e870030a3ddcd521ed9213bb59625720be89494209f5d1fa9d",
+    "json_bytes": 14117,
+    "same_for_all_variants": true
+  },
+  "variants": {
+    "UD-IQ1_S": {
+      "source_quant_types_sha256": "ffe268523225a72d46ce72dbeded7aa677c06bbe0c353fbd5c9fe60245c9aa3b",
+      "model_view_config_sha256": "4693c91fd050bc8a566abef30f3b900fc439a0233ae1b576ddc7793064695511",
+      "shards": [
+        {
+          "path": "UD-IQ1_S/DeepSeek-V4-Flash-0731-UD-IQ1_S-00001-of-00003.gguf",
+          "sha256": "2fa152e25a14500e42e6d98f20d200eec1e945f34dc1cfb981b651b9c86b97be",
+          "file_size": 5257664,
+          "tensor_count": 0
+        },
+        {
+          "path": "UD-IQ1_S/DeepSeek-V4-Flash-0731-UD-IQ1_S-00002-of-00003.gguf",
+          "sha256": "e9fc77544cd48aa0c31fbf32fdf5432f2b560b92a9aeffd9f690d99867cf0e5f",
+          "file_size": 49093726624,
+          "tensor_count": 812
+        },
+        {
+          "path": "UD-IQ1_S/DeepSeek-V4-Flash-0731-UD-IQ1_S-00003-of-00003.gguf",
+          "sha256": "fd99d5cd0503d668b6febc2eedcc9db68e264cfb79dd355efc88c15eabe4248d",
+          "file_size": 33440253504,
+          "tensor_count": 516
+        }
+      ]
+    },
+    "UD-IQ1_M": {
+      "source_quant_types_sha256": "5e5e5dff4787923c3ce592ef0e44aac6729273a59676acc893a79d1d885c4646",
+      "model_view_config_sha256": "506cf2197bf240be6914ea50039b3664f72a8b14bcd5eec15465b44f9e4ae4cf",
+      "shards": [
+        {
+          "path": "UD-IQ1_M/DeepSeek-V4-Flash-0731-UD-IQ1_M-00001-of-00003.gguf",
+          "sha256": "b99fa246a10808146e00a7e908c6852098a4f08394eabf8b37c9263993980a69",
+          "file_size": 5257664,
+          "tensor_count": 0
+        },
+        {
+          "path": "UD-IQ1_M/DeepSeek-V4-Flash-0731-UD-IQ1_M-00002-of-00003.gguf",
+          "sha256": "c8536187b0e5dbe71e6bbf6086e0d3b491cd31d60da6522dfef074133c0ee2ee",
+          "file_size": 49448084864,
+          "tensor_count": 756
+        },
+        {
+          "path": "UD-IQ1_M/DeepSeek-V4-Flash-0731-UD-IQ1_M-00003-of-00003.gguf",
+          "sha256": "80a4eb4eebc57598d9559c2924054d40d69f51773ae873538939382e120b3e3f",
+          "file_size": 37447971424,
+          "tensor_count": 572
+        }
+      ]
+    }
+  }
+}
