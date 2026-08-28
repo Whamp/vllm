@@ -115,9 +115,7 @@ def shard_chunk_specs_by_query(
     data-dependent, which hangs rather than misbehaves.
     """
     if tp_size <= 1:
-        return [
-            ShardedChunkSpec(r, q, q.start > 0, None, None) for r, q in chunk_specs
-        ]
+        return [ShardedChunkSpec(r, q, q.start > 0, None, None) for r, q in chunk_specs]
 
     out: list[ShardedChunkSpec] = []
     prev_req: tuple[int, int] | None = None
@@ -832,9 +830,7 @@ class DeepseekV32IndexerMetadataBuilder(AttentionMetadataBuilder):
                 "VLLM_SM86_DCP=1."
             )
         self.use_sm86_dcp = (
-            envs.VLLM_SM86_DCP
-            and self.dcp_world_size > 1
-            and self.compress_ratio > 1
+            envs.VLLM_SM86_DCP and self.dcp_world_size > 1 and self.compress_ratio > 1
         )
 
         # Pre-allocate buffers for CUDA graph compatibility when

@@ -166,9 +166,7 @@ class DeepseekV4FlashMLAMetadataBuilder(
         self.dcp_rank = get_dcp_group().rank_in_group if self.dcp_world_size > 1 else 0
         self.dcp_entry_interleave = parallel_config.cp_kv_cache_interleave_size
         self.use_sm86_dcp = (
-            envs.VLLM_SM86_DCP
-            and self.dcp_world_size > 1
-            and self.compress_ratio > 1
+            envs.VLLM_SM86_DCP and self.dcp_world_size > 1 and self.compress_ratio > 1
         )
 
         # Pre-allocate compressed slot mapping buffer for CUDA graph address
@@ -202,13 +200,15 @@ class DeepseekV4FlashMLAMetadataBuilder(
                 max_num_batched_tokens, dtype=torch.int32, device=device
             )
             if self.use_sm86_dcp:
-                owned_bound = cdiv(
-                    c128a_max_compressed,
-                    self.dcp_world_size * self.dcp_entry_interleave,
-                ) * self.dcp_entry_interleave
+                owned_bound = (
+                    cdiv(
+                        c128a_max_compressed,
+                        self.dcp_world_size * self.dcp_entry_interleave,
+                    )
+                    * self.dcp_entry_interleave
+                )
                 self.c128a_dcp_decode_width = min(
-                    cdiv(owned_bound, _C128A_TOPK_ALIGNMENT)
-                    * _C128A_TOPK_ALIGNMENT,
+                    cdiv(owned_bound, _C128A_TOPK_ALIGNMENT) * _C128A_TOPK_ALIGNMENT,
                     c128a_max_compressed,
                 )
             self.c128a_prefill_buffer = torch.empty(

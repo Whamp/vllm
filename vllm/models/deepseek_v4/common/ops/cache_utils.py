@@ -434,9 +434,9 @@ _SM86_DCP_ENTRY_SCALE_BYTES = 8
 _SM86_DCP_ENTRY_BYTES = 584
 _SM86_DCP_PACK_WORKERS = 128
 _SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE_SIZE = 8
-_SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE: OrderedDict[
-    tuple[Any, ...], torch.Tensor
-] = OrderedDict()
+_SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE: OrderedDict[tuple[Any, ...], torch.Tensor] = (
+    OrderedDict()
+)
 
 
 def _sm86_dcp_virtual_block_table(
@@ -471,8 +471,7 @@ def _sm86_dcp_virtual_block_table(
     )
     rank_rows = owners * (num_reqs * max_local_entries) + local_entries
     request_rows = (
-        torch.arange(num_reqs, dtype=torch.int64, device=device)
-        * max_local_entries
+        torch.arange(num_reqs, dtype=torch.int64, device=device) * max_local_entries
     )
     table = (rank_rows.unsqueeze(0) + request_rows.unsqueeze(1)).to(torch.int32)
 
@@ -513,14 +512,10 @@ def _sm86_dcp_pack_k_entries_kernel(
         cache_block = k_cache_ptr + physical_block.to(tl.int64) * block_stride
         token_data = cache_block + block_offset * token_data_size
         token_scales = (
-            cache_block
-            + cache_block_size * token_data_size
-            + block_offset * scale_dim
+            cache_block + cache_block_size * token_data_size + block_offset * scale_dim
         )
         staging_row = (
-            staging_ptr
-            + req_idx * staging_stride0
-            + staging_idx * staging_stride1
+            staging_ptr + req_idx * staging_stride0 + staging_idx * staging_stride1
         )
 
         byte_offsets = tl.arange(0, 64)
@@ -554,9 +549,8 @@ def sm86_dcp_allgather_k_entries(
         cp_interleave,
     )
     cycle = cp_interleave * world_size
-    max_local_entries = (
-        max_entries // cycle * cp_interleave
-        + min(max_entries % cycle, cp_interleave)
+    max_local_entries = max_entries // cycle * cp_interleave + min(
+        max_entries % cycle, cp_interleave
     )
     if max_local_entries <= 0:
         raise ValueError("SM86 DCP gather requires at least one compressed entry")

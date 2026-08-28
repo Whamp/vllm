@@ -45,9 +45,7 @@ def test_c128_decode_metadata_uses_contiguous_rank_local_entries() -> None:
 def test_indexer_prefill_buffer_override_bounds_persistent_workspace(
     monkeypatch,
 ) -> None:
-    config = SimpleNamespace(
-        model_config=SimpleNamespace(max_model_len=99)
-    )
+    config = SimpleNamespace(model_config=SimpleNamespace(max_model_len=99))
     monkeypatch.delenv("VLLM_DSV4_INDEXER_PREFILL_BUFFER_TOKENS", raising=False)
     assert get_max_prefill_buffer_size(config) == 99 * 40
     monkeypatch.setenv("VLLM_DSV4_INDEXER_PREFILL_BUFFER_TOKENS", "1234")

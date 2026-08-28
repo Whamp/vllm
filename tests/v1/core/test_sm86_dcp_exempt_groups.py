@@ -46,9 +46,7 @@ def _vllm_config(dcp_world_size: int, enable_prefix_caching: bool):
             enable_prefix_caching=enable_prefix_caching,
             prefix_match_unit=None,
         ),
-        parallel_config=SimpleNamespace(
-            decode_context_parallel_size=dcp_world_size
-        ),
+        parallel_config=SimpleNamespace(decode_context_parallel_size=dcp_world_size),
         kv_transfer_config=None,
     )
 

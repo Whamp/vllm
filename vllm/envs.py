@@ -1088,8 +1088,7 @@ environment_variables: dict[str, Callable[[], Any]] = {
         os.getenv("VLLM_SM86_DCP", "0").strip().lower() in ("1", "true")
     ),
     "VLLM_SM86_DCP_VALIDATE_TOPK": lambda: (
-        os.getenv("VLLM_SM86_DCP_VALIDATE_TOPK", "0").strip().lower()
-        in ("1", "true")
+        os.getenv("VLLM_SM86_DCP_VALIDATE_TOPK", "0").strip().lower() in ("1", "true")
     ),
     "VLLM_DSV4_INDEXER_PREFILL_BUFFER_TOKENS": lambda: int(
         os.getenv("VLLM_DSV4_INDEXER_PREFILL_BUFFER_TOKENS", "0")

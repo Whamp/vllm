@@ -174,9 +174,7 @@ def _sm86_dcp_global_topk(
     """
     dcp_group = get_dcp_group()
     candidate_values = dcp_group.all_gather(local_values.contiguous(), dim=1)
-    candidate_indices = dcp_group.all_gather(
-        local_global_indices.contiguous(), dim=1
-    )
+    candidate_indices = dcp_group.all_gather(local_global_indices.contiguous(), dim=1)
     invalid = candidate_indices < 0
     candidate_values = torch.where(
         invalid,
@@ -261,9 +259,7 @@ def _validate_sm86_dcp_global_topk(
     mismatch = torch.any(expected_sets != selected_sets, dim=-1)
     if bool(torch.any(mismatch).item()):
         row = int(torch.nonzero(mismatch, as_tuple=False)[0].item())
-        different_entries = int(
-            (expected_sets[row] != selected_sets[row]).sum().item()
-        )
+        different_entries = int((expected_sets[row] != selected_sets[row]).sum().item())
         raise RuntimeError(
             "SM86 DCP global top-k candidate merge mismatch: "
             f"row={row}, global_len={int(global_lens[row].item())}, "
@@ -334,9 +330,7 @@ def _sm86_dcp_topk_decode(
     row_lens = local_seq_lens.reshape(-1)[:num_rows]
     if identity_selection:
         return _sm86_dcp_identity_selection(row_lens, topk_tokens)
-    valid = (local_topk_indices >= 0) & (
-        local_topk_indices < row_lens.unsqueeze(1)
-    )
+    valid = (local_topk_indices >= 0) & (local_topk_indices < row_lens.unsqueeze(1))
     safe_indices = torch.clamp(
         local_topk_indices,
         min=0,

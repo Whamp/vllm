@@ -147,8 +147,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
         self._use_sm86_dcp = envs.VLLM_SM86_DCP and self._dcp_size > 1
         if self._use_sm86_dcp and not envs.VLLM_DSV4_FLASH_MLA_DECODE:
             raise ValueError(
-                "DeepSeek V4 SM86 DCP requires "
-                "VLLM_DSV4_FLASH_MLA_DECODE=1."
+                "DeepSeek V4 SM86 DCP requires VLLM_DSV4_FLASH_MLA_DECODE=1."
             )
         if self._use_sm86_dcp and parallel_config.dcp_comm_backend != "a2a":
             raise ValueError(
@@ -171,9 +170,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
             else None
         )
         if self._use_sm86_dcp:
-            capture_sizes = (
-                vllm_config.compilation_config.cudagraph_capture_sizes or []
-            )
+            capture_sizes = vllm_config.compilation_config.cudagraph_capture_sizes or []
             max_decode_rows = max(
                 max(capture_sizes, default=0),
                 vllm_config.scheduler_config.max_num_seqs,
@@ -383,12 +380,18 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
             self._prefill_chunk_slices(attn_metadata, swa_metadata)
         ):
             chunk_size = chunk.chunk_size
-            max_entries = int(
-                seq_lens_cpu[
-                    chunk_index * self.PREFILL_CHUNK_SIZE :
-                    chunk_index * self.PREFILL_CHUNK_SIZE + chunk_size
-                ].max().item()
-            ) // self.compress_ratio
+            max_entries = (
+                int(
+                    seq_lens_cpu[
+                        chunk_index * self.PREFILL_CHUNK_SIZE : chunk_index
+                        * self.PREFILL_CHUNK_SIZE
+                        + chunk_size
+                    ]
+                    .max()
+                    .item()
+                )
+                // self.compress_ratio
+            )
             assert chunk.compressed_seq_lens is not None
             assert chunk.compressed_block_table is not None
             dequantize_and_gather_k_cache(
@@ -494,9 +497,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
         num_decodes = swa_metadata.num_decodes
         if swa_metadata.seq_lens is None:
             raise RuntimeError("DCP decode validation requires global seq_lens")
-        global_entry_lens = (
-            swa_metadata.seq_lens[:num_decodes] // self.compress_ratio
-        )
+        global_entry_lens = swa_metadata.seq_lens[:num_decodes] // self.compress_ratio
         max_entries = int(global_entry_lens.max().item())
         # Startup dummy runs exercise at most a handful of entries over
         # uninitialized cache rows. Real C128 decode can still be below its
@@ -513,9 +514,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
             max_entries,
         )
 
-        gathered_local = dcp_group.all_gather(
-            local_entry_indices.contiguous(), dim=1
-        )
+        gathered_local = dcp_group.all_gather(local_entry_indices.contiguous(), dim=1)
         topk_width = local_entry_indices.shape[1]
         rank_by_column = (
             torch.arange(
@@ -580,9 +579,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
         )
 
         reference_nonfinite = int((~torch.isfinite(reference)).sum().item())
-        partial_nonfinite = int(
-            (~torch.isfinite(output[:num_tokens])).sum().item()
-        )
+        partial_nonfinite = int((~torch.isfinite(output[:num_tokens])).sum().item())
         ag_rs_nonfinite = int((~torch.isfinite(ag_rs_output)).sum().item())
         if reference_nonfinite or partial_nonfinite or ag_rs_nonfinite:
             raise RuntimeError(
@@ -678,20 +675,16 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                 if topk_indices is not None and self._use_sm86_dcp:
                     assert swa_metadata.is_valid_token is not None
                     assert swa_metadata.token_to_req_indices is not None
-                    local_entry_indices = topk_indices.reshape(
-                        num_decode_tokens, -1
-                    )
-                    global_indices, topk_lens = (
-                        compute_global_topk_indices_and_lens(
-                            local_entry_indices,
-                            swa_metadata.token_to_req_indices,
-                            attn_metadata.block_table[:num_decodes],
-                            attn_metadata.block_size // self.compress_ratio,
-                            swa_metadata.is_valid_token[:num_decode_tokens],
-                            output_buffers=self._global_topk_output_buffers(
-                                local_entry_indices
-                            ),
-                        )
+                    local_entry_indices = topk_indices.reshape(num_decode_tokens, -1)
+                    global_indices, topk_lens = compute_global_topk_indices_and_lens(
+                        local_entry_indices,
+                        swa_metadata.token_to_req_indices,
+                        attn_metadata.block_table[:num_decodes],
+                        attn_metadata.block_size // self.compress_ratio,
+                        swa_metadata.is_valid_token[:num_decode_tokens],
+                        output_buffers=self._global_topk_output_buffers(
+                            local_entry_indices
+                        ),
                     )
                     topk_indices = global_indices.view(num_decode_tokens, 1, -1)
 
@@ -764,12 +757,8 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                 lse_out=partial_lse,
             )
             if envs.VLLM_SM86_DCP_VALIDATE_TOPK:
-                partial_out_nonfinite = int(
-                    (~torch.isfinite(partial_out)).sum().item()
-                )
-                partial_lse_nonfinite = int(
-                    (~torch.isfinite(partial_lse)).sum().item()
-                )
+                partial_out_nonfinite = int((~torch.isfinite(partial_out)).sum().item())
+                partial_lse_nonfinite = int((~torch.isfinite(partial_lse)).sum().item())
                 if partial_out_nonfinite or partial_lse_nonfinite:
                     q_nonfinite = int((~torch.isfinite(gathered_q)).sum().item())
                     raise RuntimeError(

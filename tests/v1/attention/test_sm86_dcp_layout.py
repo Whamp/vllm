@@ -60,12 +60,15 @@ def test_sm86_dcp_layout_matches_enumerated_entry_ownership(
                 cp_interleave,
             )
             assert round_trip_global.tolist() == expected
-            assert sm86_dcp_global_to_local(
-                round_trip_global,
-                dcp_rank,
-                dcp_world_size,
-                cp_interleave,
-            ).tolist() == local_entries.tolist()
+            assert (
+                sm86_dcp_global_to_local(
+                    round_trip_global,
+                    dcp_rank,
+                    dcp_world_size,
+                    cp_interleave,
+                ).tolist()
+                == local_entries.tolist()
+            )
 
 
 def test_sm86_dcp_layout_preserves_invalid_entry_sentinel() -> None:
