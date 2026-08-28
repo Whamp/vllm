@@ -3026,6 +3026,94 @@ class TestEagle:
         )
 
     @pytest.mark.parametrize("async_scheduling", [True, False])
+    def test_swa_store_horizon_spans_the_whole_prompt(
+        self, request_runner, async_scheduling
+    ):
+        """Chunked-prefill step frontiers must not store unreachable SWA chunks.
+
+        Regression: is_store_reachable_swa_chunk() deliberately relaxes the
+        tail of an INCOMPLETE alignment segment so a request's final short
+        segment still offloads. Feeding it the running storable count makes
+        every chunked-prefill step's frontier look like that final segment,
+        storing one junk chunk per SWA group per step -- chunks the load path
+        can never query (it only asks at full-attention alignment boundaries).
+        On a small CPU tier those junk chunks evict useful ones LRU-first.
+        The reachability horizon must be projected to the end of the prompt.
+
+        Geometry (same as test_swa_alignment_skip): full-attention 16
+        tokens/chunk, SWA 4 tokens/chunk with window 8 -> alignment segments
+        of 4 SWA chunks, only the trailing 2 reachable. A 1200-token prompt
+        spans the harness's 1000-token chunk budget over two prefill steps
+        and yields 300 SWA chunks; exactly the trailing-2-of-each-segment set
+        must be stored -- no junk from the step-1 frontier at chunk 250.
+        """
+        full_attn_block_size = 16
+        swa_block_size = 4
+        sliding_window = 8
+        num_gpu_blocks = 1000
+
+        kv_cache_groups = [
+            KVCacheGroupSpec(
+                ["layer0"],
+                FullAttentionSpec(
+                    block_size=full_attn_block_size,
+                    num_kv_heads=1,
+                    head_size=1,
+                    dtype=torch.float32,
+                ),
+            ),
+            KVCacheGroupSpec(
+                ["layer1"],
+                SlidingWindowSpec(
+                    block_size=swa_block_size,
+                    num_kv_heads=1,
+                    head_size=1,
+                    dtype=torch.float32,
+                    sliding_window=sliding_window,
+                ),
+            ),
+        ]
+
+        runner = request_runner(
+            block_size=swa_block_size,
+            num_gpu_blocks=num_gpu_blocks,
+            async_scheduling=async_scheduling,
+            kv_cache_groups=kv_cache_groups,
+        )
+        kv_group_configs = runner.connector_scheduler.config.kv_group_configs
+        assert kv_group_configs[1].alignment_chunk_count == 4
+        assert kv_group_configs[1].sliding_window_size_in_chunks == 2
+
+        # Prompt spans more than one prefill chunk (chunk budget 1000 tokens):
+        # 1200 tokens = 75 full-attn blocks = 300 SWA chunks. The step-1
+        # frontier sits mid-segment at SWA chunk 250 (position 2 of segment
+        # 62) with a partial tail of 2 chunks that the buggy horizon stored.
+        num_tokens = 1200
+        total_swa_chunks = num_tokens // swa_block_size
+        runner.new_request(token_ids=[0] * num_tokens)
+        runner.manager.prepare_store.side_effect = lambda keys, req_context: (
+            generate_store_output(keys)
+        )
+        runner._run([1, 1, EOS_TOKEN_ID], complete_transfers=True)
+
+        swa_chunks = sorted(
+            b.request_block_offset
+            for t in runner.completed_stores
+            for b in t.gpu_blocks
+            if b.group_idx == 1
+        )
+        expected = [
+            c
+            for c in range(total_swa_chunks)
+            if is_store_reachable_swa_chunk(c, total_swa_chunks, 4, 2, False)
+        ]
+        assert swa_chunks == expected, (
+            f"stored {len(swa_chunks)} SWA chunks, expected "
+            f"{len(expected)}; junk frontier chunks: "
+            f"{set(swa_chunks) - set(expected)}"
+        )
+
+    @pytest.mark.parametrize("async_scheduling", [True, False])
     def test_full_attn_store_then_load(self, request_runner, async_scheduling: bool):
         """Eagle group constrains load: convergence tightens both groups.
 
