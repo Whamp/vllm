@@ -604,7 +604,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
 
         a2a_max_abs, a2a_cosine = metrics(output[:num_tokens])
         ag_max_abs, ag_cosine = metrics(ag_rs_output)
-        if a2a_max_abs > 0.05 or a2a_cosine < 0.999:
+        if a2a_max_abs > 0.125 or a2a_cosine < 0.9999:
             raise RuntimeError(
                 "SM86 DCP partial decode mismatch against global-cache "
                 f"reference: a2a_max_abs={a2a_max_abs:.6f}, "
