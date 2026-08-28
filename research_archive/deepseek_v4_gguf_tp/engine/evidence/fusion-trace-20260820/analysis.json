@@ -1,0 +1,458 @@
+{
+  "schema_version": 2,
+  "database": "tp4-decode-layer-slice.sqlite",
+  "trace_profile": "synthetic-v1",
+  "captured_replays_per_rank": 50,
+  "stable_replays_per_rank": 49,
+  "excluded_replays": "replay 0 on each rank; capture-start barrier perturbs its first collective",
+  "rank_summaries": [
+    {
+      "device": 0,
+      "stable_graph_span": {
+        "count": 49,
+        "min_us": 194.592,
+        "median_us": 195.713,
+        "mean_us": 195.7271224489796,
+        "max_us": 196.928
+      },
+      "preceding_launch_gap": {
+        "count": 49,
+        "min_us": 4.544,
+        "median_us": 4.576,
+        "mean_us": 4.587122448979591,
+        "max_us": 4.896
+      }
+    },
+    {
+      "device": 1,
+      "stable_graph_span": {
+        "count": 49,
+        "min_us": 194.338,
+        "median_us": 195.809,
+        "mean_us": 195.76777551020407,
+        "max_us": 197.281
+      },
+      "preceding_launch_gap": {
+        "count": 49,
+        "min_us": 4.512,
+        "median_us": 4.512,
+        "mean_us": 4.5374897959183675,
+        "max_us": 4.864
+      }
+    },
+    {
+      "device": 2,
+      "stable_graph_span": {
+        "count": 49,
+        "min_us": 194.53,
+        "median_us": 195.682,
+        "mean_us": 195.62967346938774,
+        "max_us": 196.866
+      },
+      "preceding_launch_gap": {
+        "count": 49,
+        "min_us": 4.608,
+        "median_us": 4.64,
+        "mean_us": 4.647224489795918,
+        "max_us": 4.928
+      }
+    },
+    {
+      "device": 3,
+      "stable_graph_span": {
+        "count": 49,
+        "min_us": 194.147,
+        "median_us": 195.778,
+        "mean_us": 195.7361224489796,
+        "max_us": 197.794
+      },
+      "preceding_launch_gap": {
+        "count": 49,
+        "min_us": 4.512,
+        "median_us": 4.576,
+        "mean_us": 4.566285714285714,
+        "max_us": 4.704
+      }
+    }
+  ],
+  "all_stable_replays": {
+    "graph_span": {
+      "count": 196,
+      "min_us": 194.147,
+      "median_us": 195.746,
+      "mean_us": 195.71517346938776,
+      "max_us": 197.794
+    },
+    "kernel_duration_sum": {
+      "count": 196,
+      "min_us": 193.187,
+      "median_us": 195.0255,
+      "mean_us": 194.98052040816327,
+      "max_us": 196.801
+    },
+    "gpu_busy_union": {
+      "count": 196,
+      "min_us": 192.867,
+      "median_us": 194.561,
+      "mean_us": 194.51668367346937,
+      "max_us": 196.545
+    },
+    "internal_idle": {
+      "count": 196,
+      "min_us": 1.056,
+      "median_us": 1.184,
+      "mean_us": 1.1984897959183674,
+      "max_us": 1.378
+    },
+    "preceding_graph_launch_gap": {
+      "count": 196,
+      "min_us": 4.512,
+      "median_us": 4.576,
+      "mean_us": 4.584530612244897,
+      "max_us": 4.928
+    },
+    "first_start_to_next_start_period": {
+      "count": 192,
+      "min_us": 198.723,
+      "median_us": 200.32150000000001,
+      "mean_us": 200.3052447916667,
+      "max_us": 202.338
+    }
+  },
+  "node_groups": {
+    "dense_marlin_projections": {
+      "positions": [
+        0,
+        1,
+        2,
+        4,
+        11,
+        18
+      ],
+      "median_duration_sum_us": 84.416
+    },
+    "hierarchical_all_reduce": {
+      "positions": [
+        5,
+        22
+      ],
+      "median_duration_sum_us": 45.7285
+    },
+    "routed_major_matvecs": {
+      "positions": [
+        7,
+        9
+      ],
+      "median_duration_sum_us": 38.304
+    },
+    "original_f1_f2_removable_nodes": {
+      "positions": [
+        6,
+        8,
+        10,
+        20,
+        21
+      ],
+      "median_duration_sum_us": 10.432
+    },
+    "shared_swiglu_pointwise_chain": {
+      "positions": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "median_duration_sum_us": 10.879999999999999
+    },
+    "final_add_cast_pointwise_chain": {
+      "positions": [
+        19,
+        20,
+        21
+      ],
+      "median_duration_sum_us": 5.76
+    }
+  },
+  "nodes": [
+    {
+      "position": 0,
+      "label": "attention_fused_wqa_wkv",
+      "kernel": "Marlin",
+      "duration": {
+        "count": 196,
+        "min_us": 13.76,
+        "median_us": 14.112,
+        "mean_us": 14.111147959183672,
+        "max_us": 14.496
+      }
+    },
+    {
+      "position": 1,
+      "label": "attention_wq_b",
+      "kernel": "Marlin",
+      "duration": {
+        "count": 196,
+        "min_us": 15.104,
+        "median_us": 15.904,
+        "mean_us": 15.870520408163264,
+        "max_us": 16.608
+      }
+    },
+    {
+      "position": 2,
+      "label": "attention_wo_a",
+      "kernel": "Marlin",
+      "duration": {
+        "count": 196,
+        "min_us": 15.712,
+        "median_us": 16.192,
+        "mean_us": 16.177928571428573,
+        "max_us": 16.641
+      }
+    },
+    {
+      "position": 3,
+      "label": "attention_pointwise_copy",
+      "kernel": "elementwise_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 2.367,
+        "median_us": 2.432,
+        "mean_us": 2.42040306122449,
+        "max_us": 2.528
+      }
+    },
+    {
+      "position": 4,
+      "label": "attention_wo_b",
+      "kernel": "Marlin",
+      "duration": {
+        "count": 196,
+        "min_us": 16.447,
+        "median_us": 16.896,
+        "mean_us": 16.885163265306122,
+        "max_us": 17.504
+      }
+    },
+    {
+      "position": 5,
+      "label": "attention_all_reduce",
+      "kernel": "_hier_all_reduce_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 20.0,
+        "median_us": 22.368499999999997,
+        "mean_us": 22.491938775510203,
+        "max_us": 24.704
+      }
+    },
+    {
+      "position": 6,
+      "label": "routed_input_quantize",
+      "kernel": "quantize_bf16_to_q8_1_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 1.6,
+        "median_us": 1.632,
+        "mean_us": 1.6336479591836734,
+        "max_us": 1.664
+      }
+    },
+    {
+      "position": 7,
+      "label": "routed_iq2_gate_up",
+      "kernel": "iq2_xxs_q8_1_indexed_gate_up_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 24.8,
+        "median_us": 25.024,
+        "mean_us": 25.20966836734694,
+        "max_us": 26.241
+      }
+    },
+    {
+      "position": 8,
+      "label": "routed_swiglu_weighted_quantize",
+      "kernel": "swiglu_weighted_q8_1_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 1.983,
+        "median_us": 2.112,
+        "mean_us": 2.1020408163265305,
+        "max_us": 2.241
+      }
+    },
+    {
+      "position": 9,
+      "label": "routed_q2_down",
+      "kernel": "q2_k_q8_1_indexed_down_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 13.024,
+        "median_us": 13.28,
+        "mean_us": 13.297270408163264,
+        "max_us": 13.696
+      }
+    },
+    {
+      "position": 10,
+      "label": "routed_topk_sum",
+      "kernel": "reduce_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 3.808,
+        "median_us": 3.904,
+        "mean_us": 3.902897959183673,
+        "max_us": 4.0
+      }
+    },
+    {
+      "position": 11,
+      "label": "shared_gate_up",
+      "kernel": "Marlin",
+      "duration": {
+        "count": 196,
+        "min_us": 12.64,
+        "median_us": 13.024,
+        "mean_us": 13.018709183673469,
+        "max_us": 13.568
+      }
+    },
+    {
+      "position": 12,
+      "label": "shared_bf16_to_fp32",
+      "kernel": "unrolled_elementwise_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 2.944,
+        "median_us": 2.976,
+        "mean_us": 2.9632908163265306,
+        "max_us": 3.009
+      }
+    },
+    {
+      "position": 13,
+      "label": "shared_gate_clamp",
+      "kernel": "vectorized_elementwise_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 1.536,
+        "median_us": 1.568,
+        "mean_us": 1.5642602040816327,
+        "max_us": 1.6
+      }
+    },
+    {
+      "position": 14,
+      "label": "shared_up_clamp",
+      "kernel": "vectorized_elementwise_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 1.536,
+        "median_us": 1.568,
+        "mean_us": 1.560173469387755,
+        "max_us": 1.6
+      }
+    },
+    {
+      "position": 15,
+      "label": "shared_silu",
+      "kernel": "vectorized_elementwise_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 1.888,
+        "median_us": 1.888,
+        "mean_us": 1.8934183673469385,
+        "max_us": 1.92
+      }
+    },
+    {
+      "position": 16,
+      "label": "shared_multiply",
+      "kernel": "vectorized_elementwise_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 1.44,
+        "median_us": 1.44,
+        "mean_us": 1.446219387755102,
+        "max_us": 1.472
+      }
+    },
+    {
+      "position": 17,
+      "label": "shared_fp32_to_bf16",
+      "kernel": "vectorized_elementwise_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 1.408,
+        "median_us": 1.44,
+        "mean_us": 1.4326581632653062,
+        "max_us": 1.472
+      }
+    },
+    {
+      "position": 18,
+      "label": "shared_down",
+      "kernel": "Marlin",
+      "duration": {
+        "count": 196,
+        "min_us": 8.064,
+        "median_us": 8.288,
+        "mean_us": 8.298673469387754,
+        "max_us": 8.64
+      }
+    },
+    {
+      "position": 19,
+      "label": "shared_output_to_fp32",
+      "kernel": "unrolled_elementwise_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 2.912,
+        "median_us": 2.976,
+        "mean_us": 2.9562755102040814,
+        "max_us": 2.977
+      }
+    },
+    {
+      "position": 20,
+      "label": "routed_shared_add",
+      "kernel": "vectorized_elementwise_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 1.44,
+        "median_us": 1.472,
+        "mean_us": 1.4903010204081633,
+        "max_us": 1.537
+      }
+    },
+    {
+      "position": 21,
+      "label": "ffn_fp32_to_bf16",
+      "kernel": "vectorized_elementwise_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 1.28,
+        "median_us": 1.312,
+        "mean_us": 1.310857142857143,
+        "max_us": 1.344
+      }
+    },
+    {
+      "position": 22,
+      "label": "ffn_all_reduce",
+      "kernel": "_hier_all_reduce_kernel",
+      "duration": {
+        "count": 196,
+        "min_us": 20.513,
+        "median_us": 23.36,
+        "mean_us": 22.94305612244898,
+        "max_us": 25.536
+      }
+    }
+  ],
+  "decision": "FALSIFIED",
+  "decision_rationale": "Stable graph replays are kernel/collective dominated. The median internal idle and preceding launch gap are far below the preregistered 60-100 us/layer gap."
+}

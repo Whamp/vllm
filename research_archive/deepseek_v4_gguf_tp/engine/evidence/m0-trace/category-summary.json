@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "scope": "summed_cuda_kernel_time_not_critical_path",
+  "total_kernel_time_ns": 15469002504,
+  "categories": {
+    "collective": {
+      "time_ns": 3053355747,
+      "fraction": 0.1973854323322049,
+      "example_names": [
+        "_hier_all_reduce_kernel",
+        "_hier_two_shot_kernel",
+        "ncclDevKernel_AllGather_RING_LL(ncclDevKernelArgsStorage<(unsigned long)4096>)"
+      ]
+    },
+    "marlin_dense": {
+      "time_ns": 4118915277,
+      "fraction": 0.26626896439734393,
+      "example_names": [
+        "void marlin::Marlin<(long)1125899906909960, (long)2814749767172868, (long)1125899906909960, (long)1125899906909960, (int)256, (int)1, (int)8, (int)8, (bool)1, (",
+        "void marlin::Marlin<(long)1125899906909960, (long)2814749767172868, (long)1125899906909960, (long)1125899906909960, (int)128, (int)1, (int)4, (int)8, (bool)1, (",
+        "void marlin::Marlin<(long)1125899906909960, (long)2814749767172868, (long)1125899906909960, (long)1125899906909960, (int)128, (int)2, (int)4, (int)8, (bool)0, ("
+      ]
+    },
+    "humming_w2": {
+      "time_ns": 2383809452,
+      "fraction": 0.15410233797451325,
+      "example_names": [
+        "void humming<MmaOpClass, Shape<(unsigned int)0, (unsigned int)1024, (unsigned int)4096>, Shape<(unsigned int)16, (unsigned int)128, (unsigned int)128>, Shape<(u",
+        "void humming<MmaOpClass, Shape<(unsigned int)0, (unsigned int)4096, (unsigned int)512>, Shape<(unsigned int)16, (unsigned int)256, (unsigned int)128>, Shape<(un",
+        "void humming<MmaOpClass, Shape<(unsigned int)0, (unsigned int)1024, (unsigned int)4096>, Shape<(unsigned int)16, (unsigned int)256, (unsigned int)128>, Shape<(u"
+      ]
+    },
+    "humming_w4": {
+      "time_ns": 142681340,
+      "fraction": 0.009223693639140934,
+      "example_names": [
+        "void humming<MmaOpClass, Shape<(unsigned int)0, (unsigned int)4096, (unsigned int)512>, Shape<(unsigned int)16, (unsigned int)256, (unsigned int)64>, Shape<(uns",
+        "void humming<MmaOpClass, Shape<(unsigned int)0, (unsigned int)4096, (unsigned int)512>, Shape<(unsigned int)16, (unsigned int)256, (unsigned int)128>, Shape<(un"
+      ]
+    },
+    "flashmla_decode": {
+      "time_ns": 681471584,
+      "fraction": 0.04405400954740191,
+      "example_names": [
+        "void <unnamed>::mma_dec::sparse_mla_decode_mma_kernel<(bool)0>(Sparse_mla_decode_params)",
+        "<unnamed>::sparse_mla_selection_dequant_kernel(Sparse_mla_decode_params)",
+        "<unnamed>::mma_dec::sparse_mla_combine_kernel(Sparse_mla_decode_params)"
+      ]
+    },
+    "indexer": {
+      "time_ns": 935056784,
+      "fraction": 0.0604471286211384,
+      "example_names": [
+        "_dsv4_topk_kernel",
+        "std::enable_if<!T7, void>::type internal::gemvx::kernel<int, int, __nv_bfloat16, float, float, float, (bool)0, (bool)1, (bool)1, (bool)0, (int)7, (bool)0, cubla",
+        "_fp8_paged_mqa_logits_kernel"
+      ]
+    },
+    "hyperconnection": {
+      "time_ns": 1034617291,
+      "fraction": 0.06688325835699277,
+      "example_names": [
+        "mhc_pre_big_fuse_with_norm_tilelang_kernel",
+        "mhc_fused_tilelang_kernel",
+        "hc_prenorm_gemm_tilelang_kernel"
+      ]
+    },
+    "other": {
+      "time_ns": 3119095029,
+      "fraction": 0.20163517513126392,
+      "example_names": [
+        "void cutlass::Kernel2<cutlass_80_wmma_tensorop_s161616gemm_bf16_16x16_128x2_tn_align8>(T1::Params)",
+        "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x64_32x4_tn_align8>(T1::Params)",
+        "void vllm::deepseek_v4_fused_ops::fusedDeepseekV4QNormRopeKVRopeQuantInsertKernel<c10::BFloat16, (int)16>(const T1 *, T1 *, const T1 *, unsigned char *, const l"
+      ]
+    }
+  }
+}

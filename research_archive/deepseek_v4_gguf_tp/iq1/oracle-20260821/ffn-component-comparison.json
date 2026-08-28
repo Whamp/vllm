@@ -1,0 +1,776 @@
+[
+  {
+    "kind": "routed",
+    "layer": 0,
+    "cosine": 0.11612777540076238,
+    "normalized_rmse": 1.2736838609957248,
+    "normalized_mae": 1.2811351099078923,
+    "candidate_norm": 4.006055900308312,
+    "reference_norm": 4.3855315000141815
+  },
+  {
+    "kind": "routed",
+    "layer": 1,
+    "cosine": 0.9672616627578962,
+    "normalized_rmse": 0.25451501733663434,
+    "normalized_mae": 0.2544127736016731,
+    "candidate_norm": 3.8089437709574057,
+    "reference_norm": 3.8607733239341337
+  },
+  {
+    "kind": "routed",
+    "layer": 2,
+    "cosine": 0.049823934189036835,
+    "normalized_rmse": 1.4234032853473209,
+    "normalized_mae": 1.422762650360883,
+    "candidate_norm": 7.3227031272924465,
+    "reference_norm": 6.882219867500348
+  },
+  {
+    "kind": "routed",
+    "layer": 3,
+    "cosine": 0.0959577326776167,
+    "normalized_rmse": 1.2522023669267082,
+    "normalized_mae": 1.2468548840604383,
+    "candidate_norm": 4.9641806168629214,
+    "reference_norm": 5.801263450147676
+  },
+  {
+    "kind": "routed",
+    "layer": 4,
+    "cosine": 0.7795103687837486,
+    "normalized_rmse": 0.6664952856158268,
+    "normalized_mae": 0.6543910962231374,
+    "candidate_norm": 5.54738687891529,
+    "reference_norm": 5.507613388702762
+  },
+  {
+    "kind": "routed",
+    "layer": 5,
+    "cosine": 0.8106188893106274,
+    "normalized_rmse": 0.6087567934711835,
+    "normalized_mae": 0.6057906400193788,
+    "candidate_norm": 6.982741794826529,
+    "reference_norm": 7.147012623110762
+  },
+  {
+    "kind": "routed",
+    "layer": 6,
+    "cosine": 0.09464592117739076,
+    "normalized_rmse": 1.1791363964914878,
+    "normalized_mae": 1.1809950924685977,
+    "candidate_norm": 8.408228699756565,
+    "reference_norm": 11.572591529777275
+  },
+  {
+    "kind": "routed",
+    "layer": 7,
+    "cosine": 0.12885320160240096,
+    "normalized_rmse": 1.3186589962171638,
+    "normalized_mae": 1.3216107691695567,
+    "candidate_norm": 11.454026553188353,
+    "reference_norm": 11.476659412215973
+  },
+  {
+    "kind": "routed",
+    "layer": 8,
+    "cosine": 0.34875114907665794,
+    "normalized_rmse": 1.0130188440401584,
+    "normalized_mae": 1.0157948354479114,
+    "candidate_norm": 8.145939972269794,
+    "reference_norm": 11.109457434112922
+  },
+  {
+    "kind": "routed",
+    "layer": 9,
+    "cosine": 0.4903887369414676,
+    "normalized_rmse": 0.974238037578167,
+    "normalized_mae": 0.9809371591353405,
+    "candidate_norm": 7.89797659862215,
+    "reference_norm": 8.530573943521295
+  },
+  {
+    "kind": "routed",
+    "layer": 10,
+    "cosine": 0.05718749227131018,
+    "normalized_rmse": 1.233818577100443,
+    "normalized_mae": 1.23875390567724,
+    "candidate_norm": 6.555016488443205,
+    "reference_norm": 8.380706951763344
+  },
+  {
+    "kind": "routed",
+    "layer": 11,
+    "cosine": 0.05820163157921495,
+    "normalized_rmse": 1.2429832435292272,
+    "normalized_mae": 1.2469329523756858,
+    "candidate_norm": 6.657480652915354,
+    "reference_norm": 8.334994622695472
+  },
+  {
+    "kind": "routed",
+    "layer": 12,
+    "cosine": 0.03410744505629336,
+    "normalized_rmse": 1.237691722551167,
+    "normalized_mae": 1.2407459826001308,
+    "candidate_norm": 6.687501689828022,
+    "reference_norm": 8.750913214063562
+  },
+  {
+    "kind": "routed",
+    "layer": 13,
+    "cosine": 0.021411174400082278,
+    "normalized_rmse": 1.3397840073687661,
+    "normalized_mae": 1.3504981938435139,
+    "candidate_norm": 7.432412541191837,
+    "reference_norm": 8.137905299752338
+  },
+  {
+    "kind": "routed",
+    "layer": 14,
+    "cosine": 0.058499851082209856,
+    "normalized_rmse": 1.1360455392005329,
+    "normalized_mae": 1.1311637262009047,
+    "candidate_norm": 7.445443695719096,
+    "reference_norm": 12.393838127599924
+  },
+  {
+    "kind": "routed",
+    "layer": 15,
+    "cosine": 0.020815762860542143,
+    "normalized_rmse": 1.1945516541454622,
+    "normalized_mae": 1.1996553314445728,
+    "candidate_norm": 7.845807075405375,
+    "reference_norm": 11.630928066075626
+  },
+  {
+    "kind": "routed",
+    "layer": 16,
+    "cosine": 0.029208444300302065,
+    "normalized_rmse": 1.2662030088665257,
+    "normalized_mae": 1.2770089587292783,
+    "candidate_norm": 8.912222971428404,
+    "reference_norm": 11.051013239264202
+  },
+  {
+    "kind": "routed",
+    "layer": 17,
+    "cosine": 0.017694475557131103,
+    "normalized_rmse": 1.243616628027276,
+    "normalized_mae": 1.2486160255861949,
+    "candidate_norm": 11.362287158477653,
+    "reference_norm": 15.005300213739867
+  },
+  {
+    "kind": "routed",
+    "layer": 18,
+    "cosine": 0.024889141384781287,
+    "normalized_rmse": 1.2940842710115608,
+    "normalized_mae": 1.2882687674774869,
+    "candidate_norm": 16.066871033538522,
+    "reference_norm": 18.9772293649284
+  },
+  {
+    "kind": "routed",
+    "layer": 19,
+    "cosine": 0.04606828578613078,
+    "normalized_rmse": 1.2247061034368043,
+    "normalized_mae": 1.219851897706251,
+    "candidate_norm": 9.838402622462588,
+    "reference_norm": 13.037780757428802
+  },
+  {
+    "kind": "routed",
+    "layer": 20,
+    "cosine": 0.012186983770319309,
+    "normalized_rmse": 1.3232053796012873,
+    "normalized_mae": 1.326935118099369,
+    "candidate_norm": 25.77728966205655,
+    "reference_norm": 29.332317858998962
+  },
+  {
+    "kind": "routed",
+    "layer": 21,
+    "cosine": 0.059390720701646645,
+    "normalized_rmse": 1.1016405760721042,
+    "normalized_mae": 1.0971912296839519,
+    "candidate_norm": 15.473906319904337,
+    "reference_norm": 29.453197617110153
+  },
+  {
+    "kind": "routed",
+    "layer": 22,
+    "cosine": 0.05051776938668178,
+    "normalized_rmse": 1.2799631577394077,
+    "normalized_mae": 1.2897763829605808,
+    "candidate_norm": 23.281063732811038,
+    "reference_norm": 27.355576409466625
+  },
+  {
+    "kind": "routed",
+    "layer": 23,
+    "cosine": 0.029827170401534986,
+    "normalized_rmse": 1.459881403889838,
+    "normalized_mae": 1.46209713808915,
+    "candidate_norm": 15.56273510937373,
+    "reference_norm": 14.227492972815142
+  },
+  {
+    "kind": "routed",
+    "layer": 24,
+    "cosine": 0.0016191962169034518,
+    "normalized_rmse": 1.3628037491750473,
+    "normalized_mae": 1.3698870651511066,
+    "candidate_norm": 18.21831857670306,
+    "reference_norm": 19.642604516921132
+  },
+  {
+    "kind": "routed",
+    "layer": 25,
+    "cosine": 0.026601294324280243,
+    "normalized_rmse": 1.6005176829991292,
+    "normalized_mae": 1.6026820360127527,
+    "candidate_norm": 18.378952516637916,
+    "reference_norm": 14.397394907192192
+  },
+  {
+    "kind": "routed",
+    "layer": 26,
+    "cosine": 0.07074391165242332,
+    "normalized_rmse": 1.4040680391117486,
+    "normalized_mae": 1.4092362107123495,
+    "candidate_norm": 25.795678434818363,
+    "reference_norm": 24.36129953574205
+  },
+  {
+    "kind": "routed",
+    "layer": 27,
+    "cosine": 0.078768514765847,
+    "normalized_rmse": 1.397710927644856,
+    "normalized_mae": 1.3986378884359714,
+    "candidate_norm": 15.570550497613603,
+    "reference_norm": 14.710535717120738
+  },
+  {
+    "kind": "routed",
+    "layer": 28,
+    "cosine": 0.026129815307013127,
+    "normalized_rmse": 2.233997633902613,
+    "normalized_mae": 2.2189533817069202,
+    "candidate_norm": 36.18304603273012,
+    "reference_norm": 17.877125202217098
+  },
+  {
+    "kind": "routed",
+    "layer": 29,
+    "cosine": 0.06055780416406208,
+    "normalized_rmse": 1.3454228271850917,
+    "normalized_mae": 1.329771615494034,
+    "candidate_norm": 22.143103005918974,
+    "reference_norm": 23.001448537878275
+  },
+  {
+    "kind": "routed",
+    "layer": 30,
+    "cosine": 0.0249162282459572,
+    "normalized_rmse": 1.3182447520926,
+    "normalized_mae": 1.3128183870802421,
+    "candidate_norm": 18.569334919454832,
+    "reference_norm": 21.000987185065643
+  },
+  {
+    "kind": "routed",
+    "layer": 31,
+    "cosine": 0.013900124615953847,
+    "normalized_rmse": 1.3331433690823153,
+    "normalized_mae": 1.3330929926575477,
+    "candidate_norm": 20.403524470130638,
+    "reference_norm": 22.780954605272576
+  },
+  {
+    "kind": "routed",
+    "layer": 32,
+    "cosine": 0.014038198389498897,
+    "normalized_rmse": 1.4427860578006126,
+    "normalized_mae": 1.4266952045388237,
+    "candidate_norm": 23.67759447887169,
+    "reference_norm": 22.46135405415391
+  },
+  {
+    "kind": "routed",
+    "layer": 33,
+    "cosine": -0.0052656764731215,
+    "normalized_rmse": 1.7150484648790922,
+    "normalized_mae": 1.711303462231164,
+    "candidate_norm": 26.471124635928803,
+    "reference_norm": 19.070282814451048
+  },
+  {
+    "kind": "routed",
+    "layer": 34,
+    "cosine": -0.010709555601107536,
+    "normalized_rmse": 1.4041451485751788,
+    "normalized_mae": 1.4014207041434177,
+    "candidate_norm": 26.337074141396208,
+    "reference_norm": 27.010768239942035
+  },
+  {
+    "kind": "routed",
+    "layer": 35,
+    "cosine": -0.0054701308731386344,
+    "normalized_rmse": 1.3971643382545538,
+    "normalized_mae": 1.39262782276535,
+    "candidate_norm": 29.873305121920794,
+    "reference_norm": 30.78817519573193
+  },
+  {
+    "kind": "routed",
+    "layer": 36,
+    "cosine": 0.015907314246119384,
+    "normalized_rmse": 1.546482607825647,
+    "normalized_mae": 1.5478926319569088,
+    "candidate_norm": 35.13432962303906,
+    "reference_norm": 29.384413609296825
+  },
+  {
+    "kind": "routed",
+    "layer": 37,
+    "cosine": 0.002840250621543181,
+    "normalized_rmse": 1.4111346047881235,
+    "normalized_mae": 1.4245138372737651,
+    "candidate_norm": 29.309570267204204,
+    "reference_norm": 29.35403465874926
+  },
+  {
+    "kind": "routed",
+    "layer": 38,
+    "cosine": 0.01820652895364041,
+    "normalized_rmse": 1.485020786442861,
+    "normalized_mae": 1.485235765794995,
+    "candidate_norm": 28.23789238996761,
+    "reference_norm": 25.29794255285602
+  },
+  {
+    "kind": "routed",
+    "layer": 39,
+    "cosine": 0.024421948702228084,
+    "normalized_rmse": 1.3005587849962363,
+    "normalized_mae": 1.3001818586550138,
+    "candidate_norm": 46.88820266925843,
+    "reference_norm": 54.755652182082144
+  },
+  {
+    "kind": "routed",
+    "layer": 40,
+    "cosine": 0.010589623132111276,
+    "normalized_rmse": 1.2168835989565892,
+    "normalized_mae": 1.2179395703660003,
+    "candidate_norm": 27.70787342064688,
+    "reference_norm": 39.35374886190509
+  },
+  {
+    "kind": "routed",
+    "layer": 41,
+    "cosine": -0.02300101181223324,
+    "normalized_rmse": 1.2228909892199018,
+    "normalized_mae": 1.2250968504015187,
+    "candidate_norm": 35.04046588068011,
+    "reference_norm": 51.434370722573924
+  },
+  {
+    "kind": "routed",
+    "layer": 42,
+    "cosine": 0.027311124500984406,
+    "normalized_rmse": 1.0457160029764798,
+    "normalized_mae": 1.06340268901594,
+    "candidate_norm": 40.38630095150559,
+    "reference_norm": 120.79344215569606
+  },
+  {
+    "kind": "shared",
+    "layer": 0,
+    "cosine": 0.9999674852651138,
+    "normalized_rmse": 0.008735606975358362,
+    "normalized_mae": 0.008760139882516154,
+    "candidate_norm": 39.917322140604455,
+    "reference_norm": 40.0531602553535
+  },
+  {
+    "kind": "shared",
+    "layer": 1,
+    "cosine": 0.9811915104784934,
+    "normalized_rmse": 0.19746473760651923,
+    "normalized_mae": 0.19627709375947863,
+    "candidate_norm": 6.138647005391623,
+    "reference_norm": 6.53319287193452
+  },
+  {
+    "kind": "shared",
+    "layer": 2,
+    "cosine": 0.9884377611905706,
+    "normalized_rmse": 0.15946910895614302,
+    "normalized_mae": 0.15905430193568612,
+    "candidate_norm": 9.329274668705247,
+    "reference_norm": 8.989211767972277
+  },
+  {
+    "kind": "shared",
+    "layer": 3,
+    "cosine": 0.9391865694932439,
+    "normalized_rmse": 0.3793544343138298,
+    "normalized_mae": 0.380755895850859,
+    "candidate_norm": 6.606700249977434,
+    "reference_norm": 6.004052951647315
+  },
+  {
+    "kind": "shared",
+    "layer": 4,
+    "cosine": 0.8760481518412644,
+    "normalized_rmse": 0.48403886858289863,
+    "normalized_mae": 0.48212025296651684,
+    "candidate_norm": 4.793200281633351,
+    "reference_norm": 5.221755935604284
+  },
+  {
+    "kind": "shared",
+    "layer": 5,
+    "cosine": 0.8546261280211882,
+    "normalized_rmse": 0.5363242000068639,
+    "normalized_mae": 0.5310538754405811,
+    "candidate_norm": 3.2525208162648194,
+    "reference_norm": 3.2890291189304937
+  },
+  {
+    "kind": "shared",
+    "layer": 6,
+    "cosine": 0.8979174930732386,
+    "normalized_rmse": 0.45253907791243764,
+    "normalized_mae": 0.453352433335185,
+    "candidate_norm": 5.240096896949567,
+    "reference_norm": 5.224297041925043
+  },
+  {
+    "kind": "shared",
+    "layer": 7,
+    "cosine": 0.7033191790630924,
+    "normalized_rmse": 0.781787931426501,
+    "normalized_mae": 0.7813773180850847,
+    "candidate_norm": 5.44471250934871,
+    "reference_norm": 5.292986337779049
+  },
+  {
+    "kind": "shared",
+    "layer": 8,
+    "cosine": 0.6522935165450017,
+    "normalized_rmse": 0.8047718557966815,
+    "normalized_mae": 0.7891864650488318,
+    "candidate_norm": 5.042838097505903,
+    "reference_norm": 5.4650335377388375
+  },
+  {
+    "kind": "shared",
+    "layer": 9,
+    "cosine": 0.6323730633633313,
+    "normalized_rmse": 0.9226956240475057,
+    "normalized_mae": 0.9385818474521106,
+    "candidate_norm": 4.415725374166364,
+    "reference_norm": 3.895193599003704
+  },
+  {
+    "kind": "shared",
+    "layer": 10,
+    "cosine": 0.6472672155291502,
+    "normalized_rmse": 0.9286824627014167,
+    "normalized_mae": 0.9375033491276384,
+    "candidate_norm": 4.833030829647729,
+    "reference_norm": 4.1036332950944026
+  },
+  {
+    "kind": "shared",
+    "layer": 11,
+    "cosine": 0.6331389550986234,
+    "normalized_rmse": 0.8692440516253722,
+    "normalized_mae": 0.9429363395506383,
+    "candidate_norm": 4.390528707348788,
+    "reference_norm": 4.268132482245842
+  },
+  {
+    "kind": "shared",
+    "layer": 12,
+    "cosine": 0.5207217128246806,
+    "normalized_rmse": 0.9852831888990831,
+    "normalized_mae": 1.0062175565561802,
+    "candidate_norm": 4.584384184805827,
+    "reference_norm": 4.5273859939338905
+  },
+  {
+    "kind": "shared",
+    "layer": 13,
+    "cosine": 0.49348600853983404,
+    "normalized_rmse": 1.0762603363547156,
+    "normalized_mae": 1.1505813617974376,
+    "candidate_norm": 5.107090938452997,
+    "reference_norm": 4.529916025481131
+  },
+  {
+    "kind": "shared",
+    "layer": 14,
+    "cosine": 0.2958157318709121,
+    "normalized_rmse": 1.267619514264088,
+    "normalized_mae": 1.2834672570798007,
+    "candidate_norm": 5.507095596402424,
+    "reference_norm": 4.877411502897111
+  },
+  {
+    "kind": "shared",
+    "layer": 15,
+    "cosine": 0.362470936882129,
+    "normalized_rmse": 1.4043205183563456,
+    "normalized_mae": 1.4376989763295662,
+    "candidate_norm": 6.183634292481455,
+    "reference_norm": 4.376407255825681
+  },
+  {
+    "kind": "shared",
+    "layer": 16,
+    "cosine": 0.2245944451005369,
+    "normalized_rmse": 1.4228201335878385,
+    "normalized_mae": 1.4321328930410633,
+    "candidate_norm": 6.369606038495178,
+    "reference_norm": 5.049836761612812
+  },
+  {
+    "kind": "shared",
+    "layer": 17,
+    "cosine": 0.2511861420533977,
+    "normalized_rmse": 1.4778781011903688,
+    "normalized_mae": 1.494284139974189,
+    "candidate_norm": 7.793446942138786,
+    "reference_norm": 5.697066747946739
+  },
+  {
+    "kind": "shared",
+    "layer": 18,
+    "cosine": 0.2810428528400902,
+    "normalized_rmse": 1.5718301509356083,
+    "normalized_mae": 1.57762375094167,
+    "candidate_norm": 12.684562047821613,
+    "reference_norm": 8.312914520406723
+  },
+  {
+    "kind": "shared",
+    "layer": 19,
+    "cosine": 0.6119529770802097,
+    "normalized_rmse": 1.5318792597058708,
+    "normalized_mae": 1.5213425113088406,
+    "candidate_norm": 12.777978325060321,
+    "reference_norm": 6.641790913861512
+  },
+  {
+    "kind": "shared",
+    "layer": 20,
+    "cosine": 0.24992998459350987,
+    "normalized_rmse": 1.3817150572431534,
+    "normalized_mae": 1.3818975062030008,
+    "candidate_norm": 20.707969001989103,
+    "reference_norm": 16.759057895395024
+  },
+  {
+    "kind": "shared",
+    "layer": 21,
+    "cosine": 0.10857845147923843,
+    "normalized_rmse": 1.9941072445522807,
+    "normalized_mae": 2.071155121490635,
+    "candidate_norm": 18.748306308640153,
+    "reference_norm": 10.20463235511309
+  },
+  {
+    "kind": "shared",
+    "layer": 22,
+    "cosine": 0.1111363137767414,
+    "normalized_rmse": 1.6548768748316864,
+    "normalized_mae": 1.6553867317095794,
+    "candidate_norm": 18.683229198086735,
+    "reference_norm": 13.025317077060745
+  },
+  {
+    "kind": "shared",
+    "layer": 23,
+    "cosine": 0.1652445728300958,
+    "normalized_rmse": 1.4864165557577647,
+    "normalized_mae": 1.4598517821094656,
+    "candidate_norm": 6.790625732531924,
+    "reference_norm": 5.316254619964625
+  },
+  {
+    "kind": "shared",
+    "layer": 24,
+    "cosine": 0.20963867662834046,
+    "normalized_rmse": 1.0538733366523827,
+    "normalized_mae": 1.030152957668086,
+    "candidate_norm": 7.94642740336132,
+    "reference_norm": 13.18192769252197
+  },
+  {
+    "kind": "shared",
+    "layer": 25,
+    "cosine": 0.12035789410131126,
+    "normalized_rmse": 1.0936978229322882,
+    "normalized_mae": 1.0909573392175882,
+    "candidate_norm": 5.542735433518565,
+    "reference_norm": 9.567392539430752
+  },
+  {
+    "kind": "shared",
+    "layer": 26,
+    "cosine": 0.3147802090055742,
+    "normalized_rmse": 0.9906264826234236,
+    "normalized_mae": 0.9865367763889974,
+    "candidate_norm": 8.53580846083483,
+    "reference_norm": 14.264922809126197
+  },
+  {
+    "kind": "shared",
+    "layer": 27,
+    "cosine": 0.348289816147389,
+    "normalized_rmse": 1.1354414840819498,
+    "normalized_mae": 1.1413604812214666,
+    "candidate_norm": 8.699515943083364,
+    "reference_norm": 8.796111030145973
+  },
+  {
+    "kind": "shared",
+    "layer": 28,
+    "cosine": 0.2340520470538005,
+    "normalized_rmse": 1.0302906565378946,
+    "normalized_mae": 1.0326244142887093,
+    "candidate_norm": 7.013264598849543,
+    "reference_norm": 12.195934029080217
+  },
+  {
+    "kind": "shared",
+    "layer": 29,
+    "cosine": 0.1184902186136905,
+    "normalized_rmse": 1.143549741450299,
+    "normalized_mae": 1.144871043113824,
+    "candidate_norm": 8.09842971542858,
+    "reference_norm": 11.810167480392572
+  },
+  {
+    "kind": "shared",
+    "layer": 30,
+    "cosine": 0.16733280605388262,
+    "normalized_rmse": 1.2983125833709013,
+    "normalized_mae": 1.2986390226840443,
+    "candidate_norm": 11.57846506548586,
+    "reference_norm": 11.440146145935577
+  },
+  {
+    "kind": "shared",
+    "layer": 31,
+    "cosine": 0.19492701284645908,
+    "normalized_rmse": 1.243416462657693,
+    "normalized_mae": 1.2655460631185824,
+    "candidate_norm": 9.058678614484947,
+    "reference_norm": 9.444200701569555
+  },
+  {
+    "kind": "shared",
+    "layer": 32,
+    "cosine": 0.1318860642840382,
+    "normalized_rmse": 1.0741834320887163,
+    "normalized_mae": 1.0687387621975373,
+    "candidate_norm": 7.320069972459441,
+    "reference_norm": 13.413438382475347
+  },
+  {
+    "kind": "shared",
+    "layer": 33,
+    "cosine": 0.2178035561332373,
+    "normalized_rmse": 1.1175070432608178,
+    "normalized_mae": 1.05216447875255,
+    "candidate_norm": 9.065230273142362,
+    "reference_norm": 11.895041359223116
+  },
+  {
+    "kind": "shared",
+    "layer": 34,
+    "cosine": 0.14722357128688013,
+    "normalized_rmse": 1.1305704112580548,
+    "normalized_mae": 1.1105267705144726,
+    "candidate_norm": 9.732578993979654,
+    "reference_norm": 14.007294662485537
+  },
+  {
+    "kind": "shared",
+    "layer": 35,
+    "cosine": 0.3451938903842049,
+    "normalized_rmse": 1.1444254047938727,
+    "normalized_mae": 1.1489008056349792,
+    "candidate_norm": 15.814043811302112,
+    "reference_norm": 15.812869178344062
+  },
+  {
+    "kind": "shared",
+    "layer": 36,
+    "cosine": 0.3671590192224454,
+    "normalized_rmse": 1.022174502390799,
+    "normalized_mae": 1.0144666678669885,
+    "candidate_norm": 14.762507317038954,
+    "reference_norm": 18.662946943819524
+  },
+  {
+    "kind": "shared",
+    "layer": 37,
+    "cosine": 0.18248146410328914,
+    "normalized_rmse": 1.509534317490724,
+    "normalized_mae": 1.4863827076992917,
+    "candidate_norm": 20.152085960168847,
+    "reference_norm": 15.175857807214639
+  },
+  {
+    "kind": "shared",
+    "layer": 38,
+    "cosine": 0.38442239602524636,
+    "normalized_rmse": 1.1941065860628532,
+    "normalized_mae": 1.1847252629489762,
+    "candidate_norm": 19.17074029626268,
+    "reference_norm": 16.789440341058608
+  },
+  {
+    "kind": "shared",
+    "layer": 39,
+    "cosine": 0.6356037046407661,
+    "normalized_rmse": 0.7791073842135317,
+    "normalized_mae": 0.7934685042142567,
+    "candidate_norm": 44.20911940382755,
+    "reference_norm": 59.70280856011858
+  },
+  {
+    "kind": "shared",
+    "layer": 40,
+    "cosine": 0.6301559156640506,
+    "normalized_rmse": 0.7805676516516828,
+    "normalized_mae": 0.7795219344133222,
+    "candidate_norm": 29.755120601456344,
+    "reference_norm": 41.90593830729624
+  },
+  {
+    "kind": "shared",
+    "layer": 41,
+    "cosine": 0.7611050223840526,
+    "normalized_rmse": 0.6812334361865486,
+    "normalized_mae": 0.6816741900611822,
+    "candidate_norm": 56.742264152902166,
+    "reference_norm": 102.63131925614177
+  },
+  {
+    "kind": "shared",
+    "layer": 42,
+    "cosine": 0.8783806165258768,
+    "normalized_rmse": 0.6308807703090866,
+    "normalized_mae": 0.8436797704129506,
+    "candidate_norm": 558.8832077038013,
+    "reference_norm": 433.1887444152238
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "runs": [
+    {
+      "stream": 1,
+      "elapsed_s": 8.371061691083014,
+      "tokens": 512,
+      "tps": 61.16309004691608,
+      "finish": "length"
+    },
+    {
+      "stream": 2,
+      "elapsed_s": 8.38627253798768,
+      "tokens": 512,
+      "tps": 61.052153704851634,
+      "finish": "length"
+    }
+  ],
+  "wall_s": 8.403320452896878,
+  "aggregate_tps": 121.8565929670094
+}

@@ -1,0 +1,12 @@
+adaptix-name-mapping-aliases	200	48	25538	1	length
+claude-code-by-agents-recursive-delegation	200	48	25141	1	length
+dateutil-rfc5545-timezone-interop	200	250	125307	1	length
+go-critic-doc-link-checker	200	82	42829	1	length
+goreleaser-retry-publish-auditing	200	247	124265	1	length
+langchain-request-coalescing	200	145	74595	1	length
+mobly-grouped-test-barriers	200	227	114294	1	length
+obsidian-linter-link-format-conversion	200	96	50099	1	length
+participle-grammar-conflict-analysis	200	81	42647	1	length
+sql-formatter-bigquery-pipe-formatting	200	112	58250	1	length
+superjson-error-stack-serialization	200	244	123001	1	length
+tengo-callable-instance-isolation	200	239	120519	1	length

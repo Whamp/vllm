@@ -1,0 +1,16 @@
+{
+  "trial_indexed_gate_up_gbps": [
+    248.3566371949788,
+    247.51932313641774,
+    247.9192896057295,
+    247.05126612319486,
+    245.88924406950795
+  ],
+  "mean_gbps": 247.34715202596576,
+  "min_gbps": 245.88924406950795,
+  "max_gbps": 248.3566371949788,
+  "max_clock_mhz": 1650,
+  "process_sample_count": 248,
+  "max_processes_per_sample": 1,
+  "exclusive_gpu0_only": true
+}

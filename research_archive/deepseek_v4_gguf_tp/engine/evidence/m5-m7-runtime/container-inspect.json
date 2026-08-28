@@ -1,0 +1,395 @@
+[
+    {
+        "Id": "f5aa4c8cb664c096b41ea2792208b10c76eacd81e8a5275587996f08829e7868",
+        "Created": "2026-08-18T10:27:08.981409311Z",
+        "Path": "/opt/venv/bin/vllm",
+        "Args": [
+            "serve",
+            "/runtime-model",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "8034",
+            "--served-model-name",
+            "deepseek-v4-flash-0731-gguf-tp",
+            "--tensor-parallel-size",
+            "4",
+            "--max-model-len",
+            "140000",
+            "--max-num-seqs",
+            "2",
+            "--max-num-batched-tokens",
+            "256",
+            "--gpu-memory-utilization",
+            "0.98",
+            "--kv-cache-dtype",
+            "fp8_ds_mla",
+            "--load-format",
+            "gguf_dsv4",
+            "--quantization",
+            "gguf_dsv4",
+            "--model-loader-extra-config",
+            "{\"gguf_path\":\"/model.gguf\",\"sha256\":\"ca22ae2f838e14077c22bc1c1417b71b45b5e5a3687bd96c2ac6e17fdb6261c0\",\"file_size\":86720111488,\"tensor_count\":1328}",
+            "--disable-custom-all-reduce",
+            "--enable-auto-tool-choice",
+            "--tool-call-parser",
+            "deepseek_v4",
+            "--reasoning-parser",
+            "deepseek_v4",
+            "--trust-remote-code"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 4101791,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-08-18T10:27:09.077607801Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:f91e8283e7ad116b8664b4a936dba88ebafcb8910a968dce2a3c34420f010adf",
+        "ResolvConfPath": "/var/lib/docker/containers/f5aa4c8cb664c096b41ea2792208b10c76eacd81e8a5275587996f08829e7868/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/f5aa4c8cb664c096b41ea2792208b10c76eacd81e8a5275587996f08829e7868/hostname",
+        "HostsPath": "/var/lib/docker/containers/f5aa4c8cb664c096b41ea2792208b10c76eacd81e8a5275587996f08829e7868/hosts",
+        "LogPath": "/var/lib/docker/containers/f5aa4c8cb664c096b41ea2792208b10c76eacd81e8a5275587996f08829e7868/f5aa4c8cb664c096b41ea2792208b10c76eacd81e8a5275587996f08829e7868-json.log",
+        "Name": "/gguf-tp-m5",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/mnt/models/huggingface/hub/models--antirez--deepseek-v4-gguf/blobs/ca22ae2f838e14077c22bc1c1417b71b45b5e5a3687bd96c2ac6e17fdb6261c0:/model.gguf:ro",
+                "/home/will/inference/runtime/gguf-tp-m5-model-view:/runtime-model:ro",
+                "/home/will/models/deepseek-v4-frontier-quality-cache/hub/models--hampsonw--DeepSeek-V4-Flash-0731-WNA16/blobs:/blobs:ro"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "bridge",
+            "PortBindings": {
+                "8034/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "8034"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "host",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": [
+                "label=disable"
+            ],
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 17179869184,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": [
+                {
+                    "Driver": "",
+                    "Count": -1,
+                    "DeviceIDs": null,
+                    "Capabilities": [
+                        [
+                            "gpu"
+                        ]
+                    ],
+                    "Options": {}
+                }
+            ],
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [
+                {
+                    "Name": "memlock",
+                    "Hard": -1,
+                    "Soft": -1
+                }
+            ],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/mnt/models/huggingface/hub/models--antirez--deepseek-v4-gguf/blobs/ca22ae2f838e14077c22bc1c1417b71b45b5e5a3687bd96c2ac6e17fdb6261c0",
+                "Destination": "/model.gguf",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/home/will/inference/runtime/gguf-tp-m5-model-view",
+                "Destination": "/runtime-model",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/home/will/models/deepseek-v4-frontier-quality-cache/hub/models--hampsonw--DeepSeek-V4-Flash-0731-WNA16/blobs",
+                "Destination": "/blobs",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "f5aa4c8cb664",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "8034/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "VLLM_DSV4_FLASH_MLA_DECODE=1",
+                "VLLM_HIER_ALL_REDUCE=0,1;2,3",
+                "VLLM_DSV4_WO_A_MARLIN_DIAGONAL=1",
+                "VLLM_SPARSE_INDEXER_MAX_LOGITS_MB=64",
+                "VLLM_SPARSE_DENSE_QUERY_BLOCK=0",
+                "PATH=/opt/venv/bin:/root/.local/bin:/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NVARCH=x86_64",
+                "NVIDIA_REQUIRE_CUDA=cuda>=13.0 brand=unknown,driver>=535,driver<536 brand=grid,driver>=535,driver<536 brand=tesla,driver>=535,driver<536 brand=nvidia,driver>=535,driver<536 brand=quadro,driver>=535,driver<536 brand=quadrortx,driver>=535,driver<536 brand=nvidiartx,driver>=535,driver<536 brand=vapps,driver>=535,driver<536 brand=vpc,driver>=535,driver<536 brand=vcs,driver>=535,driver<536 brand=vws,driver>=535,driver<536 brand=cloudgaming,driver>=535,driver<536 brand=unknown,driver>=550,driver<551 brand=grid,driver>=550,driver<551 brand=tesla,driver>=550,driver<551 brand=nvidia,driver>=550,driver<551 brand=quadro,driver>=550,driver<551 brand=quadrortx,driver>=550,driver<551 brand=nvidiartx,driver>=550,driver<551 brand=vapps,driver>=550,driver<551 brand=vpc,driver>=550,driver<551 brand=vcs,driver>=550,driver<551 brand=vws,driver>=550,driver<551 brand=cloudgaming,driver>=550,driver<551 brand=unknown,driver>=565,driver<566 brand=grid,driver>=565,driver<566 brand=tesla,driver>=565,driver<566 brand=nvidia,driver>=565,driver<566 brand=quadro,driver>=565,driver<566 brand=quadrortx,driver>=565,driver<566 brand=nvidiartx,driver>=565,driver<566 brand=vapps,driver>=565,driver<566 brand=vpc,driver>=565,driver<566 brand=vcs,driver>=565,driver<566 brand=vws,driver>=565,driver<566 brand=cloudgaming,driver>=565,driver<566 brand=unknown,driver>=570,driver<571 brand=grid,driver>=570,driver<571 brand=tesla,driver>=570,driver<571 brand=nvidia,driver>=570,driver<571 brand=quadro,driver>=570,driver<571 brand=quadrortx,driver>=570,driver<571 brand=nvidiartx,driver>=570,driver<571 brand=vapps,driver>=570,driver<571 brand=vpc,driver>=570,driver<571 brand=vcs,driver>=570,driver<571 brand=vws,driver>=570,driver<571 brand=cloudgaming,driver>=570,driver<571 brand=unknown,driver>=575,driver<576 brand=grid,driver>=575,driver<576 brand=tesla,driver>=575,driver<576 brand=nvidia,driver>=575,driver<576 brand=quadro,driver>=575,driver<576 brand=quadrortx,driver>=575,driver<576 brand=nvidiartx,driver>=575,driver<576 brand=vapps,driver>=575,driver<576 brand=vpc,driver>=575,driver<576 brand=vcs,driver>=575,driver<576 brand=vws,driver>=575,driver<576 brand=cloudgaming,driver>=575,driver<576",
+                "NV_CUDA_CUDART_VERSION=13.0.96-1",
+                "CUDA_VERSION=13.0.2",
+                "LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64",
+                "NVIDIA_VISIBLE_DEVICES=all",
+                "NVIDIA_DRIVER_CAPABILITIES=compute,utility",
+                "NV_CUDA_LIB_VERSION=13.0.2-1",
+                "NV_NVTX_VERSION=13.0.85-1",
+                "NV_LIBNPP_VERSION=13.0.1.2-1",
+                "NV_LIBNPP_PACKAGE=libnpp-13-0=13.0.1.2-1",
+                "NV_LIBCUSPARSE_VERSION=12.6.3.3-1",
+                "NV_LIBCUBLAS_PACKAGE_NAME=libcublas-13-0",
+                "NV_LIBCUBLAS_VERSION=13.1.0.3-1",
+                "NV_LIBCUBLAS_PACKAGE=libcublas-13-0=13.1.0.3-1",
+                "NV_LIBNCCL_PACKAGE_NAME=libnccl2",
+                "NV_LIBNCCL_PACKAGE_VERSION=2.28.3-1",
+                "NCCL_VERSION=2.28.3-1",
+                "NV_LIBNCCL_PACKAGE=libnccl2=2.28.3-1+cuda13.0",
+                "NVIDIA_PRODUCT_NAME=CUDA",
+                "NV_CUDA_CUDART_DEV_VERSION=13.0.96-1",
+                "NV_NVML_DEV_VERSION=13.0.87-1",
+                "NV_LIBCUSPARSE_DEV_VERSION=12.6.3.3-1",
+                "NV_LIBNPP_DEV_VERSION=13.0.1.2-1",
+                "NV_LIBNPP_DEV_PACKAGE=libnpp-dev-13-0=13.0.1.2-1",
+                "NV_LIBCUBLAS_DEV_VERSION=13.1.0.3-1",
+                "NV_LIBCUBLAS_DEV_PACKAGE_NAME=libcublas-dev-13-0",
+                "NV_LIBCUBLAS_DEV_PACKAGE=libcublas-dev-13-0=13.1.0.3-1",
+                "NV_CUDA_NSIGHT_COMPUTE_VERSION=13.0.2-1",
+                "NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE=cuda-nsight-compute-13-0=13.0.2-1",
+                "NV_LIBNCCL_DEV_PACKAGE_NAME=libnccl-dev",
+                "NV_LIBNCCL_DEV_PACKAGE_VERSION=2.28.3-1",
+                "NV_LIBNCCL_DEV_PACKAGE=libnccl-dev=2.28.3-1+cuda13.0",
+                "LIBRARY_PATH=/usr/local/cuda/lib64/stubs",
+                "DEBIAN_FRONTEND=noninteractive",
+                "UV_LINK_MODE=copy",
+                "VLLM_USE_PRECOMPILED=1",
+                "VLLM_PRECOMPILED_WHEEL_VARIANT=cu130",
+                "VLLM_PRECOMPILED_WHEEL_COMMIT=62195e9784ebec1ece42b88a861734e0702cc2d5",
+                "SETUPTOOLS_SCM_PRETEND_VERSION=0.1.dev4+g2a3dd2ea7",
+                "VLLM_NO_USAGE_STATS=1",
+                "VLLM_WORKER_MULTIPROC_METHOD=spawn",
+                "OMP_NUM_THREADS=1"
+            ],
+            "Cmd": [
+                "serve",
+                "/runtime-model",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8034",
+                "--served-model-name",
+                "deepseek-v4-flash-0731-gguf-tp",
+                "--tensor-parallel-size",
+                "4",
+                "--max-model-len",
+                "140000",
+                "--max-num-seqs",
+                "2",
+                "--max-num-batched-tokens",
+                "256",
+                "--gpu-memory-utilization",
+                "0.98",
+                "--kv-cache-dtype",
+                "fp8_ds_mla",
+                "--load-format",
+                "gguf_dsv4",
+                "--quantization",
+                "gguf_dsv4",
+                "--model-loader-extra-config",
+                "{\"gguf_path\":\"/model.gguf\",\"sha256\":\"ca22ae2f838e14077c22bc1c1417b71b45b5e5a3687bd96c2ac6e17fdb6261c0\",\"file_size\":86720111488,\"tensor_count\":1328}",
+                "--disable-custom-all-reduce",
+                "--enable-auto-tool-choice",
+                "--tool-call-parser",
+                "deepseek_v4",
+                "--reasoning-parser",
+                "deepseek_v4",
+                "--trust-remote-code"
+            ],
+            "Image": "club-3090/deepseek-v4-gguf-tp:3ec20ceb",
+            "Volumes": null,
+            "WorkingDir": "/workspace/vllm",
+            "Entrypoint": [
+                "/opt/venv/bin/vllm"
+            ],
+            "Labels": {
+                "club3090.base.image": "sha256:eb2884fc60ee332d7adb9d5e424e35acf8817dad0f93c8bb7ea7095cb8f58a0e",
+                "club3090.parent.image": "sha256:4ccb214cbc5478f8d90e6f6733830faff977c863143cca86cccef1b44d24a30e",
+                "club3090.stable_extension.sha256": "9f1315be17cb27752be0eb933538148e2b503580f0712c4386f984529afa45df",
+                "club3090.vllm.tree": "82a1def196062cdff17d7b997513e31ae3734abe",
+                "maintainer": "NVIDIA CORPORATION <cudatools@nvidia.com>",
+                "org.club3090.runtime.base-digest": "sha256:a31c73626c16ed758dd33ac5c411b8f520b10c5843ddac35875d2b380e6eb185",
+                "org.club3090.runtime.candidate-revision": "12035985bf555d0ddc603c6305586a8fa915589c",
+                "org.club3090.runtime.canonical-commit": "b7766cfe4d15d9b68acea43097ceff221e8a739f",
+                "org.club3090.runtime.commit": "research-deepseek-v4-dsml-stop",
+                "org.club3090.runtime.dsml-stop-commit": "9a2ffbb4534400064e645cb4fef8ab2f2a987f11",
+                "org.club3090.runtime.flash-mla-source": "7f41a5baa5cf57bfbce06458794b4b05737a162a",
+                "org.club3090.runtime.flash-mla-wheel-sha256": "1e750446aa04b1f325fd1ca29be5d6b3e62f69df69e7ccd4b45df2c267b694d3",
+                "org.club3090.runtime.production-base": "sha256:f56910530683326051cfdf4e7c8e4d6afc5bace8804cb78b2af9ea799bbba4e6",
+                "org.club3090.runtime.scope": "deepseek-v4-sm86-speed-experiments",
+                "org.club3090.runtime.source-sha256": "aa09202faf23e7be4db07b2992f31128216cada39a08e341fc7836227200f042",
+                "org.opencontainers.image.ref.name": "ubuntu",
+                "org.opencontainers.image.revision": "3ec20cebe",
+                "org.opencontainers.image.version": "24.04"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "338f8713eac0576eb19bde11253f0459b620799a0081c65aed835a0a108c6f65",
+            "SandboxKey": "/var/run/docker/netns/338f8713eac0",
+            "Ports": {
+                "8034/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "8034"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "8034"
+                    }
+                ]
+            },
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "0d2966f194a2a2fb6488d6d79849cddf5d67c88f3aebd324a0806d77fa607a65",
+                    "EndpointID": "cb7970506a13bd55dbfbb42243eaaaca2e9db1418e34a20fbad84719a6713baa",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.2",
+                    "MacAddress": "0e:d4:a5:24:67:f8",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:9bf1cc0c5663749ccc14f3fbe2f4c3aaa95d02521da108e52cb714bff9beed23",
+            "size": 9034,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

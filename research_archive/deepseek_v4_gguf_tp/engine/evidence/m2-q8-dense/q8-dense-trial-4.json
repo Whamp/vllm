@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "device": "NVIDIA GeForce RTX 3090",
+  "capability": [
+    8,
+    6
+  ],
+  "iterations": 5000,
+  "warmup": 2500,
+  "results": [
+    {
+      "shape": {
+        "name": "fused_wqa_wkv",
+        "output_rows": 1536,
+        "input_columns": 4096,
+        "executions_per_layer": 1
+      },
+      "raw_weight_bytes": 6684672,
+      "prepared_weight_scale_bytes": 6684672,
+      "tokens": [
+        {
+          "tokens": 1,
+          "graph_ms": 0.013666099548339843
+        },
+        {
+          "tokens": 2,
+          "graph_ms": 0.013978623962402344
+        },
+        {
+          "tokens": 4,
+          "graph_ms": 0.014064845275878906
+        }
+      ]
+    },
+    {
+      "shape": {
+        "name": "wq_b",
+        "output_rows": 8192,
+        "input_columns": 1024,
+        "executions_per_layer": 1
+      },
+      "raw_weight_bytes": 8912896,
+      "prepared_weight_scale_bytes": 8912896,
+      "tokens": [
+        {
+          "tokens": 1,
+          "graph_ms": 0.01734185028076172
+        },
+        {
+          "tokens": 2,
+          "graph_ms": 0.017429292297363282
+        },
+        {
+          "tokens": 4,
+          "graph_ms": 0.017543373107910157
+        }
+      ]
+    },
+    {
+      "shape": {
+        "name": "wo_b",
+        "output_rows": 4096,
+        "input_columns": 2048,
+        "executions_per_layer": 1
+      },
+      "raw_weight_bytes": 8912896,
+      "prepared_weight_scale_bytes": 8912896,
+      "tokens": [
+        {
+          "tokens": 1,
+          "graph_ms": 0.0180674560546875
+        },
+        {
+          "tokens": 2,
+          "graph_ms": 0.01801707458496094
+        },
+        {
+          "tokens": 4,
+          "graph_ms": 0.018026495361328124
+        }
+      ]
+    },
+    {
+      "shape": {
+        "name": "shared_gate_up",
+        "output_rows": 1024,
+        "input_columns": 4096,
+        "executions_per_layer": 1
+      },
+      "raw_weight_bytes": 4456448,
+      "prepared_weight_scale_bytes": 4456448,
+      "tokens": [
+        {
+          "tokens": 1,
+          "graph_ms": 0.012223693084716797
+        },
+        {
+          "tokens": 2,
+          "graph_ms": 0.0122355712890625
+        },
+        {
+          "tokens": 4,
+          "graph_ms": 0.01233448944091797
+        }
+      ]
+    },
+    {
+      "shape": {
+        "name": "shared_down",
+        "output_rows": 4096,
+        "input_columns": 512,
+        "executions_per_layer": 1
+      },
+      "raw_weight_bytes": 2228224,
+      "prepared_weight_scale_bytes": 2228224,
+      "tokens": [
+        {
+          "tokens": 1,
+          "graph_ms": 0.008169881439208984
+        },
+        {
+          "tokens": 2,
+          "graph_ms": 0.008169676971435547
+        },
+        {
+          "tokens": 4,
+          "graph_ms": 0.008275558471679687
+        }
+      ]
+    },
+    {
+      "shape": {
+        "name": "lm_head",
+        "output_rows": 32320,
+        "input_columns": 4096,
+        "executions_per_layer": 0
+      },
+      "raw_weight_bytes": 140656640,
+      "prepared_weight_scale_bytes": 140656640,
+      "tokens": [
+        {
+          "tokens": 1,
+          "graph_ms": 0.20030113525390625
+        },
+        {
+          "tokens": 2,
+          "graph_ms": 0.2008115234375
+        },
+        {
+          "tokens": 4,
+          "graph_ms": 0.204328759765625
+        }
+      ]
+    }
+  ]
+}

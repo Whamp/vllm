@@ -1,0 +1,183 @@
+{
+  "concurrency": 2,
+  "max_tokens": 512,
+  "measured": [
+    {
+      "aggregate_tps": 125.98420444635693,
+      "per_stream_tps": [
+        63.188160559138915,
+        63.0021094779818
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.102783740963787
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.126712013967335
+        }
+      ],
+      "run": 100,
+      "wall_s": 8.128003065939993
+    },
+    {
+      "aggregate_tps": 126.0355868909128,
+      "per_stream_tps": [
+        63.21496181917657,
+        63.0267325686485
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.099348402116448
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.12353709503077
+        }
+      ],
+      "run": 101,
+      "wall_s": 8.124689425108954
+    },
+    {
+      "aggregate_tps": 126.15225635257389,
+      "per_stream_tps": [
+        63.173829532738154,
+        63.0862818421299
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.104621862992644
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.115869013825431
+        }
+      ],
+      "run": 102,
+      "wall_s": 8.117175464052707
+    },
+    {
+      "aggregate_tps": 125.99256516894974,
+      "per_stream_tps": [
+        63.094203168079936,
+        63.005160619538444
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.114850085927173
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.126318462891504
+        }
+      ],
+      "run": 103,
+      "wall_s": 8.127463700948283
+    },
+    {
+      "aggregate_tps": 125.9158602916207,
+      "per_stream_tps": [
+        63.15734930818957,
+        62.967794107473445
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.106736676068977
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.131140803918242
+        }
+      ],
+      "run": 104,
+      "wall_s": 8.132414754014462
+    }
+  ],
+  "model": "deepseek-v4-flash-0731-gguf-tp",
+  "schema_version": 1,
+  "summary": {
+    "aggregate_tps_cv": 0.0006933631597647241,
+    "aggregate_tps_mean": 126.0160946300828,
+    "per_stream_tps_mean": 63.091658300309525
+  },
+  "warmups": [
+    {
+      "aggregate_tps": 125.22818346756551,
+      "per_stream_tps": [
+        62.63077366046882,
+        62.730603233484516
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.174895024858415
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.161885485053062
+        }
+      ],
+      "run": 0,
+      "wall_s": 8.177073016995564
+    },
+    {
+      "aggregate_tps": 125.9778008152399,
+      "per_stream_tps": [
+        63.090457584537674,
+        63.00198567057108
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.115331852110103
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.126727984054014
+        }
+      ],
+      "run": 1,
+      "wall_s": 8.128416223917156
+    },
+    {
+      "aggregate_tps": 125.91237785833371,
+      "per_stream_tps": [
+        63.15471813193155,
+        62.965204841395995
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.107074422063306
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.13147517410107
+        }
+      ],
+      "run": 2,
+      "wall_s": 8.132639677030966
+    }
+  ]
+}

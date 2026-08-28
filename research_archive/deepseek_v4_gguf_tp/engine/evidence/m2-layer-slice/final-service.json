@@ -1,0 +1,31 @@
+{
+  "captured_at": "2026-08-18T07:37:29.891633+00:00",
+  "container": "llama-cpp-deepseek-v4-fast-prefill",
+  "image": "sha256:a96bd947d63eb81d8baf9f6f5ecb26669476383976717237450fbb5727b03745",
+  "health": "healthy",
+  "restart_count": 0,
+  "serving_swap_kib": 0,
+  "gpu_compute_apps": [
+    {
+      "gpu_uuid": "GPU-4ac7d064-93e5-eca1-73b7-1062935863e8",
+      "pid": 4020202,
+      "process_name": "/app/llama-server"
+    },
+    {
+      "gpu_uuid": "GPU-6cf42ade-786c-ff00-0b29-9a57c8bea017",
+      "pid": 4020202,
+      "process_name": "/app/llama-server"
+    },
+    {
+      "gpu_uuid": "GPU-b7d91730-fe96-db79-403e-14436f8d5a4e",
+      "pid": 4020202,
+      "process_name": "/app/llama-server"
+    },
+    {
+      "gpu_uuid": "GPU-ba35e12d-1d29-2ad5-6c00-c08697b8639d",
+      "pid": 4020202,
+      "process_name": "/app/llama-server"
+    }
+  ],
+  "batch_restore_timer": "inactive"
+}

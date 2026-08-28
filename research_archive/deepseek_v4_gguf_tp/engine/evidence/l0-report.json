@@ -1,0 +1,74 @@
+{
+  "seed": 20260817,
+  "n_random_blocks": 10000,
+  "pinned_source": "Whamp/llama.cpp@0379cf4bf889f3d28038a005210c4bc193fc8ba1",
+  "struct_sizes": [
+    34,
+    84,
+    66
+  ],
+  "qs_offsets": [
+    2,
+    16,
+    2
+  ],
+  "table_sha256": {
+    "iq2xxs_grid": "05826b5d3e472a3a78f196be62ac78acf81df0f909626e12ab9fa2a5d490dd54",
+    "ksigns_iq2xs": "a76742a603f8beca5212ecce0f1f02f11a4887fd2f7c8b15aca0ea3eb3380c31",
+    "kmask_iq2xs": "5ac9831b2e30eb285ef34f8501620f878432d5c04331ad1ae47f977a83ba41a5"
+  },
+  "formats": {
+    "q8_0": {
+      "random_blocks": 10000,
+      "random_bitwise_pass": true,
+      "adversarial_cases": [
+        "qs=-128",
+        "qs=127",
+        "qs=alt",
+        "d=max",
+        "d=subnorm",
+        "d=-max"
+      ],
+      "adversarial_bitwise_pass": true,
+      "nonfinite_nanaware_pass": true
+    },
+    "q2_K": {
+      "random_blocks": 10000,
+      "random_bitwise_pass": true,
+      "adversarial_cases": [
+        "scales=0xFF",
+        "scales=0x0F",
+        "scales=0xF0",
+        "qs+scale-max",
+        "d=+max",
+        "d=subnorm",
+        "d=-max",
+        "dmin=+max",
+        "distinct-scales",
+        "chunk-boundary"
+      ],
+      "adversarial_bitwise_pass": true,
+      "nonfinite_nanaware_pass": true
+    },
+    "iq2_xxs": {
+      "random_blocks": 10000,
+      "random_bitwise_pass": true,
+      "adversarial_cases": [
+        "all-zero-qs",
+        "all-0xFF-qs",
+        "hi-ls=0",
+        "hi-ls=max",
+        "sign-sel-ones",
+        "group7-boundary",
+        "aux8[0]=255",
+        "aux8[last]=255",
+        "d=+max",
+        "d=subnorm",
+        "d=-max"
+      ],
+      "adversarial_bitwise_pass": true,
+      "nonfinite_nanaware_pass": true
+    }
+  },
+  "pass": true
+}

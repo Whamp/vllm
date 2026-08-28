@@ -1,0 +1,13 @@
+{
+  "canonical_container": "llama-cpp-deepseek-v4-fast-prefill",
+  "health": "healthy",
+  "image": "sha256:a96bd947d63eb81d8baf9f6f5ecb26669476383976717237450fbb5727b03745",
+  "restart_count": 0,
+  "serving_swap_kib": 0,
+  "experiment_container_count": 0,
+  "gpu_power_service_enabled": "enabled",
+  "gpu_power_service_active": "active",
+  "clock_probe_samples": 800,
+  "clock_probe_max_mhz": 1650,
+  "clock_probe_over_1650": 0
+}

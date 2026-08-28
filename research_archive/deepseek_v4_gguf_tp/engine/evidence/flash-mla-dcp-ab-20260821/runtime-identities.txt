@@ -1,0 +1,17 @@
+{
+  "club-3090/deepseek-v4-gguf-tp:3ec20ceb": {
+    "id": "sha256:f91e8283e7ad116b8664b4a936dba88ebafcb8910a968dce2a3c34420f010adf",
+    "repo_digests": [
+      "club-3090/deepseek-v4-gguf-tp@sha256:f91e8283e7ad116b8664b4a936dba88ebafcb8910a968dce2a3c34420f010adf"
+    ]
+  },
+  "club-3090/deepseek-v4-gguf-tp:dcp-ab-2921831": {
+    "id": "sha256:919f4996a9503ff9e8e858195bf767166173a39e19ae3ba09f76d90775a721bc",
+    "repo_digests": [
+      "club-3090/deepseek-v4-gguf-tp@sha256:919f4996a9503ff9e8e858195bf767166173a39e19ae3ba09f76d90775a721bc"
+    ]
+  }
+}
+production=healthy|0|club-3090/deepseek-v4-gguf-tp@sha256:f91e8283e7ad116b8664b4a936dba88ebafcb8910a968dce2a3c34420f010adf|unless-stopped
+wheel=8de43339487ebbfbb06afc95a4bf48f306e755830500aaa1e3bdbcc635d3070c  /home/will/build/flash-mla-dcp-ab/dist/flash_mla-2.0.0-cp39-abi3-linux_x86_64.whl
+service-swap-kib=0

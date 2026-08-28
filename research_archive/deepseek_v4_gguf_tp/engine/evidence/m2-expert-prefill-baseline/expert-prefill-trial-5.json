@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "device": "NVIDIA GeForce RTX 3090",
+  "capability": [
+    8,
+    6
+  ],
+  "expert_count": 256,
+  "topk": 6,
+  "iterations": 500,
+  "warmup": 250,
+  "results": [
+    {
+      "routing": "uniform",
+      "tokens": 16,
+      "gate_up_graph_ms": 0.38313983154296877,
+      "down_graph_ms": 0.23648658752441407,
+      "expert_graph_ms": 0.6196264190673828,
+      "expert_ms_per_token": 0.038726651191711425
+    },
+    {
+      "routing": "uniform",
+      "tokens": 32,
+      "gate_up_graph_ms": 0.8254157104492188,
+      "down_graph_ms": 0.48114483642578126,
+      "expert_graph_ms": 1.3065605468750001,
+      "expert_ms_per_token": 0.040830017089843754
+    },
+    {
+      "routing": "uniform",
+      "tokens": 64,
+      "gate_up_graph_ms": 1.575436279296875,
+      "down_graph_ms": 0.998488037109375,
+      "expert_graph_ms": 2.57392431640625,
+      "expert_ms_per_token": 0.040217567443847656
+    },
+    {
+      "routing": "uniform",
+      "tokens": 128,
+      "gate_up_graph_ms": 3.142846435546875,
+      "down_graph_ms": 2.00877880859375,
+      "expert_graph_ms": 5.151625244140625,
+      "expert_ms_per_token": 0.040247072219848634
+    },
+    {
+      "routing": "uniform",
+      "tokens": 256,
+      "gate_up_graph_ms": 6.26368701171875,
+      "down_graph_ms": 4.016234375,
+      "expert_graph_ms": 10.279921386718751,
+      "expert_ms_per_token": 0.04015594291687012
+    },
+    {
+      "routing": "concentrated",
+      "tokens": 16,
+      "gate_up_graph_ms": 0.35599359130859376,
+      "down_graph_ms": 0.19462144470214843,
+      "expert_graph_ms": 0.5506150360107422,
+      "expert_ms_per_token": 0.03441343975067139
+    },
+    {
+      "routing": "concentrated",
+      "tokens": 32,
+      "gate_up_graph_ms": 0.7031336669921875,
+      "down_graph_ms": 0.4002774963378906,
+      "expert_graph_ms": 1.103411163330078,
+      "expert_ms_per_token": 0.03448159885406494
+    },
+    {
+      "routing": "concentrated",
+      "tokens": 64,
+      "gate_up_graph_ms": 1.417924560546875,
+      "down_graph_ms": 0.785070068359375,
+      "expert_graph_ms": 2.20299462890625,
+      "expert_ms_per_token": 0.03442179107666016
+    },
+    {
+      "routing": "concentrated",
+      "tokens": 128,
+      "gate_up_graph_ms": 2.825459716796875,
+      "down_graph_ms": 1.574813720703125,
+      "expert_graph_ms": 4.4002734375,
+      "expert_ms_per_token": 0.03437713623046875
+    },
+    {
+      "routing": "concentrated",
+      "tokens": 256,
+      "gate_up_graph_ms": 5.6599345703125,
+      "down_graph_ms": 3.156613037109375,
+      "expert_graph_ms": 8.816547607421874,
+      "expert_ms_per_token": 0.0344396390914917
+    }
+  ]
+}

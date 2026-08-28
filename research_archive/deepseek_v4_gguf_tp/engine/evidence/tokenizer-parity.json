@@ -1,0 +1,22 @@
+{
+  "gguf_blob_sha256": "ca22ae2f838e14077c22bc1c1417b71b45b5e5a3687bd96c2ac6e17fdb6261c0",
+  "hf_tokenizer_sha256": "8f9f37ca37fdc4f5fd36d5cf4d3b0e8392edb4e894fd10cc0d70b4957c8633cf",
+  "transient_gguf_tokenizer_extract_sha256": "393bf4154425b35331cda4b8c21c5ec3987465ac2eeb476442bc408ddd740127",
+  "token_count": 129280,
+  "merge_count": 127741,
+  "base_vocab_count": 128000,
+  "added_token_count": 1283,
+  "id_content_mismatch_count": 0,
+  "merge_order_mismatch_count": 0,
+  "gguf_id_ordered_token_sha256": "e2cb0b5c2c4449e0a9724d969000545e711d0e947c7f051fdcff93d86213f127",
+  "hf_id_ordered_token_sha256": "e2cb0b5c2c4449e0a9724d969000545e711d0e947c7f051fdcff93d86213f127",
+  "gguf_merge_order_sha256": "879a33b1b4797b1e5a8b46d89d70d47034531106907165a3ab480cfa20fa5217",
+  "hf_merge_order_sha256": "879a33b1b4797b1e5a8b46d89d70d47034531106907165a3ab480cfa20fa5217",
+  "gguf_token_type_sha256": "df4137e0cae90363eb286e84d1cc697aa8ad9b037b416d2e179f8e5e0287d9de",
+  "control_ids": {
+    "bos": 0,
+    "eos": 1,
+    "pad": 1
+  },
+  "pass": true
+}

@@ -1,0 +1,8 @@
+{
+  "format": "llama-ds4-layer-oracle-v1",
+  "token_count": 366,
+  "attention_layer_count": 43,
+  "layer_count": 43,
+  "layer_value_count": 16384,
+  "logit_count": 129280
+}

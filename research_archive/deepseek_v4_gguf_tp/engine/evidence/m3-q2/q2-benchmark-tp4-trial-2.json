@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "device": "NVIDIA GeForce RTX 3090",
+  "capability": [
+    8,
+    6
+  ],
+  "shape": {
+    "tokens": 1,
+    "topk": 6,
+    "K": 512,
+    "N": 4096
+  },
+  "iterations": 10000,
+  "warmup": 5000,
+  "logical_bytes": 4128768,
+  "down_ms": 0.013696205139160157,
+  "logical_gbps": 301.45342874538557,
+  "quantize_ms": 0.007852339172363281,
+  "pipeline_graph_ms": 0.014925926208496094
+}

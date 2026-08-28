@@ -1,0 +1,16 @@
+{
+  "trial_q2_down_gbps": [
+    299.3985202938274,
+    301.45342874538557,
+    299.7747333880702,
+    300.9269709490407,
+    299.5787140088451
+  ],
+  "mean_gbps": 300.2264734770338,
+  "min_gbps": 299.3985202938274,
+  "max_gbps": 301.45342874538557,
+  "max_clock_mhz": 1650,
+  "process_sample_count": 32,
+  "max_processes_per_sample": 1,
+  "exclusive_gpu0_only": true
+}

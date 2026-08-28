@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "device": "NVIDIA GeForce RTX 3090",
+  "capability": [
+    8,
+    6
+  ],
+  "shape": {
+    "local_groups": 2,
+    "output_rank": 1024,
+    "K": 4096,
+    "N": 2048
+  },
+  "iterations": 500,
+  "warmup": 250,
+  "token_counts": [
+    16,
+    32,
+    64,
+    128,
+    256
+  ],
+  "raw_weight_bytes": 8912896,
+  "prepared_weight_scale_bytes": 8912896,
+  "results": [
+    {
+      "tokens": 16,
+      "eager_ms": 0.11141939544677734,
+      "graph_ms": 0.0220446720123291
+    },
+    {
+      "tokens": 32,
+      "eager_ms": 0.10875494384765624,
+      "graph_ms": 0.03716908645629883
+    },
+    {
+      "tokens": 64,
+      "eager_ms": 0.11513855743408204,
+      "graph_ms": 0.05520793533325195
+    },
+    {
+      "tokens": 128,
+      "eager_ms": 0.10491494750976563,
+      "graph_ms": 0.0990084457397461
+    },
+    {
+      "tokens": 256,
+      "eager_ms": 0.18389605712890625,
+      "graph_ms": 0.18953216552734375
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+# ===========================================================================
+# Profile (at-a-glance):
+#   Model:     DeepSeek-V4-Flash-0731 native GGUF (Antirez IQ2_XXS/Q2_K/Q8_0
+#              exact bytes, pinned sha256 ca22ae2f…; gguf_dsv4 loader)
+#   Engine:    Whamp/vLLM 3ec20cebe (incubate/gguf-tp-sm86) — native GGUF
+#              tensor-parallel engine, from-scratch SM86 kernels, no llama.cpp
+#   Topology:  4× RTX 3090 PCIe (TP=4, no NVLink; hierarchical AR 0,1;2,3)
+#   Drafter:   none (MTP omitted from artifact)
+#   KV:        fp8_ds_mla, block 256, DEEPSEEK_SPARSE_SWA sparse indexer
+#   Vision:    no
+#   Max ctx:   148,000 tokens; max_num_seqs=2; max_num_batched_tokens=256;
+#              GPU KV pool 156,738 tokens (1.06× max-model-len)
+#   Genesis:   N/A — Genesis is Qwen3-Next-specific
+#   Reasoning: off · low · high · max (native reasoning_parser)
+#   Status:    ✅ Production — DeepSeek V4 serving default on server60
+#              (promoted 2026-08-18; canonical llama.cpp demoted to rollback)
+#   Measured:  server60 4× RTX 3090, 2026-08-18 (3 warm + 5 measured):
+#              decode 78.6 tok/s single · 128.1 tok/s aggregate at 2 concurrent
+#              · cache-busted prefill 540.7 tok/s · full-140K recall correct ·
+#              0 preemptions/evictions/OOM across all experiments · zero swap.
+#              (seq8@140K arm: 254.0 aggregate decode; requires batched 192.)
+#              DeepSWE SuperJSON pilot (M8): partial reward 0.9949 vs llama.cpp
+#              0.9898 control, 2.65× faster wall-clock.
+#   Correctness: deterministic canary, auto tool call, post-tool continuation,
+#                NIAH exact recall at 119,730 and 139,565 tokens passed.
+#   Quality:   Quick quality gate 27/30 pass@1 / pass@3 (M5, seq2 config).
+#   Best for:  Coding-agent workloads; deep single-request context.
+#              (For aggregate concurrency, raise max_num_seqs to 8 — measured
+#              at 140K: 254.0 tok/s; requires batched 192.)
+# Caveats:
+#   - Local custom image, digest-pinned (see vllm/gguf-tp/ for the build
+#     contract + MANIFEST.json). Only runs on server60's rig layout.
+#   - max_num_seqs 8→2 and max_model_len 140,000→148,000 on 2026-08-18
+#     (operator direction): batched tokens returned to 256, restoring full
+#     prefill (540.7 tok/s); pool 156,738 tokens (1.06× at 148K). At 148K the
+#     profile is fit-gate-confirmed only — long-context recall at the new
+#     ceiling was not re-run.
+#   - If you raise max_num_seqs back to 8, batched tokens MUST drop to 192
+#     (at 256 the KV pool 141,770 cannot satisfy max-model-len and the engine
+#     refuses startup: estimated max 137,216).
+#   - gpu-memory-utilization stays 0.98; 0.985+ fails the startup pre-flight
+#     (free-memory gate). VRAM idle headroom at 140K is 35–41 MiB/card under
+#     load — capacity-ceiling class profile; reopen condition = OOM at/below
+#     operating context.
+#   - IQ2_XXS-class quantization drift vs FP16 oracle is documented (M6
+#     layer oracle: 28/43 layers fail per-layer windows; final logits
+#     cos 0.9973; no task-level damage — see TODO-175a7261). Antirez GGUF
+#     bytes are loaded bit-exact; drift is kernel-arithmetic-class.
+#   - Validated rollback: models/deepseek-v4-flash-0731/llama-cpp/compose/
+#     multi4/antirez-iq2-xxs/fast-prefill.yml (canonical llama.cpp, port 8033).
+#   - All four GPUs are occupied; do not co-start another GPU service.
+# Requires-homogeneous-arch: true
+# ---------------------------------------------------------------------------
+# Production deployment (server60): `docker compose up -d` from this directory.
+# Serves DeepSeek V4 on :8034. Image built from Whamp/vLLM incubate/gguf-tp-sm86
+# commit 3ec20cebe (tree 82a1def1…); the 21 overlaid engine files are
+# byte-identical to that commit (verified) and pinned in MANIFEST.json.
+# ===========================================================================
+services:
+  deepseek-v4-gguf-tp-sm86:
+    image: club-3090/deepseek-v4-gguf-tp@sha256:5fab88440740a6033bcacda473ffaeed7a4f4e386d494b516432487f0df09729
+    container_name: "${ESTATE_CONTAINER:-dsv4-gguf-tp-prod}"
+    restart: ${CLUB3090_RESTART:-unless-stopped}
+    ports:
+      - "${BIND_HOST:-0.0.0.0}:${PORT:-8034}:8000"
+    volumes:
+      # server60-specific absolute paths (single-machine repo; see header).
+      - /home/will/inference/runtime/gguf-tp-m5-model-view:/runtime-model:ro
+      - /home/will/models/deepseek-v4-frontier-quality-cache/hub/models--hampsonw--DeepSeek-V4-Flash-0731-WNA16/blobs:/blobs:ro
+      - /mnt/models/huggingface/hub/models--antirez--deepseek-v4-gguf/blobs/ca22ae2f838e14077c22bc1c1417b71b45b5e5a3687bd96c2ac6e17fdb6261c0:/model.gguf:ro
+      - /home/will/inference/runtime/gguf-tp-route-stats/output:/route-stats:rw
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      CUDA_VISIBLE_DEVICES: 0,1,2,3
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      VLLM_NO_USAGE_STATS: "1"
+      VLLM_WORKER_MULTIPROC_METHOD: spawn
+      OMP_NUM_THREADS: "1"
+      VLLM_DSV4_FLASH_MLA_DECODE: "1"
+      VLLM_HIER_ALL_REDUCE: "0,1;2,3"
+      VLLM_DSV4_WO_A_MARLIN_DIAGONAL: "1"
+      VLLM_SPARSE_INDEXER_MAX_LOGITS_MB: "64"
+      VLLM_SPARSE_DENSE_QUERY_BLOCK: "0"
+      VLLM_GGUF_DSV4_ROUTE_STATS_DIR: "/route-stats"
+      VLLM_GGUF_DSV4_ROUTE_STATS_HIST_FLUSH_SECONDS: "5"
+    entrypoint: ["/opt/venv/bin/vllm"]
+    command:
+      - "serve"
+      - "/runtime-model"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--served-model-name"
+      - "deepseek-v4-flash-0731-gguf-tp"
+      - "--tensor-parallel-size"
+      - "4"
+      - "--max-model-len"
+      - "148000"
+      - "--max-num-seqs"
+      - "2"
+      - "--max-num-batched-tokens"
+      - "256"
+      - "--gpu-memory-utilization"
+      - "0.98"
+      - "--kv-cache-dtype"
+      - "fp8_ds_mla"
+      - "--load-format"
+      - "gguf_dsv4"
+      - "--quantization"
+      - "gguf_dsv4"
+      - "--model-loader-extra-config"
+      - '{"gguf_path":"/model.gguf","sha256":"ca22ae2f838e14077c22bc1c1417b71b45b5e5a3687bd96c2ac6e17fdb6261c0","file_size":86720111488,"tensor_count":1328}'
+      - "--disable-custom-all-reduce"
+      - "--enable-auto-tool-choice"
+      - "--tool-call-parser"
+      - "deepseek_v4"
+      - "--reasoning-parser"
+      - "deepseek_v4"
+      - "--trust-remote-code"
+    shm_size: "16gb"
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: [CMD-SHELL, "curl -fsS http://127.0.0.1:8000/health >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 600s

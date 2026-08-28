@@ -1,0 +1,1244 @@
+{
+  "attention_layers": [
+    {
+      "layer": 0,
+      "path": "attention-layer-000.pt",
+      "sha256": "3d54a0a28d4cba119ff8e86b68f192ce766e2441a57d2f3bcd7abab89ae76028",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 1,
+      "path": "attention-layer-001.pt",
+      "sha256": "441899352371a9980517da1df53ac6a50e47a576028c87b64ec0ebdfbe638e73",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 2,
+      "path": "attention-layer-002.pt",
+      "sha256": "f3249db1ad74efbb7514e7c1683849d4416e08b34fdd7b1b4212624adee06e4e",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 3,
+      "path": "attention-layer-003.pt",
+      "sha256": "0e7a006bd1759170e4e4745e692c5ef25f1e22daf6ae77fffb63834c0654d2a5",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 4,
+      "path": "attention-layer-004.pt",
+      "sha256": "5214fb5bc7034c82a186612a12c36348c59a1b3ee9debb421a9c63a5677efb64",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 5,
+      "path": "attention-layer-005.pt",
+      "sha256": "225946f938a60b167ba9d6c024b074ae8cb9d1340e9e9ff7897f566f7fc14f27",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 6,
+      "path": "attention-layer-006.pt",
+      "sha256": "678d3f5aefe04a8a2e84c819123e3e8b0a67290218d7f81e9c2028d7440b7c3b",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 7,
+      "path": "attention-layer-007.pt",
+      "sha256": "7e0dd5acbf10941df834a9273eca3c268f9b50977a3174cae62b28fbe2c3d427",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 8,
+      "path": "attention-layer-008.pt",
+      "sha256": "a04089980d9a652015925acf8509c407fbe31afcaa6cb72e793eada10fc9dfda",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 9,
+      "path": "attention-layer-009.pt",
+      "sha256": "3bd1cb466e2ed7ca21c58d9450548e5b4b7314112f8794bdcca8f66fac6b02fc",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 10,
+      "path": "attention-layer-010.pt",
+      "sha256": "03859adf59bf299cd9e6e5a0c94122548b891b328e019d10dbac3b6c07423974",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 11,
+      "path": "attention-layer-011.pt",
+      "sha256": "c1f64128ca7072f5ebd4787a0a4514e73a6b697e657776b30662fa197bd7c693",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 12,
+      "path": "attention-layer-012.pt",
+      "sha256": "6e0bc36c540b7602956a5e9241e3d1a2abaf85ce69bee7641ce50dda488b915d",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 13,
+      "path": "attention-layer-013.pt",
+      "sha256": "3283ecd90b33f638bafcaa10bc011f3091d7f47f11930456e2c0840b953f483b",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 14,
+      "path": "attention-layer-014.pt",
+      "sha256": "65db9fce80f686c4c5b4fa7de32a5473ef15c3985e1d7d5c66cfa4aa7bde462f",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 15,
+      "path": "attention-layer-015.pt",
+      "sha256": "19e814ac134c2f6c215874c376b00d2c851d9b1f10ad9c0d8051783ed11e2e8b",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 16,
+      "path": "attention-layer-016.pt",
+      "sha256": "8cb85c8f3ffb9532ae6b4d083cfc6bc83969a078c990659a28b9e3d8edf06719",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 17,
+      "path": "attention-layer-017.pt",
+      "sha256": "02ea7b7d35f01ff88dbfea09afe1f4f9a4b398e74285ce5b48eace9dcf083fcf",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 18,
+      "path": "attention-layer-018.pt",
+      "sha256": "2caa9c57116a6c59785a056e132e8f7013e181fe1d78e1538e850e83aa294133",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 19,
+      "path": "attention-layer-019.pt",
+      "sha256": "876c26b5fb42a611ede5a6845ba0f43cd2d3de564858283f2e9fc0fd40484858",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 20,
+      "path": "attention-layer-020.pt",
+      "sha256": "8721ce0dc512d5f908e53fe42b1b6b3366456eac57349636e8db9a5f77e12b7e",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 21,
+      "path": "attention-layer-021.pt",
+      "sha256": "84685cf5528d7048b1a1b7eb134b61a7ad2342978a86ff42f045e613524203e7",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 22,
+      "path": "attention-layer-022.pt",
+      "sha256": "376c28330fd308e24cc7059db9c7a67d5f1d77d529ba12b44d6a7a1f4c693a26",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 23,
+      "path": "attention-layer-023.pt",
+      "sha256": "e5e0586833b5779da4190adbebf58190c4510c83ca866a2d3814f4dd496f229e",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 24,
+      "path": "attention-layer-024.pt",
+      "sha256": "17541981f1eb3967a301dbfe4cb537c6ccf9fd32588a723f0a4c70c817da7902",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 25,
+      "path": "attention-layer-025.pt",
+      "sha256": "8173852a7a0e26218367b69e318fe1dff07dd91e9deea66c129131d5e626fb75",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 26,
+      "path": "attention-layer-026.pt",
+      "sha256": "877ae41a4cef885618a0001025f5fcfe37621afaf516e7a7199bb38fc941b9b4",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 27,
+      "path": "attention-layer-027.pt",
+      "sha256": "6a5c488307f3b848d3b8e0619cb60110f8ef3bd4055ebc8bff1a2d0c5395c3de",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 28,
+      "path": "attention-layer-028.pt",
+      "sha256": "277637eae0bbe80812b093f34268f420842df2b5d4b62d75a7a7139da0f1aeee",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 29,
+      "path": "attention-layer-029.pt",
+      "sha256": "90f1fb00116fdc4cebfeb0de114d6108951fc0a17e2c6b3d35093a863d25f827",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 30,
+      "path": "attention-layer-030.pt",
+      "sha256": "d85e0942689687a014c95ce302a2cdbf77b3ef36caf3bd1e8cb29fcf2e5138ff",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 31,
+      "path": "attention-layer-031.pt",
+      "sha256": "fd5c3b0a066f5afe79cbaf910411699816fcdaf5d55ac1257bcb786ea6d74602",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 32,
+      "path": "attention-layer-032.pt",
+      "sha256": "a78591b399cee59f96723e66f7030f5b620df22cd8fca68340ee78fefb882e9b",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 33,
+      "path": "attention-layer-033.pt",
+      "sha256": "fe2bf36fe61314113223fe66a45af8b568f7f4443bb6a8c80be574e93cbac7b4",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 34,
+      "path": "attention-layer-034.pt",
+      "sha256": "175901a80c3935f65d03f21d6d0d931e9f7eb7acb557899c691957c637a4c4f6",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 35,
+      "path": "attention-layer-035.pt",
+      "sha256": "0e5209b1cd41c9b542b95152015ed3bd7db2dd6787a6e7ee6968391183279431",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 36,
+      "path": "attention-layer-036.pt",
+      "sha256": "8feac5d9f013bc5fe03507520b700536183c2da1d1da977b07ac2f2944599741",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 37,
+      "path": "attention-layer-037.pt",
+      "sha256": "643147166052c8a5d6a8c68ad2bc59e076c3d47583f0dcf8852b5a73ce089d27",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 38,
+      "path": "attention-layer-038.pt",
+      "sha256": "8cb1936b06bb4b5a05d181c383352e87ed9a63e6415831e20944a8bc3bc4c72a",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 39,
+      "path": "attention-layer-039.pt",
+      "sha256": "6eb2748ac240a124601160124d02dbd03af132b1ec4674dc5766b6a1fc13b0fe",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 40,
+      "path": "attention-layer-040.pt",
+      "sha256": "a0c5157afc5f6880fcd63509c0966c939cc31b0a76faa17bbeb5c67692bed8a2",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 41,
+      "path": "attention-layer-041.pt",
+      "sha256": "aeddee698541d556b70da5a6ce7f2bd14efeae819c365c0f49df8e2bc796b010",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 42,
+      "path": "attention-layer-042.pt",
+      "sha256": "cf1f405d1ab515076a4a987e0ec7c6c5ab03f5e9ca001d383b71273119d75d52",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    }
+  ],
+  "format": "gguf-dsv4-layer-oracle-v1",
+  "layers": [
+    {
+      "layer": 0,
+      "path": "layer-000.pt",
+      "sha256": "0aa754329142c38562b05ac38c4e83d852a9e4a4bd6ec07bfbc9cb020ded0a19",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 1,
+      "path": "layer-001.pt",
+      "sha256": "7200ab2437f082c33dc686dc410de9a55dca36749adeedeafbe4c4ae0d6ad692",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 2,
+      "path": "layer-002.pt",
+      "sha256": "8341dcf91146b718dd8f3f32c5a9384e1974e5c98bb002f8a939246403d69321",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 3,
+      "path": "layer-003.pt",
+      "sha256": "16ce0a710a61f73fa897fb48f3d97d9c45d9d3fe698f2fc2048fc469f6188589",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 4,
+      "path": "layer-004.pt",
+      "sha256": "e0899df2bcf6c8e2238cd75ba1fdf09ab5afc54d30c45d9063e6b038e025f26e",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 5,
+      "path": "layer-005.pt",
+      "sha256": "0340e05a73278a075b177c9e9a84b8d96d626351ba2c8d07c24f7775cbe557e2",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 6,
+      "path": "layer-006.pt",
+      "sha256": "444d863e0ee1623474ece7c6bbf5ff23878fab25208958eb775cdbad9fbaf8f3",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 7,
+      "path": "layer-007.pt",
+      "sha256": "d254b589c3e1b966c4ec5a2e7dd732eaff8ee32a4696d5cb381d4da8f1a91dba",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 8,
+      "path": "layer-008.pt",
+      "sha256": "2532a6bc6eadf6263863550f9bb428a51aa34319e6eb739130da449509998e1c",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 9,
+      "path": "layer-009.pt",
+      "sha256": "cb7d307c7489816f9eb4bfccaed7da53c6e828dd96315970b5bf369d008ef3d0",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 10,
+      "path": "layer-010.pt",
+      "sha256": "6f71e88f61c27518e6569defe655f4fe31a83a0784335e1a0a1fd60ce1d08069",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 11,
+      "path": "layer-011.pt",
+      "sha256": "9231afa5a74d566c2dff88ca817dcbe810340d437e0fdcd3e1db92abfb536942",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 12,
+      "path": "layer-012.pt",
+      "sha256": "a63dfdf22b632fa51f4de20acbf626d6bd21243e6745cfa0c628af697d043c99",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 13,
+      "path": "layer-013.pt",
+      "sha256": "2ad4edc15c3bfc636f29492d334c5e765623905a84856bf522cd30642bdd2065",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 14,
+      "path": "layer-014.pt",
+      "sha256": "0c37029ef091c17dc263c827dc50f99f353beb8437259127682119bb14770556",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 15,
+      "path": "layer-015.pt",
+      "sha256": "9007f7d15a858ab8271a4ba92942e3faa966296ef3c83dee737a373d289aad7d",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 16,
+      "path": "layer-016.pt",
+      "sha256": "dcd876da6f8030bc3e454cb4aa9583c0ed3ef8478f84ea38a971d662819f139d",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 17,
+      "path": "layer-017.pt",
+      "sha256": "ddb36f430c39cd14b9cb5eeb1ce52ab2a873ccd8ae5009011d4fca336f7b9950",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 18,
+      "path": "layer-018.pt",
+      "sha256": "9da302cbe1ee292ee4e3caa14061806d8ddffb234044e1dbc64daf45fb470c35",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 19,
+      "path": "layer-019.pt",
+      "sha256": "fae7a3a6175c0009468168e73253f77a093536a8d99080abd721c9ba63783354",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 20,
+      "path": "layer-020.pt",
+      "sha256": "2afeb18e1ae777df10aec39242671dc23779a7bad04048586ba8eeb6ba4f8b72",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 21,
+      "path": "layer-021.pt",
+      "sha256": "4d2951ee0a19fc30ae60faf6f74ff6580657432c4d9af76216c2781625736133",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 22,
+      "path": "layer-022.pt",
+      "sha256": "740e02d539773b1af0f04f2316b1fabd6637eac87d1e31cc1be6ff03163d13f7",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 23,
+      "path": "layer-023.pt",
+      "sha256": "6cd4f85d8f38553682569753900445c2357698d5083705382b1ad4be6338ba03",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 24,
+      "path": "layer-024.pt",
+      "sha256": "d258e874e2695a6165cf79872c5646306d404324f735a79ea176c7ce434222d3",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 25,
+      "path": "layer-025.pt",
+      "sha256": "a725b012d97feb8af9d0eeed012820e6c563d3fe9165ee513c8b54dc54fd55a2",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 26,
+      "path": "layer-026.pt",
+      "sha256": "f25f10c88644b4e3aa2ec46a426a628ef2a3da3187b9f25455c244e94e64a56d",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 27,
+      "path": "layer-027.pt",
+      "sha256": "0430f84a50c07ceaf4895b59975338eda21067a82da1edb6a01eed161f6f2e62",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 28,
+      "path": "layer-028.pt",
+      "sha256": "f1e760c21a04b1acc0e95bfc70e2d40ab835c2a5e8610a2f196712142a7d8629",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 29,
+      "path": "layer-029.pt",
+      "sha256": "37f6009ebc4758d3f9bc4055559913afab4293c78be6ea6f7cf7ca56b68eb4e4",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 30,
+      "path": "layer-030.pt",
+      "sha256": "2a88eb4e4592f1c5eef96dd404e2d8e3bb6eb06d52e8403c8f32e473d326a1de",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 31,
+      "path": "layer-031.pt",
+      "sha256": "30a6a40e1bf2b80b776037dbf71e13cc98a8a74488bf8233eefeaf8813a58d43",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 32,
+      "path": "layer-032.pt",
+      "sha256": "a4e2b4568f2148f8baec2ba3af892cbaff3d3ae46770fab50dc6ef0c0a6ca5f8",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 33,
+      "path": "layer-033.pt",
+      "sha256": "9e031fda0ada627514e40cf21c9cdb7e122d02b9bf8bdc883b4be0eb291d4ee4",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 34,
+      "path": "layer-034.pt",
+      "sha256": "803190c075008896de9409d301711359c5a019f160a6d3f27c636475efd99fdd",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 35,
+      "path": "layer-035.pt",
+      "sha256": "0c34dd9bfda812cdad3289575f591b0543bca371fe2a734e575bac46fc468243",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 36,
+      "path": "layer-036.pt",
+      "sha256": "972ac338d3c502a29c88a70e0cf3fd5d601884be9e93684ba66a094ebcc21c39",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 37,
+      "path": "layer-037.pt",
+      "sha256": "4521b6b259b154170fb77ddc5e2645cda705f17d2b1705bb1a1802334b735bb2",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 38,
+      "path": "layer-038.pt",
+      "sha256": "2023a8679a25e7f61a95d62aecf67850f3499c8f463a8506cfa6b2f8c2fb1d8b",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 39,
+      "path": "layer-039.pt",
+      "sha256": "83fdfeec543bc615214a78974dff2b81077a33ede4d079d23fddba01367bbe1a",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 40,
+      "path": "layer-040.pt",
+      "sha256": "768baf4f0005d4bd7a09dd270c76da127dd5a31e860e1122341662556af98bf3",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 41,
+      "path": "layer-041.pt",
+      "sha256": "24ae8e54327a459d90deee4a563fe4a804e168f734e31d75f8af4bcc3d15e2d6",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 42,
+      "path": "layer-042.pt",
+      "sha256": "71dee84cb0845f18780a08fc0f06275a05e8b172e06bd1ccaa3373f89c1ccb19",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    }
+  ],
+  "logits": {
+    "path": "logits.pt",
+    "sha256": "bcaa6a6399c6466e32e12efe5e827cb1d7e4bcfd613805eb3167c85f642928ab",
+    "shape": [
+      129280
+    ],
+    "size": 518711
+  },
+  "token_ids": [
+    0,
+    271,
+    372,
+    27193,
+    271,
+    3476,
+    611,
+    3278,
+    304,
+    260,
+    1341,
+    294,
+    6704,
+    304,
+    1694,
+    3287,
+    270,
+    3967,
+    734,
+    3417,
+    16,
+    2042,
+    588,
+    34756,
+    6704,
+    513,
+    4985,
+    260,
+    38322,
+    128825,
+    72461,
+    4941,
+    12548,
+    48902,
+    5603,
+    1277,
+    270,
+    2502,
+    979,
+    30,
+    128825,
+    72461,
+    4941,
+    12548,
+    1018,
+    30,
+    128825,
+    40148,
+    5406,
+    2329,
+    84476,
+    6792,
+    5896,
+    35044,
+    3816,
+    30,
+    128825,
+    41523,
+    2329,
+    84476,
+    46630,
+    4130,
+    61729,
+    35044,
+    4,
+    3418,
+    1281,
+    11476,
+    94,
+    19836,
+    3320,
+    6,
+    46630,
+    4130,
+    61729,
+    56909,
+    1718,
+    128825,
+    41523,
+    1018,
+    7835,
+    1718,
+    128825,
+    40148,
+    5406,
+    1018,
+    30,
+    128825,
+    40148,
+    5406,
+    2329,
+    84476,
+    6792,
+    5896,
+    35044,
+    20,
+    3816,
+    7835,
+    1718,
+    128825,
+    40148,
+    5406,
+    1018,
+    1718,
+    128825,
+    72461,
+    4941,
+    12548,
+    4697,
+    3524,
+    8252,
+    1531,
+    366,
+    12038,
+    412,
+    344,
+    305,
+    1341,
+    3608,
+    4463,
+    1281,
+    11476,
+    4,
+    37419,
+    1884,
+    710,
+    915,
+    4815,
+    343,
+    62896,
+    14,
+    2631,
+    2065,
+    634,
+    14,
+    31939,
+    14,
+    8435,
+    754,
+    2281,
+    270,
+    1990,
+    295,
+    26639,
+    8786,
+    305,
+    1341,
+    3608,
+    4463,
+    1281,
+    19836,
+    4,
+    108526,
+    3575,
+    6892,
+    71144,
+    344,
+    22104,
+    343,
+    89944,
+    284,
+    513,
+    223,
+    128821,
+    754,
+    440,
+    74366,
+    5238,
+    782,
+    5553,
+    22805,
+    6352,
+    223,
+    128821,
+    1613,
+    128822,
+    119907,
+    1117,
+    4105,
+    10699,
+    469,
+    4087,
+    4256,
+    339,
+    13079,
+    6922,
+    14,
+    5238,
+    6578,
+    1561,
+    223,
+    128822,
+    418,
+    4105,
+    10699,
+    469,
+    4087,
+    4256,
+    339,
+    795,
+    17829,
+    28249,
+    13178,
+    8380,
+    271,
+    24313,
+    2852,
+    3362,
+    582,
+    1133,
+    65,
+    50219,
+    1760,
+    582,
+    20855,
+    3362,
+    582,
+    25529,
+    2573,
+    9670,
+    66910,
+    582,
+    46172,
+    3362,
+    28612,
+    4611,
+    3362,
+    582,
+    10325,
+    1760,
+    582,
+    68838,
+    3362,
+    28612,
+    37399,
+    3362,
+    28612,
+    4611,
+    3362,
+    582,
+    4463,
+    4,
+    55695,
+    582,
+    24486,
+    3362,
+    20584,
+    37399,
+    13747,
+    33236,
+    3476,
+    74366,
+    29851,
+    1605,
+    270,
+    3554,
+    6428,
+    4105,
+    2329,
+    305,
+    10767,
+    5815,
+    8380,
+    304,
+    34756,
+    4105,
+    10699,
+    603,
+    128803,
+    14885,
+    1178,
+    65,
+    50219,
+    304,
+    4085,
+    11111,
+    14,
+    1539,
+    8470,
+    295,
+    834,
+    10175,
+    3920,
+    342,
+    1309,
+    411,
+    56295,
+    16,
+    128804,
+    128822,
+    271,
+    30,
+    128825,
+    72461,
+    4941,
+    12548,
+    1018,
+    30,
+    128825,
+    40148,
+    5406,
+    2329,
+    1281,
+    1133,
+    65,
+    50219,
+    3816,
+    30,
+    128825,
+    41523,
+    2329,
+    1281,
+    37399,
+    4,
+    3418,
+    1281,
+    11476,
+    3320,
+    51119,
+    1718,
+    128825,
+    41523,
+    1018,
+    1718,
+    128825,
+    40148,
+    5406,
+    1018,
+    1718,
+    128825,
+    72461,
+    4941,
+    12548,
+    32,
+    1,
+    128803,
+    30,
+    72461,
+    46148,
+    32,
+    24313,
+    37399,
+    16562,
+    51119,
+    10177,
+    22526,
+    16562,
+    5296,
+    9641,
+    10177,
+    88634,
+    4941,
+    3362,
+    929,
+    24568,
+    72461,
+    46148,
+    4697,
+    45585,
+    270,
+    4087,
+    29849,
+    1928,
+    16,
+    128804,
+    128822
+  ],
+  "token_ids_sha256": "1e337ed31b12934b17db89bf7c8b0519db309b89369b22ba1595313e11228aea"
+}

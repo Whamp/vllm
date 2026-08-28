@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "model_config_sha256": "e973e27b89f47929848a7360bd05b624fd2141f0af2451d9d67636e359c2b4cb",
+  "inventory_sha256": "1cadb51ca5720ac07f74c06f549e18d7ba5c83a0d65b36d82d58e34961d22353",
+  "inventory_tensors": 1328,
+  "planned_targets": 1180,
+  "model_parameters": 1180,
+  "name_sets_equal": true,
+  "element_counts_equal": true,
+  "parameter_dtypes": {
+    "torch.float32": 789,
+    "torch.int32": 3,
+    "torch.uint8": 388
+  },
+  "source_type_sets": {
+    "F16": 297,
+    "F32": 492,
+    "I32": 3,
+    "IQ2_XXS": 86,
+    "Q2_K": 43,
+    "Q8_0": 259
+  }
+}

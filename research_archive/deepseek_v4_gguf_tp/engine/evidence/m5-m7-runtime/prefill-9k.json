@@ -1,0 +1,142 @@
+{
+  "target_tokens": 9000,
+  "cache_bust": "unique prefix before filler",
+  "runs": [
+    {
+      "run": 1,
+      "prompt_tokens": 8976,
+      "elapsed_s": 16.372785374056548,
+      "prefill_tps": 548.2268163255163,
+      "response": {
+        "id": "chatcmpl-b48822a1bd03bde9",
+        "object": "chat.completion",
+        "created": 1787049882,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "done",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 8976,
+          "total_tokens": 8977,
+          "completion_tokens": 1,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    },
+    {
+      "run": 2,
+      "prompt_tokens": 8979,
+      "elapsed_s": 16.2261879730504,
+      "prefill_tps": 553.3647221955617,
+      "response": {
+        "id": "chatcmpl-a239a797f9dd1780",
+        "object": "chat.completion",
+        "created": 1787049898,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "done",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 8979,
+          "total_tokens": 8980,
+          "completion_tokens": 1,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    },
+    {
+      "run": 3,
+      "prompt_tokens": 8978,
+      "elapsed_s": 16.20367362187244,
+      "prefill_tps": 554.0718857655277,
+      "response": {
+        "id": "chatcmpl-86e3e00e700767fe",
+        "object": "chat.completion",
+        "created": 1787049914,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "done",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 8978,
+          "total_tokens": 8979,
+          "completion_tokens": 1,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    }
+  ],
+  "mean_prefill_tps": 551.8878080955352
+}

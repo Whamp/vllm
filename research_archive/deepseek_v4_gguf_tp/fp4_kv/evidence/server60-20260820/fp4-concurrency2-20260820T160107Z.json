@@ -1,0 +1,183 @@
+{
+  "concurrency": 2,
+  "max_tokens": 512,
+  "measured": [
+    {
+      "aggregate_tps": 127.29012271602221,
+      "per_stream_tps": [
+        63.84285945262614,
+        63.656291133935014
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.019690915942192
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.043195588048548
+        }
+      ],
+      "run": 100,
+      "wall_s": 8.044614759972319
+    },
+    {
+      "aggregate_tps": 127.39210199056812,
+      "per_stream_tps": [
+        63.89163308918028,
+        63.70625720180051
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.01356883905828
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.03688715188764
+        }
+      ],
+      "run": 101,
+      "wall_s": 8.038174926070496
+    },
+    {
+      "aggregate_tps": 127.11153168728256,
+      "per_stream_tps": [
+        63.753848494778325,
+        63.566118089350375
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.030887736007571
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.054605431156233
+        }
+      ],
+      "run": 102,
+      "wall_s": 8.055917401099578
+    },
+    {
+      "aggregate_tps": 127.34104933983402,
+      "per_stream_tps": [
+        63.676200518891804,
+        63.87683744035261
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.040680753998458
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.015425004065037
+        }
+      ],
+      "run": 103,
+      "wall_s": 8.041397532913834
+    },
+    {
+      "aggregate_tps": 127.19970023701033,
+      "per_stream_tps": [
+        63.79471076533817,
+        63.60918514155918
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.025743731064722
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.049152003135532
+        }
+      ],
+      "run": 104,
+      "wall_s": 8.050333437044173
+    }
+  ],
+  "model": "deepseek-v4-flash-0731-gguf-tp",
+  "schema_version": 1,
+  "summary": {
+    "aggregate_tps_cv": 0.0008817231133795664,
+    "aggregate_tps_mean": 127.26690119414344,
+    "per_stream_tps_mean": 63.73739413278124
+  },
+  "warmups": [
+    {
+      "aggregate_tps": 126.41133889730213,
+      "per_stream_tps": [
+        63.22616479118727,
+        63.3276014832053
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.097913287812844
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.084942237008363
+        }
+      ],
+      "run": 0,
+      "wall_s": 8.100539152044803
+    },
+    {
+      "aggregate_tps": 127.26225945714538,
+      "per_stream_tps": [
+        63.726964251390214,
+        63.64146104688011
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.03427569498308
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.045069858198985
+        }
+      ],
+      "run": 1,
+      "wall_s": 8.046376076992601
+    },
+    {
+      "aggregate_tps": 127.13602350493882,
+      "per_stream_tps": [
+        63.76760450607888,
+        63.57720343557539
+      ],
+      "rows": [
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.029155304888263
+        },
+        {
+          "finish_reason": "length",
+          "tokens": 512,
+          "wall_s": 8.053201026981696
+        }
+      ],
+      "run": 2,
+      "wall_s": 8.054365488002077
+    }
+  ]
+}

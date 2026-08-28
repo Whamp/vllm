@@ -1,0 +1,18 @@
+service
+healthy|no|club-3090/deepseek-v4-gguf-tp@sha256:5fab88440740a6033bcacda473ffaeed7a4f4e386d494b516432487f0df09729
+requests
+vllm:num_requests_running{engine="0",model_name="deepseek-v4-flash-0731-gguf-tp"} 0.0
+vllm:num_requests_waiting{engine="0",model_name="deepseek-v4-flash-0731-gguf-tp"} 0.0
+swap
+Name:	python VmSwap:	       0 kB
+Name:	VLLM::EngineCor VmSwap:	       0 kB
+Name:	VLLM::Worker_TP VmSwap:	       0 kB
+Name:	VLLM::Worker_TP VmSwap:	       0 kB
+Name:	VLLM::Worker_TP VmSwap:	       0 kB
+Name:	VLLM::Worker_TP VmSwap:	       0 kB
+gpu_safety
+active
+0, 230.00 W, 210 MHz
+1, 230.00 W, 210 MHz
+2, 230.00 W, 210 MHz
+3, 230.00 W, 210 MHz

@@ -1,0 +1,17 @@
+{
+  "nccl_kernel_time": 2406672531.0,
+  "nccl_kernel_time_fraction": 0.15558033107678912,
+  "nccl_kernels": [
+    {
+      "name": "_hier_all_reduce_kernel",
+      "total_time": 2259416712.0
+    },
+    {
+      "name": "ncclDevKernel_AllGather_RING_LL(ncclDevKernelArgsStorage<(unsigned long)4096>)",
+      "total_time": 147255819.0
+    }
+  ],
+  "schema_version": 1,
+  "scope": "summed_cuda_kernel_time_not_critical_path",
+  "total_kernel_time": 15469002504.0
+}

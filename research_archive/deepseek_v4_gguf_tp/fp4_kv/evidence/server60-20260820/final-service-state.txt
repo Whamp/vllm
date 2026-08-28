@@ -1,0 +1,10 @@
+timestamp=2026-08-20T17:27:01Z
+container=/dsv4-gguf-tp-prod state=running health=healthy restarts=0 restart=unless-stopped image=sha256:f91e8283e7ad116b8664b4a936dba88ebafcb8910a968dce2a3c34420f010adf
+candidate_containers=0
+pid_swap_kb=0
+0, 230.00, 210, 24026, 101
+1, 230.00, 210, 24026, 101
+2, 230.00, 210, 24026, 101
+3, 230.00, 210, 24026, 102
+
+{"object":"list","data":[{"id":"deepseek-v4-flash-0731-gguf-tp","object":"model","created":1787246821,"owned_by":"vllm","root":"/runtime-model","parent":null,"max_model_len":148000,"permission":[{"id":"modelperm-b1e8a4adb0e1de59","object":"model_permission","created":1787246821,"allow_create_engine":false,"allow_sampling":true,"allow_logprobs":true,"allow_search_indices":false,"allow_view":true,"allow_fine_tuning":false,"organization":"*","group":null,"is_blocking":false}]}]}

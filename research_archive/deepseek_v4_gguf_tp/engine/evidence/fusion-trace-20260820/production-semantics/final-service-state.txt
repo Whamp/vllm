@@ -1,0 +1,40 @@
+captured_utc=2026-08-20T06:19:30Z
+03f14a75d51860f79cb7e7831de213a82630196e07625a0b7cc51ea43f4bda5e  /home/will/inference/runtime/gguf-tp-prod/base.yml
+compose_contract:
+      - "--served-model-name"
+      - "deepseek-v4-flash-0731-gguf-tp"
+      - "--tensor-parallel-size"
+      - "4"
+      - "--max-model-len"
+      - "148000"
+      - "--max-num-seqs"
+      - "2"
+      - "--max-num-batched-tokens"
+      - "256"
+      - "--gpu-memory-utilization"
+      - "0.98"
+      - "--kv-cache-dtype"
+      - "fp8_ds_mla"
+      - "--load-format"
+      - "gguf_dsv4"
+      - "--quantization"
+      - "gguf_dsv4"
+      - "--model-loader-extra-config"
+      - '{"gguf_path":"/model.gguf","sha256":"ca22ae2f838e14077c22bc1c1417b71b45b5e5a3687bd96c2ac6e17fdb6261c0","file_size":86720111488,"tensor_count":1328}'
+      - "--disable-custom-all-reduce"
+container=running/healthy restarts=0 restart=unless-stopped image=sha256:f91e8283e7ad116b8664b4a936dba88ebafcb8910a968dce2a3c34420f010adf
+models=deepseek-v4-flash-0731-gguf-tp
+canary=PILOT-READY-8421
+num_requests_running=0.0
+num_requests_waiting=0.0
+kv_cache_usage_perc=0.0
+swap_kb_by_process=0,0,0,0,0,0,0
+gpu_state=index,memory.free,power.limit,current_graphics_clock
+0, 99 MiB, 230.00 W, 1650 MHz
+1, 99 MiB, 230.00 W, 1650 MHz
+2, 99 MiB, 230.00 W, 1650 MHz
+3, 100 MiB, 230.00 W, 1650 MHz
+safety_service=active
+safety_clock_contract="210,1650"
+active_deepseek_containers=dsv4-gguf-tp-prod
+active_restore_timers=0

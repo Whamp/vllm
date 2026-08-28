@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "base": "b7766cfe4d15d9b68acea43097ceff221e8a739f",
+  "extension_sha256": "6148b0e4b754603f40a028a43a4976eb1b97a71bbc7fd6a69ddecdefbff4c7cc",
+  "gpu_test": "7 passed in 5.10s",
+  "files": {
+    "CMakeLists.txt": "f8bb6a0389318d2e177320f537d6674187019bc93626c51f1e12ee8ac32771d3",
+    "csrc/libtorch_stable/ops.h": "1614f08646b5b77cec144fec59e69f0ae699eff2b3521dc2ccc3557a99fe39ab",
+    "csrc/libtorch_stable/torch_bindings.cpp": "eefd01214bd27adb7f9ad1ef9d97d1eefb927d85ec78b6be6407b37c7db2c32d",
+    "csrc/libtorch_stable/quantization/gguf_dsv4/iq2_xxs_matvec.cu": "578a7542cf85b4bc5d525cf654cf4e801aa9dc713b08e871f8b2a2c9a9096435",
+    "csrc/libtorch_stable/quantization/gguf_dsv4/iq2_xxs_tables.cuh": "ed91f6ad2cdfe29f03fc5bd17b1926938f4ab48af357c35969d3fe95eb802ceb",
+    "tests/kernels/quantization/test_gguf_iq2_xxs.py": "c7f4eeb7d861e9ac7f12faac43df0b76608d5e2080d25e53d08ebdc2eb16b816",
+    "benchmarks/kernels/benchmark_gguf_iq2_xxs.py": "045f4a0c2f7032a4821bbfb7b56219b899c6544261424472f543f5d39993a95b",
+    "vllm/_C_stable_libtorch.abi3.so": "6148b0e4b754603f40a028a43a4976eb1b97a71bbc7fd6a69ddecdefbff4c7cc",
+    "iq2-benchmark.json": "ccf112517df8c0ee9aaedcc11e23da08f4eb98c611900b50e06d61dcbd91156a"
+  }
+}

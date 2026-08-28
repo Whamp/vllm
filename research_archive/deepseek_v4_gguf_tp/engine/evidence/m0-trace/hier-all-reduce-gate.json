@@ -1,0 +1,54 @@
+{
+  "capability": "8.6",
+  "islands": [
+    [
+      0,
+      1
+    ],
+    [
+      2,
+      3
+    ]
+  ],
+  "iterations": 50,
+  "results": [
+    {
+      "bytes": 8192,
+      "hierarchical_median_us": 84.239,
+      "hierarchical_over_nccl": 0.7598408861307548,
+      "nccl_median_us": 110.864,
+      "numel": 4096
+    },
+    {
+      "bytes": 16384,
+      "hierarchical_median_us": 88.256,
+      "hierarchical_over_nccl": 0.8449431317734462,
+      "nccl_median_us": 104.452,
+      "numel": 8192
+    },
+    {
+      "bytes": 65536,
+      "hierarchical_median_us": 137.7495,
+      "hierarchical_over_nccl": 0.8174219811651051,
+      "nccl_median_us": 168.517,
+      "numel": 32768
+    },
+    {
+      "bytes": 131072,
+      "hierarchical_median_us": 176.472,
+      "hierarchical_over_nccl": 0.7986947302676392,
+      "nccl_median_us": 220.9505,
+      "numel": 65536
+    },
+    {
+      "bytes": 524288,
+      "hierarchical_median_us": 453.233,
+      "hierarchical_over_nccl": 0.8531621360630526,
+      "nccl_median_us": 531.239,
+      "numel": 262144
+    }
+  ],
+  "schema_version": 1,
+  "warmup": 10,
+  "world_size": 4
+}

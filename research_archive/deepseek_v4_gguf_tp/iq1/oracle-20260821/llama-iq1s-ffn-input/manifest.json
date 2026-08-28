@@ -1,0 +1,20 @@
+{
+  "format": "llama-ds4-layer-oracle-v1",
+  "token_count": 366,
+  "attention_layer_count": 43,
+  "ffn_input_layer_count": 43,
+  "ffn_input_value_count": 4096,
+  "route_layer_count": 43,
+  "route_value_count": 6,
+  "route_weight_layer_count": 43,
+  "route_weight_value_count": 6,
+  "gate_layer_count": 43,
+  "up_layer_count": 43,
+  "gate_up_value_count": 12288,
+  "routed_ffn_layer_count": 43,
+  "shared_ffn_layer_count": 43,
+  "ffn_value_count": 4096,
+  "layer_count": 43,
+  "layer_value_count": 16384,
+  "logit_count": 129280
+}

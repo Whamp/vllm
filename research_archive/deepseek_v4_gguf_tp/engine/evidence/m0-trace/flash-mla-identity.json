@@ -1,0 +1,7 @@
+{
+  "image": "club-3090/deepseek-v4-wna16-sm86:quality-12035985-speed-b7766cfe",
+  "image_id": "sha256:eb2884fc60ee332d7adb9d5e424e35acf8817dad0f93c8bb7ea7095cb8f58a0e",
+  "source_commit": "7f41a5baa5cf57bfbce06458794b4b05737a162a",
+  "source_archive_sha256": "bf21d9c33530a718d1988f24dff1f3600c7715fde6e9f5c73824a4c364831268",
+  "wheel_sha256": "1e750446aa04b1f325fd1ca29be5d6b3e62f69df69e7ccd4b45df2c267b694d3"
+}

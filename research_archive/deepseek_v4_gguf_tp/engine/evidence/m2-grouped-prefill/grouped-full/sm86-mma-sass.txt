@@ -1,0 +1,18 @@
+===_C_stable_libtorch.abi3.209.sm_86.cubin
+.text._ZN4vllm9gguf_dsv451_GLOBAL__N__f98c4f8e_18_iq2_xxs_grouped_cu_544ef7a835iq2_xxs_q8_1_grouped_gate_up_kernelEPK6__halfPKaPKhS8_PKiSA_SA_PfSB_iiiii
+.nv.info._ZN4vllm9gguf_dsv451_GLOBAL__N__f98c4f8e_18_iq2_xxs_grouped_cu_544ef7a835iq2_xxs_q8_1_grouped_gate_up_kernelEPK6__halfPKaPKhS8_PKiSA_SA_PfSB_iiiii
+        /*2370*/                   LOP3.LUT R11, R11, 0x80808080, R34, 0xb4, !PT ;
+        /*2380*/                   IMMA.16832.S8.S8 R8, R8.ROW, R22.COL, RZ ;
+        /*2390*/                   FMUL R22, R20.reuse, R32.reuse ;
+--
+        /*2ce0*/                   LOP3.LUT R11, R35, 0x80808080, R34, 0xb4, !PT ;
+        /*2cf0*/                   IMMA.16832.S8.S8 R8, R8.ROW, R22.COL, RZ ;
+        /*2d00*/                   @!UPT UIADD3 URZ, URZ, URZ, URZ ;
+a5a27f7808369fbb3a8d64c6b142fe2bd8cd1fe80cf9014804b0e79443ce5327  /in/_C_stable_libtorch.abi3.209.sm_86.cubin
+===_C_stable_libtorch.abi3.223.sm_86.cubin
+.text._ZN4vllm9gguf_dsv448_GLOBAL__N__3c33832d_15_q2_k_grouped_cu_9ba713dc29q2_k_q8_1_grouped_down_kernelEPK6__halfPKaPKhPKiSA_SA_Pfiiii
+.nv.info._ZN4vllm9gguf_dsv448_GLOBAL__N__3c33832d_15_q2_k_grouped_cu_9ba713dc29q2_k_q8_1_grouped_down_kernelEPK6__halfPKaPKhPKiSA_SA_Pfiiii
+        /*1a30*/                   LDS R35, [R32+0x200] ;
+        /*1a40*/                   IMMA.16832.S8.S8 R8, R8.ROW, R24.COL, RZ ;
+        /*1a50*/                   LDS R25, [R32+0x180] ;
+5a43777e2cdb877dec2f80f7408d4372c72d28dbb59c6eb420d398334a388dea  /in/_C_stable_libtorch.abi3.223.sm_86.cubin

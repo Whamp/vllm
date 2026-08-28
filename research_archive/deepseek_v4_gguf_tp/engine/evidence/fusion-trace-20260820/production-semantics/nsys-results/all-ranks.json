@@ -1,0 +1,66 @@
+[
+  [
+    {
+      "tokens": 1,
+      "expert_path": "indexed",
+      "graph_ms": 0.18933183670043946,
+      "iterations": 50,
+      "hierarchical_should_use": true
+    },
+    {
+      "tokens": 256,
+      "expert_path": "grouped",
+      "graph_ms": 10.134143829345703,
+      "iterations": 1,
+      "hierarchical_should_use": false
+    }
+  ],
+  [
+    {
+      "tokens": 1,
+      "expert_path": "indexed",
+      "graph_ms": 0.19015039443969728,
+      "iterations": 50,
+      "hierarchical_should_use": true
+    },
+    {
+      "tokens": 256,
+      "expert_path": "grouped",
+      "graph_ms": 10.024991989135742,
+      "iterations": 1,
+      "hierarchical_should_use": false
+    }
+  ],
+  [
+    {
+      "tokens": 1,
+      "expert_path": "indexed",
+      "graph_ms": 0.19015552520751952,
+      "iterations": 50,
+      "hierarchical_should_use": true
+    },
+    {
+      "tokens": 256,
+      "expert_path": "grouped",
+      "graph_ms": 9.930368423461914,
+      "iterations": 1,
+      "hierarchical_should_use": false
+    }
+  ],
+  [
+    {
+      "tokens": 1,
+      "expert_path": "indexed",
+      "graph_ms": 0.1904524803161621,
+      "iterations": 50,
+      "hierarchical_should_use": true
+    },
+    {
+      "tokens": 256,
+      "expert_path": "grouped",
+      "graph_ms": 9.943552017211914,
+      "iterations": 1,
+      "hierarchical_should_use": false
+    }
+  ]
+]

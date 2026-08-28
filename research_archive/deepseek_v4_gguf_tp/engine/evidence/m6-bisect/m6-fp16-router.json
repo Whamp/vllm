@@ -1,0 +1,1484 @@
+{
+  "format": "gguf-tp-m6-fp16-router-v1",
+  "passed": false,
+  "layers_passed": false,
+  "logits_passed": true,
+  "median_post_ffn": {
+    "cosine": 0.9949613130919287,
+    "normalized_rmse": 0.10057500983882016,
+    "normalized_mae": 0.10180141275972568
+  },
+  "logits": {
+    "cosine": 0.9980393299556211,
+    "normalized_rmse": 0.06419804018785344,
+    "normalized_mae": 0.07912199989186737,
+    "top1_equal": true,
+    "top10_overlap": 9
+  },
+  "route_set_equal_layers": 36,
+  "route_order_equal_layers": 26,
+  "rows": [
+    {
+      "layer": 0,
+      "attention": {
+        "cosine": 0.9999752010596489,
+        "normalized_rmse": 0.007042532633830627,
+        "normalized_mae": 0.0037891040031425003
+      },
+      "post_ffn": {
+        "cosine": 0.999964823550887,
+        "normalized_rmse": 0.008575157962570457,
+        "normalized_mae": 0.006228325776993042
+      },
+      "routes": {
+        "vllm": [
+          107,
+          85,
+          126,
+          215,
+          44,
+          129
+        ],
+        "llama": [
+          107,
+          85,
+          126,
+          215,
+          44,
+          129
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 1,
+      "attention": {
+        "cosine": 0.9999520863567893,
+        "normalized_rmse": 0.009891415224347746,
+        "normalized_mae": 0.008857459504801065
+      },
+      "post_ffn": {
+        "cosine": 0.9999430830735438,
+        "normalized_rmse": 0.010753513774455523,
+        "normalized_mae": 0.009940381350852788
+      },
+      "routes": {
+        "vllm": [
+          3,
+          18,
+          155,
+          214,
+          227,
+          31
+        ],
+        "llama": [
+          3,
+          18,
+          155,
+          214,
+          227,
+          31
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 2,
+      "attention": {
+        "cosine": 0.9999333304006693,
+        "normalized_rmse": 0.011550797834270715,
+        "normalized_mae": 0.011799057992088363
+      },
+      "post_ffn": {
+        "cosine": 0.9999203037630052,
+        "normalized_rmse": 0.012625065126979793,
+        "normalized_mae": 0.012892737077064925
+      },
+      "routes": {
+        "vllm": [
+          225,
+          217,
+          204,
+          105,
+          14,
+          77
+        ],
+        "llama": [
+          225,
+          217,
+          204,
+          105,
+          14,
+          77
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 3,
+      "attention": {
+        "cosine": 0.9998789341127868,
+        "normalized_rmse": 0.01557179573986283,
+        "normalized_mae": 0.015014336535730014
+      },
+      "post_ffn": {
+        "cosine": 0.9998651044763586,
+        "normalized_rmse": 0.01642525975432368,
+        "normalized_mae": 0.01721683461085623
+      },
+      "routes": {
+        "vllm": [
+          99,
+          133,
+          197,
+          119,
+          70,
+          64
+        ],
+        "llama": [
+          99,
+          133,
+          197,
+          119,
+          70,
+          64
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 4,
+      "attention": {
+        "cosine": 0.9998326678690884,
+        "normalized_rmse": 0.018303917030002934,
+        "normalized_mae": 0.018784967393127152
+      },
+      "post_ffn": {
+        "cosine": 0.999832944537271,
+        "normalized_rmse": 0.01829889329657515,
+        "normalized_mae": 0.018810391955358604
+      },
+      "routes": {
+        "vllm": [
+          97,
+          183,
+          8,
+          173,
+          28,
+          113
+        ],
+        "llama": [
+          97,
+          183,
+          8,
+          173,
+          28,
+          113
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 5,
+      "attention": {
+        "cosine": 0.9997375115633164,
+        "normalized_rmse": 0.022944506601238226,
+        "normalized_mae": 0.02347362398330521
+      },
+      "post_ffn": {
+        "cosine": 0.9997069651466656,
+        "normalized_rmse": 0.024208439275838874,
+        "normalized_mae": 0.024197014395479135
+      },
+      "routes": {
+        "vllm": [
+          2,
+          169,
+          63,
+          13,
+          221,
+          15
+        ],
+        "llama": [
+          2,
+          169,
+          63,
+          13,
+          221,
+          15
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 6,
+      "attention": {
+        "cosine": 0.9996840996798457,
+        "normalized_rmse": 0.025147694841354602,
+        "normalized_mae": 0.024792752795664875
+      },
+      "post_ffn": {
+        "cosine": 0.9996345388947827,
+        "normalized_rmse": 0.02703951295912962,
+        "normalized_mae": 0.02575150803431944
+      },
+      "routes": {
+        "vllm": [
+          1,
+          16,
+          137,
+          214,
+          53,
+          204
+        ],
+        "llama": [
+          1,
+          16,
+          137,
+          214,
+          53,
+          204
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 7,
+      "attention": {
+        "cosine": 0.9995787901641554,
+        "normalized_rmse": 0.029028702863135598,
+        "normalized_mae": 0.027137165289008634
+      },
+      "post_ffn": {
+        "cosine": 0.9979042535283408,
+        "normalized_rmse": 0.0647490401578796,
+        "normalized_mae": 0.047771100090462974
+      },
+      "routes": {
+        "vllm": [
+          141,
+          233,
+          110,
+          181,
+          118,
+          166
+        ],
+        "llama": [
+          141,
+          233,
+          110,
+          181,
+          118,
+          192
+        ],
+        "order_equal": false,
+        "set_equal": false,
+        "overlap": 5
+      }
+    },
+    {
+      "layer": 8,
+      "attention": {
+        "cosine": 0.9981137298202524,
+        "normalized_rmse": 0.06145294942224848,
+        "normalized_mae": 0.04661219176167307
+      },
+      "post_ffn": {
+        "cosine": 0.9980131447085113,
+        "normalized_rmse": 0.06311099958092867,
+        "normalized_mae": 0.04795519282949545
+      },
+      "routes": {
+        "vllm": [
+          115,
+          28,
+          84,
+          200,
+          135,
+          102
+        ],
+        "llama": [
+          115,
+          28,
+          84,
+          200,
+          135,
+          102
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 9,
+      "attention": {
+        "cosine": 0.9982850147914217,
+        "normalized_rmse": 0.058610517353254316,
+        "normalized_mae": 0.051795538419633455
+      },
+      "post_ffn": {
+        "cosine": 0.9972509057231724,
+        "normalized_rmse": 0.07423209394313623,
+        "normalized_mae": 0.06511521681144423
+      },
+      "routes": {
+        "vllm": [
+          86,
+          235,
+          199,
+          191,
+          105,
+          3
+        ],
+        "llama": [
+          86,
+          235,
+          199,
+          191,
+          105,
+          184
+        ],
+        "order_equal": false,
+        "set_equal": false,
+        "overlap": 5
+      }
+    },
+    {
+      "layer": 10,
+      "attention": {
+        "cosine": 0.9974236074479584,
+        "normalized_rmse": 0.07193604021730166,
+        "normalized_mae": 0.06391245796123605
+      },
+      "post_ffn": {
+        "cosine": 0.9971429515999404,
+        "normalized_rmse": 0.07556447224164863,
+        "normalized_mae": 0.06625098464657449
+      },
+      "routes": {
+        "vllm": [
+          40,
+          245,
+          11,
+          129,
+          153,
+          214
+        ],
+        "llama": [
+          40,
+          245,
+          11,
+          129,
+          153,
+          214
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 11,
+      "attention": {
+        "cosine": 0.9973574459998107,
+        "normalized_rmse": 0.07273585661519592,
+        "normalized_mae": 0.06501786233204508
+      },
+      "post_ffn": {
+        "cosine": 0.9968731893848809,
+        "normalized_rmse": 0.07916322835781432,
+        "normalized_mae": 0.06957746909673738
+      },
+      "routes": {
+        "vllm": [
+          30,
+          89,
+          85,
+          54,
+          133,
+          94
+        ],
+        "llama": [
+          30,
+          85,
+          89,
+          133,
+          54,
+          94
+        ],
+        "order_equal": false,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 12,
+      "attention": {
+        "cosine": 0.9971415729244694,
+        "normalized_rmse": 0.07559173210149,
+        "normalized_mae": 0.06751409572061233
+      },
+      "post_ffn": {
+        "cosine": 0.9968213061176864,
+        "normalized_rmse": 0.07967307515657701,
+        "normalized_mae": 0.07024105198361846
+      },
+      "routes": {
+        "vllm": [
+          142,
+          105,
+          164,
+          45,
+          244,
+          185
+        ],
+        "llama": [
+          142,
+          105,
+          164,
+          244,
+          185,
+          45
+        ],
+        "order_equal": false,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 13,
+      "attention": {
+        "cosine": 0.9968569662357015,
+        "normalized_rmse": 0.07924469139363945,
+        "normalized_mae": 0.07012420792147578
+      },
+      "post_ffn": {
+        "cosine": 0.9966485509500627,
+        "normalized_rmse": 0.08180808055701412,
+        "normalized_mae": 0.07181684853936403
+      },
+      "routes": {
+        "vllm": [
+          14,
+          91,
+          148,
+          4,
+          9,
+          160
+        ],
+        "llama": [
+          14,
+          91,
+          148,
+          4,
+          9,
+          160
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 14,
+      "attention": {
+        "cosine": 0.9964255092074008,
+        "normalized_rmse": 0.0844843354070755,
+        "normalized_mae": 0.07352043333917344
+      },
+      "post_ffn": {
+        "cosine": 0.9960876128112202,
+        "normalized_rmse": 0.08858317642773791,
+        "normalized_mae": 0.07697187954454843
+      },
+      "routes": {
+        "vllm": [
+          49,
+          235,
+          7,
+          73,
+          173,
+          151
+        ],
+        "llama": [
+          49,
+          235,
+          7,
+          73,
+          173,
+          151
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 15,
+      "attention": {
+        "cosine": 0.9962900081414061,
+        "normalized_rmse": 0.08607499766550114,
+        "normalized_mae": 0.07559421871080563
+      },
+      "post_ffn": {
+        "cosine": 0.9958877057952937,
+        "normalized_rmse": 0.09069657450478455,
+        "normalized_mae": 0.07975609498147417
+      },
+      "routes": {
+        "vllm": [
+          176,
+          213,
+          27,
+          104,
+          233,
+          5
+        ],
+        "llama": [
+          176,
+          213,
+          27,
+          104,
+          233,
+          5
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 16,
+      "attention": {
+        "cosine": 0.9960838998018644,
+        "normalized_rmse": 0.08854972891910971,
+        "normalized_mae": 0.07841743896189905
+      },
+      "post_ffn": {
+        "cosine": 0.9958175786850111,
+        "normalized_rmse": 0.09177571910394863,
+        "normalized_mae": 0.08191866540510616
+      },
+      "routes": {
+        "vllm": [
+          243,
+          255,
+          61,
+          179,
+          176,
+          81
+        ],
+        "llama": [
+          243,
+          255,
+          61,
+          179,
+          176,
+          81
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 17,
+      "attention": {
+        "cosine": 0.9957793933774657,
+        "normalized_rmse": 0.09199250417809077,
+        "normalized_mae": 0.08232400336379167
+      },
+      "post_ffn": {
+        "cosine": 0.9946839520073021,
+        "normalized_rmse": 0.10326006658632808,
+        "normalized_mae": 0.09030633802636935
+      },
+      "routes": {
+        "vllm": [
+          108,
+          61,
+          69,
+          98,
+          222,
+          104
+        ],
+        "llama": [
+          108,
+          61,
+          98,
+          69,
+          222,
+          104
+        ],
+        "order_equal": false,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 18,
+      "attention": {
+        "cosine": 0.9929648141385061,
+        "normalized_rmse": 0.11920141109222902,
+        "normalized_mae": 0.10217111915371858
+      },
+      "post_ffn": {
+        "cosine": 0.9923184315249162,
+        "normalized_rmse": 0.12572373068494577,
+        "normalized_mae": 0.11069688189414793
+      },
+      "routes": {
+        "vllm": [
+          198,
+          183,
+          246,
+          166,
+          43,
+          220
+        ],
+        "llama": [
+          183,
+          198,
+          246,
+          166,
+          43,
+          220
+        ],
+        "order_equal": false,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 19,
+      "attention": {
+        "cosine": 0.9932940128498368,
+        "normalized_rmse": 0.11863731713954961,
+        "normalized_mae": 0.10789315407970096
+      },
+      "post_ffn": {
+        "cosine": 0.993352826780964,
+        "normalized_rmse": 0.11809504143779535,
+        "normalized_mae": 0.1124639191843165
+      },
+      "routes": {
+        "vllm": [
+          242,
+          122,
+          193,
+          116,
+          117,
+          186
+        ],
+        "llama": [
+          242,
+          122,
+          193,
+          116,
+          117,
+          186
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 20,
+      "attention": {
+        "cosine": 0.9939614681301968,
+        "normalized_rmse": 0.11270644986048182,
+        "normalized_mae": 0.10919480997336625
+      },
+      "post_ffn": {
+        "cosine": 0.9945825544856476,
+        "normalized_rmse": 0.1056222993694132,
+        "normalized_mae": 0.10489038240467188
+      },
+      "routes": {
+        "vllm": [
+          61,
+          187,
+          54,
+          146,
+          76,
+          216
+        ],
+        "llama": [
+          61,
+          187,
+          54,
+          146,
+          216,
+          76
+        ],
+        "order_equal": false,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 21,
+      "attention": {
+        "cosine": 0.9944413703775378,
+        "normalized_rmse": 0.10787453554315361,
+        "normalized_mae": 0.10808604567054414
+      },
+      "post_ffn": {
+        "cosine": 0.9947875602636449,
+        "normalized_rmse": 0.10439652537270522,
+        "normalized_mae": 0.10391880200832863
+      },
+      "routes": {
+        "vllm": [
+          49,
+          28,
+          109,
+          62,
+          102,
+          75
+        ],
+        "llama": [
+          49,
+          28,
+          109,
+          62,
+          102,
+          75
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 22,
+      "attention": {
+        "cosine": 0.9921307860362423,
+        "normalized_rmse": 0.12574111858115283,
+        "normalized_mae": 0.12340883226675388
+      },
+      "post_ffn": {
+        "cosine": 0.9933687482792882,
+        "normalized_rmse": 0.11591727368565487,
+        "normalized_mae": 0.1167131187405454
+      },
+      "routes": {
+        "vllm": [
+          239,
+          216,
+          238,
+          0,
+          156,
+          219
+        ],
+        "llama": [
+          239,
+          216,
+          238,
+          0,
+          156,
+          219
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 23,
+      "attention": {
+        "cosine": 0.9935081230207747,
+        "normalized_rmse": 0.11497564673759199,
+        "normalized_mae": 0.11660070199601755
+      },
+      "post_ffn": {
+        "cosine": 0.9934885009533468,
+        "normalized_rmse": 0.11534094587547276,
+        "normalized_mae": 0.11760100989801527
+      },
+      "routes": {
+        "vllm": [
+          60,
+          118,
+          76,
+          225,
+          88,
+          101
+        ],
+        "llama": [
+          60,
+          118,
+          225,
+          76,
+          88,
+          101
+        ],
+        "order_equal": false,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 24,
+      "attention": {
+        "cosine": 0.9948077374521277,
+        "normalized_rmse": 0.10192748781999593,
+        "normalized_mae": 0.10334251626506813
+      },
+      "post_ffn": {
+        "cosine": 0.9948298223461899,
+        "normalized_rmse": 0.10177714960217729,
+        "normalized_mae": 0.10302555471144659
+      },
+      "routes": {
+        "vllm": [
+          58,
+          139,
+          209,
+          124,
+          67,
+          105
+        ],
+        "llama": [
+          58,
+          139,
+          209,
+          124,
+          67,
+          105
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 25,
+      "attention": {
+        "cosine": 0.994692384887643,
+        "normalized_rmse": 0.10296664933681077,
+        "normalized_mae": 0.10394499905716058
+      },
+      "post_ffn": {
+        "cosine": 0.9947546261128768,
+        "normalized_rmse": 0.10240651888228107,
+        "normalized_mae": 0.10343273886444553
+      },
+      "routes": {
+        "vllm": [
+          133,
+          111,
+          167,
+          86,
+          92,
+          219
+        ],
+        "llama": [
+          133,
+          111,
+          167,
+          86,
+          92,
+          219
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 26,
+      "attention": {
+        "cosine": 0.9948288311566454,
+        "normalized_rmse": 0.10173454197920215,
+        "normalized_mae": 0.10241807084197811
+      },
+      "post_ffn": {
+        "cosine": 0.9949613130919287,
+        "normalized_rmse": 0.10057500983882016,
+        "normalized_mae": 0.10120598383313997
+      },
+      "routes": {
+        "vllm": [
+          201,
+          18,
+          78,
+          11,
+          69,
+          191
+        ],
+        "llama": [
+          201,
+          18,
+          78,
+          11,
+          69,
+          191
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 27,
+      "attention": {
+        "cosine": 0.995818829067698,
+        "normalized_rmse": 0.09144468913620689,
+        "normalized_mae": 0.09395874414652777
+      },
+      "post_ffn": {
+        "cosine": 0.9957524740686455,
+        "normalized_rmse": 0.09220447734534575,
+        "normalized_mae": 0.09507781660939837
+      },
+      "routes": {
+        "vllm": [
+          222,
+          218,
+          140,
+          39,
+          95,
+          172
+        ],
+        "llama": [
+          222,
+          218,
+          140,
+          39,
+          95,
+          172
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 28,
+      "attention": {
+        "cosine": 0.9953820548764123,
+        "normalized_rmse": 0.09617636590955263,
+        "normalized_mae": 0.09847190844288727
+      },
+      "post_ffn": {
+        "cosine": 0.9951402451046741,
+        "normalized_rmse": 0.09865120505956368,
+        "normalized_mae": 0.10177099959891814
+      },
+      "routes": {
+        "vllm": [
+          19,
+          177,
+          130,
+          101,
+          166,
+          202
+        ],
+        "llama": [
+          19,
+          177,
+          130,
+          101,
+          231,
+          202
+        ],
+        "order_equal": false,
+        "set_equal": false,
+        "overlap": 5
+      }
+    },
+    {
+      "layer": 29,
+      "attention": {
+        "cosine": 0.9950979296983767,
+        "normalized_rmse": 0.09917745719018045,
+        "normalized_mae": 0.10220994817870706
+      },
+      "post_ffn": {
+        "cosine": 0.9950985400714215,
+        "normalized_rmse": 0.09929308513771537,
+        "normalized_mae": 0.10180141275972568
+      },
+      "routes": {
+        "vllm": [
+          81,
+          2,
+          140,
+          132,
+          244,
+          192
+        ],
+        "llama": [
+          81,
+          2,
+          140,
+          132,
+          244,
+          192
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 30,
+      "attention": {
+        "cosine": 0.9947535581959093,
+        "normalized_rmse": 0.10269800947975088,
+        "normalized_mae": 0.10455044106328752
+      },
+      "post_ffn": {
+        "cosine": 0.9939049451380542,
+        "normalized_rmse": 0.11069658475916196,
+        "normalized_mae": 0.11328348529143281
+      },
+      "routes": {
+        "vllm": [
+          236,
+          85,
+          201,
+          59,
+          23,
+          37
+        ],
+        "llama": [
+          236,
+          201,
+          85,
+          59,
+          109,
+          23
+        ],
+        "order_equal": false,
+        "set_equal": false,
+        "overlap": 5
+      }
+    },
+    {
+      "layer": 31,
+      "attention": {
+        "cosine": 0.9939615259661936,
+        "normalized_rmse": 0.11017426839327638,
+        "normalized_mae": 0.11306660001560762
+      },
+      "post_ffn": {
+        "cosine": 0.9936684849517193,
+        "normalized_rmse": 0.1126866975204764,
+        "normalized_mae": 0.11582404801548477
+      },
+      "routes": {
+        "vllm": [
+          94,
+          123,
+          65,
+          46,
+          41,
+          28
+        ],
+        "llama": [
+          94,
+          123,
+          65,
+          41,
+          28,
+          46
+        ],
+        "order_equal": false,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 32,
+      "attention": {
+        "cosine": 0.9938302618184824,
+        "normalized_rmse": 0.11124656016218551,
+        "normalized_mae": 0.11392022535315584
+      },
+      "post_ffn": {
+        "cosine": 0.9936776919747765,
+        "normalized_rmse": 0.1126737501426208,
+        "normalized_mae": 0.11502663970657714
+      },
+      "routes": {
+        "vllm": [
+          172,
+          193,
+          17,
+          31,
+          1,
+          133
+        ],
+        "llama": [
+          172,
+          193,
+          17,
+          31,
+          1,
+          133
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 33,
+      "attention": {
+        "cosine": 0.9935448716394555,
+        "normalized_rmse": 0.11357025882771216,
+        "normalized_mae": 0.11463285543550222
+      },
+      "post_ffn": {
+        "cosine": 0.9934054137467193,
+        "normalized_rmse": 0.11481737450211164,
+        "normalized_mae": 0.11622936659198539
+      },
+      "routes": {
+        "vllm": [
+          174,
+          22,
+          43,
+          112,
+          136,
+          80
+        ],
+        "llama": [
+          174,
+          22,
+          43,
+          112,
+          136,
+          80
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 34,
+      "attention": {
+        "cosine": 0.9936306608209698,
+        "normalized_rmse": 0.1130288027432135,
+        "normalized_mae": 0.11382837734729306
+      },
+      "post_ffn": {
+        "cosine": 0.993569386407834,
+        "normalized_rmse": 0.11359125284971462,
+        "normalized_mae": 0.11469738181125957
+      },
+      "routes": {
+        "vllm": [
+          207,
+          18,
+          59,
+          10,
+          115,
+          191
+        ],
+        "llama": [
+          207,
+          18,
+          59,
+          10,
+          115,
+          191
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 35,
+      "attention": {
+        "cosine": 0.9938253339940875,
+        "normalized_rmse": 0.1113574818010588,
+        "normalized_mae": 0.11305926710319758
+      },
+      "post_ffn": {
+        "cosine": 0.9934442222595742,
+        "normalized_rmse": 0.11472501656618753,
+        "normalized_mae": 0.11734373577413046
+      },
+      "routes": {
+        "vllm": [
+          84,
+          216,
+          164,
+          71,
+          111,
+          37
+        ],
+        "llama": [
+          84,
+          216,
+          164,
+          71,
+          111,
+          182
+        ],
+        "order_equal": false,
+        "set_equal": false,
+        "overlap": 5
+      }
+    },
+    {
+      "layer": 36,
+      "attention": {
+        "cosine": 0.9932691246195013,
+        "normalized_rmse": 0.1159134922908206,
+        "normalized_mae": 0.11798994312868082
+      },
+      "post_ffn": {
+        "cosine": 0.9927765335103905,
+        "normalized_rmse": 0.12023237913489594,
+        "normalized_mae": 0.12345471446313552
+      },
+      "routes": {
+        "vllm": [
+          144,
+          103,
+          90,
+          208,
+          205,
+          109
+        ],
+        "llama": [
+          144,
+          103,
+          90,
+          208,
+          205,
+          125
+        ],
+        "order_equal": false,
+        "set_equal": false,
+        "overlap": 5
+      }
+    },
+    {
+      "layer": 37,
+      "attention": {
+        "cosine": 0.9928137092570853,
+        "normalized_rmse": 0.1197588990555553,
+        "normalized_mae": 0.12250530863778229
+      },
+      "post_ffn": {
+        "cosine": 0.9926447961343585,
+        "normalized_rmse": 0.1211510688984039,
+        "normalized_mae": 0.12405431590023179
+      },
+      "routes": {
+        "vllm": [
+          106,
+          110,
+          33,
+          162,
+          95,
+          213
+        ],
+        "llama": [
+          106,
+          110,
+          33,
+          162,
+          95,
+          203
+        ],
+        "order_equal": false,
+        "set_equal": false,
+        "overlap": 5
+      }
+    },
+    {
+      "layer": 38,
+      "attention": {
+        "cosine": 0.9924454196511424,
+        "normalized_rmse": 0.12283910790777762,
+        "normalized_mae": 0.12631054802814057
+      },
+      "post_ffn": {
+        "cosine": 0.9925407913497881,
+        "normalized_rmse": 0.12208262566598194,
+        "normalized_mae": 0.12468255335703438
+      },
+      "routes": {
+        "vllm": [
+          77,
+          22,
+          8,
+          6,
+          10,
+          13
+        ],
+        "llama": [
+          77,
+          22,
+          8,
+          10,
+          6,
+          13
+        ],
+        "order_equal": false,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 39,
+      "attention": {
+        "cosine": 0.9927167399815079,
+        "normalized_rmse": 0.12066475216660688,
+        "normalized_mae": 0.12265484784679154
+      },
+      "post_ffn": {
+        "cosine": 0.9925767249070885,
+        "normalized_rmse": 0.12175136165329148,
+        "normalized_mae": 0.12319534847135752
+      },
+      "routes": {
+        "vllm": [
+          221,
+          212,
+          182,
+          9,
+          92,
+          129
+        ],
+        "llama": [
+          221,
+          212,
+          9,
+          182,
+          92,
+          129
+        ],
+        "order_equal": false,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 40,
+      "attention": {
+        "cosine": 0.9926872298425213,
+        "normalized_rmse": 0.12094011642213894,
+        "normalized_mae": 0.12246347108471274
+      },
+      "post_ffn": {
+        "cosine": 0.9927723133546332,
+        "normalized_rmse": 0.12027101887392899,
+        "normalized_mae": 0.12151189088662909
+      },
+      "routes": {
+        "vllm": [
+          208,
+          212,
+          122,
+          148,
+          35,
+          164
+        ],
+        "llama": [
+          208,
+          212,
+          122,
+          148,
+          35,
+          164
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 41,
+      "attention": {
+        "cosine": 0.99252789618052,
+        "normalized_rmse": 0.12222879834050931,
+        "normalized_mae": 0.1232387926873554
+      },
+      "post_ffn": {
+        "cosine": 0.9929213635796383,
+        "normalized_rmse": 0.11897785526546573,
+        "normalized_mae": 0.11979872785629489
+      },
+      "routes": {
+        "vllm": [
+          22,
+          153,
+          232,
+          197,
+          238,
+          235
+        ],
+        "llama": [
+          22,
+          153,
+          232,
+          197,
+          235,
+          238
+        ],
+        "order_equal": false,
+        "set_equal": true,
+        "overlap": 6
+      }
+    },
+    {
+      "layer": 42,
+      "attention": {
+        "cosine": 0.9944207676401787,
+        "normalized_rmse": 0.10551351278791427,
+        "normalized_mae": 0.10882875503789892
+      },
+      "post_ffn": {
+        "cosine": 0.995481997790816,
+        "normalized_rmse": 0.09612046375250055,
+        "normalized_mae": 0.10819386664834969
+      },
+      "routes": {
+        "vllm": [
+          73,
+          112,
+          41,
+          51,
+          205,
+          137
+        ],
+        "llama": [
+          73,
+          112,
+          41,
+          51,
+          205,
+          137
+        ],
+        "order_equal": true,
+        "set_equal": true,
+        "overlap": 6
+      }
+    }
+  ]
+}

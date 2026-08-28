@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "rank": 2,
+  "device": "NVIDIA GeForce RTX 3090",
+  "capability": [
+    8,
+    6
+  ],
+  "results": [
+    {
+      "tokens": 1,
+      "expert_path": "indexed",
+      "graph_ms": 0.19314994812011718,
+      "iterations": 1000,
+      "hierarchical_should_use": true
+    },
+    {
+      "tokens": 256,
+      "expert_path": "grouped",
+      "graph_ms": 10.173532104492187,
+      "iterations": 100,
+      "hierarchical_should_use": false
+    }
+  ]
+}

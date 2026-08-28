@@ -1,0 +1,407 @@
+{
+  "format": "gguf-tp-m6-layer-comparison-v1",
+  "layer_summary": {
+    "median_cosine": 0.9929877705141168,
+    "median_normalized_mae": 0.11970451356449488,
+    "median_normalized_rmse": 0.11908445763039723,
+    "passed": false
+  },
+  "layers": [
+    {
+      "cosine": 0.9999648641527175,
+      "layer": 0,
+      "normalized_mae": 0.006221962949197948,
+      "normalized_rmse": 0.008565161236783489,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999436346397014,
+      "layer": 1,
+      "normalized_mae": 0.009885245947172104,
+      "normalized_rmse": 0.010720386000918531,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999212797349852,
+      "layer": 2,
+      "normalized_mae": 0.012843849989377244,
+      "normalized_rmse": 0.012547875957983502,
+      "passed": true
+    },
+    {
+      "cosine": 0.999864110319294,
+      "layer": 3,
+      "normalized_mae": 0.01739566051291596,
+      "normalized_rmse": 0.016527740332388362,
+      "passed": true
+    },
+    {
+      "cosine": 0.9998360089422517,
+      "layer": 4,
+      "normalized_mae": 0.018649171467399216,
+      "normalized_rmse": 0.018143856269088845,
+      "passed": true
+    },
+    {
+      "cosine": 0.999705867130982,
+      "layer": 5,
+      "normalized_mae": 0.024360354643486872,
+      "normalized_rmse": 0.024314919822712024,
+      "passed": true
+    },
+    {
+      "cosine": 0.9996176080512621,
+      "layer": 6,
+      "normalized_mae": 0.02639472860170825,
+      "normalized_rmse": 0.027748404801724618,
+      "passed": true
+    },
+    {
+      "cosine": 0.9978445115074018,
+      "layer": 7,
+      "normalized_mae": 0.0484555136895074,
+      "normalized_rmse": 0.06566280034705112,
+      "passed": true
+    },
+    {
+      "cosine": 0.997968820552912,
+      "layer": 8,
+      "normalized_mae": 0.04847089730939101,
+      "normalized_rmse": 0.06375276752636604,
+      "passed": true
+    },
+    {
+      "cosine": 0.9972315140422998,
+      "layer": 9,
+      "normalized_mae": 0.06503669741422362,
+      "normalized_rmse": 0.07439055355885195,
+      "passed": true
+    },
+    {
+      "cosine": 0.9971593202764265,
+      "layer": 10,
+      "normalized_mae": 0.0660901457028548,
+      "normalized_rmse": 0.07532155074785213,
+      "passed": true
+    },
+    {
+      "cosine": 0.9968153229656932,
+      "layer": 11,
+      "normalized_mae": 0.06973550026988395,
+      "normalized_rmse": 0.07974469979309028,
+      "passed": true
+    },
+    {
+      "cosine": 0.9968386721725476,
+      "layer": 12,
+      "normalized_mae": 0.06985904300415077,
+      "normalized_rmse": 0.07946897676435168,
+      "passed": true
+    },
+    {
+      "cosine": 0.9967862591097305,
+      "layer": 13,
+      "normalized_mae": 0.07067687717563634,
+      "normalized_rmse": 0.08011484013887402,
+      "passed": true
+    },
+    {
+      "cosine": 0.9962590324209222,
+      "layer": 14,
+      "normalized_mae": 0.07612983879056469,
+      "normalized_rmse": 0.08666439655733506,
+      "passed": true
+    },
+    {
+      "cosine": 0.9947293478317972,
+      "layer": 15,
+      "normalized_mae": 0.08721222365255876,
+      "normalized_rmse": 0.10258457698615515,
+      "passed": false
+    },
+    {
+      "cosine": 0.9944013407607282,
+      "layer": 16,
+      "normalized_mae": 0.09116270253417758,
+      "normalized_rmse": 0.10651570999016406,
+      "passed": false
+    },
+    {
+      "cosine": 0.9929877705141168,
+      "layer": 17,
+      "normalized_mae": 0.10182908702661966,
+      "normalized_rmse": 0.1193162493133207,
+      "passed": false
+    },
+    {
+      "cosine": 0.9893231723088287,
+      "layer": 18,
+      "normalized_mae": 0.12765042901750623,
+      "normalized_rmse": 0.1461426618822173,
+      "passed": false
+    },
+    {
+      "cosine": 0.9902249236119358,
+      "layer": 19,
+      "normalized_mae": 0.13494035682109864,
+      "normalized_rmse": 0.1409492905647145,
+      "passed": false
+    },
+    {
+      "cosine": 0.983614753153759,
+      "layer": 20,
+      "normalized_mae": 0.17075669409505434,
+      "normalized_rmse": 0.18171368055942264,
+      "passed": false
+    },
+    {
+      "cosine": 0.9859359201407222,
+      "layer": 21,
+      "normalized_mae": 0.16212756207697934,
+      "normalized_rmse": 0.16936815184245746,
+      "passed": false
+    },
+    {
+      "cosine": 0.9858517170170923,
+      "layer": 22,
+      "normalized_mae": 0.1670948617113788,
+      "normalized_rmse": 0.16932864767995193,
+      "passed": false
+    },
+    {
+      "cosine": 0.985753746095872,
+      "layer": 23,
+      "normalized_mae": 0.17036001601942466,
+      "normalized_rmse": 0.17029029611310623,
+      "passed": false
+    },
+    {
+      "cosine": 0.9904432462405828,
+      "layer": 24,
+      "normalized_mae": 0.14215764062185982,
+      "normalized_rmse": 0.13947057868194424,
+      "passed": false
+    },
+    {
+      "cosine": 0.9902436115776957,
+      "layer": 25,
+      "normalized_mae": 0.14261587457601088,
+      "normalized_rmse": 0.14036049279433152,
+      "passed": false
+    },
+    {
+      "cosine": 0.991257116307347,
+      "layer": 26,
+      "normalized_mae": 0.13358738336421155,
+      "normalized_rmse": 0.13304253898363622,
+      "passed": false
+    },
+    {
+      "cosine": 0.9930102978695811,
+      "layer": 27,
+      "normalized_mae": 0.12497404182919758,
+      "normalized_rmse": 0.12030649534733982,
+      "passed": false
+    },
+    {
+      "cosine": 0.9923143730289935,
+      "layer": 28,
+      "normalized_mae": 0.13069746529919055,
+      "normalized_rmse": 0.1255870223434251,
+      "passed": false
+    },
+    {
+      "cosine": 0.9921117273086009,
+      "layer": 29,
+      "normalized_mae": 0.13049170454218473,
+      "normalized_rmse": 0.12708285424547652,
+      "passed": false
+    },
+    {
+      "cosine": 0.9918451412289002,
+      "layer": 30,
+      "normalized_mae": 0.13111057222069647,
+      "normalized_rmse": 0.12880104536431913,
+      "passed": false
+    },
+    {
+      "cosine": 0.9918364805358758,
+      "layer": 31,
+      "normalized_mae": 0.13059315011791883,
+      "normalized_rmse": 0.12866671592121964,
+      "passed": false
+    },
+    {
+      "cosine": 0.9920357818770504,
+      "layer": 32,
+      "normalized_mae": 0.12905917094447766,
+      "normalized_rmse": 0.12765925742330145,
+      "passed": false
+    },
+    {
+      "cosine": 0.9916283569796306,
+      "layer": 33,
+      "normalized_mae": 0.12988317476880115,
+      "normalized_rmse": 0.12969459344291487,
+      "passed": false
+    },
+    {
+      "cosine": 0.9920328527600121,
+      "layer": 34,
+      "normalized_mae": 0.12650118173978506,
+      "normalized_rmse": 0.12631586810181572,
+      "passed": false
+    },
+    {
+      "cosine": 0.9924474641450034,
+      "layer": 35,
+      "normalized_mae": 0.12394890132932264,
+      "normalized_rmse": 0.12269009389100365,
+      "passed": false
+    },
+    {
+      "cosine": 0.9928710632553839,
+      "layer": 36,
+      "normalized_mae": 0.12100980096855708,
+      "normalized_rmse": 0.11927944049479439,
+      "passed": false
+    },
+    {
+      "cosine": 0.9927456028715503,
+      "layer": 37,
+      "normalized_mae": 0.12199665240201867,
+      "normalized_rmse": 0.12025416260068976,
+      "passed": false
+    },
+    {
+      "cosine": 0.9928853268788527,
+      "layer": 38,
+      "normalized_mae": 0.12100036288380173,
+      "normalized_rmse": 0.11908445763039723,
+      "passed": false
+    },
+    {
+      "cosine": 0.9929293290956687,
+      "layer": 39,
+      "normalized_mae": 0.11970451356449488,
+      "normalized_rmse": 0.11873162302241147,
+      "passed": false
+    },
+    {
+      "cosine": 0.9932095577099351,
+      "layer": 40,
+      "normalized_mae": 0.11693320600208858,
+      "normalized_rmse": 0.11649793480163348,
+      "passed": false
+    },
+    {
+      "cosine": 0.9932417993830435,
+      "layer": 41,
+      "normalized_mae": 0.11672302192129641,
+      "normalized_rmse": 0.11646443983270488,
+      "passed": false
+    },
+    {
+      "cosine": 0.9951223789298816,
+      "layer": 42,
+      "normalized_mae": 0.10884579256215186,
+      "normalized_rmse": 0.10515251072322038,
+      "passed": false
+    }
+  ],
+  "llama_file_sha256": {
+    "layer-000.f32": "c0d677233d3e48741af843f2812fc59b5bf29aba2e9e446e39cf3e0f791772e2",
+    "layer-001.f32": "1ae772561e8237c2e994e0cd41d14f962b74d231a81dd9aaf822c2044bf6c33e",
+    "layer-002.f32": "5ce98e7f55a564f51714e41b31a22f88622d7e45130443c75242b15337a56761",
+    "layer-003.f32": "358b6d0a572333f3e310f1b4ff70e362026869dac09ab91975030b92d227e022",
+    "layer-004.f32": "7bd95da679a5431f23b4324b553ff23d74286fc0bf0920a051e4bafd573c2e02",
+    "layer-005.f32": "8c90a65b69dda198b49275185c6f7e1a24462028efd542a5e8ea0ae8bb3ba39a",
+    "layer-006.f32": "8df22bb201b486c5dca6e0cc641ddf33ac8504e31fd226d56bde7a5fea5ab35c",
+    "layer-007.f32": "d189202f77385ee713c66954279a5226145d74c678d0a4a0933d711f66c2b94f",
+    "layer-008.f32": "1430b47f1325670b3cccb59f29fe408fe84cf55516737c75ccbf97551bced09a",
+    "layer-009.f32": "36ba03d65eada06e6acc05c3d30eba91c716b1dc52e25f742e11d8b6240760de",
+    "layer-010.f32": "d9965d3af918babeb7ef4080c36675112469f771cc00e3f3d9b7c6cf9850c6cc",
+    "layer-011.f32": "997e00e0441e8ee5ec75d71173efc17b0ea762ecb7328aa208ed3658dddea40b",
+    "layer-012.f32": "cd101274de6e1568a1426798e5ab8dbe293dcf0f486530106311ad9719bda782",
+    "layer-013.f32": "54a300fe798d2e783d7c3156f8153ec6c4f50c840efeb014f82a596d7965d77a",
+    "layer-014.f32": "26b5f842a2ab9487a766c9bccbd0cca9cd7820aae38710a0566f73123db8dbf3",
+    "layer-015.f32": "29e07a8871fcf8461f1f6f0358d644c658ef9c12aae6a39058f7b63ac7ba02d4",
+    "layer-016.f32": "2088a8f237ad9f5c35a12c1ae605a3c9e12eed550d36ad6df1fc5e86f3d85b4d",
+    "layer-017.f32": "688a4d027e27123a8c75e3cc244d2a45563e538784ad2eb9c5d7751d3563f365",
+    "layer-018.f32": "456fbe74f58dacebeb891b9fab9953d683281bdf53f260633869a1a717b3f7a4",
+    "layer-019.f32": "e62e875b327da98bca7fdce8885078667928f744b248ca31a3ac1468253e5be2",
+    "layer-020.f32": "fbf9ca2e0ef1b2b7e9cbae8a75fe101841e8d039ff5cc63004725b0c79124f4c",
+    "layer-021.f32": "4326de9c6814cac744a36ae0696fde1dde113226296dabcb9f3c58541ba257b8",
+    "layer-022.f32": "a8f092ab5b16586f03435304d76a4c7498d3cf05720c3142ceda0e970a1e66bb",
+    "layer-023.f32": "d66500442a4cddbfb83094669527e87cba98b564b5e9ac4d8e4e8cfede74bf2b",
+    "layer-024.f32": "9ed8b3fb24966eed79f1e97a72c32c6ebcf116fea72f9b81762c59decd8e74f0",
+    "layer-025.f32": "36edd61223cd313b3aceed083ab9ce7a17ba1e67819ab251d6dfa84357a41a15",
+    "layer-026.f32": "5a53a3a757d3973060addb9e9d45ef9f705833369018fa539e6650a624c58a9a",
+    "layer-027.f32": "ecd68bc17476515b653e063fb28aef52572f7da1440156e2cbeaa8f5abd7a2e2",
+    "layer-028.f32": "7ed7128cfdef7ba2a4ec6950c58a77f6d1c3689fcdbb591f6d55c47ee18912c0",
+    "layer-029.f32": "6de3ee0c04ced4e8b7b5f28223dee38afd66ec02f15f747bd323e9ce95f28d51",
+    "layer-030.f32": "04138e4615927333815c8176cf38ce33ce2a0d4df9f355e04abe6c5e38de7ee7",
+    "layer-031.f32": "8de6cb16d4d9a5ce2d5954e9afec35c33d81806b008725181aa4f531a4b9db1f",
+    "layer-032.f32": "0cf58551ae2b3d4a6b99b0e70b5da7f8b6bf8096c12b046444980e0095389841",
+    "layer-033.f32": "2eb23f212b885e78cad109a1ebc03d3e6f90ebf571e902d9ccb7e2a6da23b3d7",
+    "layer-034.f32": "a6c8d202cb0d00d057d088c7d3ce43bf23521870ce150346ee3f1ef109b611c1",
+    "layer-035.f32": "499927ddd0bde81cdd2273980a12256284a8cf6f3377b209c3b60b7efcc105d8",
+    "layer-036.f32": "13765d9cb9d261305e25c0053f29c3aaa3523b24b1fd8ab05a17fbe7a10173c6",
+    "layer-037.f32": "0b800686ab6423f9388fe6b0548abd56746a2438707d5fd4c6ad69ef115e80b2",
+    "layer-038.f32": "af989d11d1a90da553bd5669a1dbd623522eed54c50de69bc3162fce766fbc6e",
+    "layer-039.f32": "1b2e12be350e78cda10cf294efa314c534764e0ee8c5b75a4d9610e22d6415c6",
+    "layer-040.f32": "2e2cc5bd3d97d3b789668b476e1d0fbb9fc15a746305343cc7281321a1e7daa2",
+    "layer-041.f32": "4a3995d8213177f7cd0994d7f5752970744561476a8bf6cbb2e9655ec49e6c55",
+    "layer-042.f32": "453547a239b003f2bdc1b40c4ab00cabbde099234f9b8643853f384f91289efc",
+    "logits.f32": "cbf8c27afd37e0f3a086ff1b6f31d01e4de83f9c99ced9a7d31dc57708bfd37a"
+  },
+  "llama_manifest_sha256": "9106a1989acf741774e0a9585ce1f7a84194dcd7a5425f1b336a7b2e027eca65",
+  "logits": {
+    "candidate_top10": [
+      32111,
+      13942,
+      2107,
+      22863,
+      10240,
+      271,
+      51119,
+      3476,
+      1124,
+      671
+    ],
+    "cosine": 0.9973139965039777,
+    "normalized_mae": 0.09117445003111815,
+    "normalized_rmse": 0.07351577951838245,
+    "passed": true,
+    "reference_top10": [
+      32111,
+      13942,
+      2107,
+      22863,
+      271,
+      10240,
+      51119,
+      3476,
+      1124,
+      671
+    ],
+    "top10_overlap": 10,
+    "top1_equal": true
+  },
+  "passed": false,
+  "thresholds": {
+    "layer_cosine_min": 0.995,
+    "layer_normalized_mae_max": 0.1,
+    "layer_normalized_rmse_max": 0.1,
+    "logit_cosine_min": 0.995,
+    "logit_normalized_mae_max": 0.1,
+    "logit_normalized_rmse_max": 0.1,
+    "logit_top10_overlap_min": 8,
+    "median_layer_cosine_min": 0.999,
+    "median_layer_normalized_mae_max": 0.03,
+    "median_layer_normalized_rmse_max": 0.03
+  },
+  "token_count": 366,
+  "token_ids_sha256": "1e337ed31b12934b17db89bf7c8b0519db309b89369b22ba1595313e11228aea",
+  "vllm_manifest_sha256": "1780a79ff3294f1fec68f5f74640f8d83c1a341bcce1e253c8e09cd015be3a20"
+}

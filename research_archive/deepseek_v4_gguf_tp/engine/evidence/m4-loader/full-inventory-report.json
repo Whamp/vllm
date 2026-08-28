@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "inventory_sha256": "1cadb51ca5720ac07f74c06f549e18d7ba5c83a0d65b36d82d58e34961d22353",
+  "inventory_tensor_count": 1328,
+  "ranks": [
+    {
+      "rank": 0,
+      "tensor_plans": 1328,
+      "runtime_targets": 1180,
+      "span_descriptors": 1328,
+      "bytes": 22751844636,
+      "gib": 21.189306523650885
+    },
+    {
+      "rank": 1,
+      "tensor_plans": 1328,
+      "runtime_targets": 1180,
+      "span_descriptors": 1328,
+      "bytes": 22751844636,
+      "gib": 21.189306523650885
+    },
+    {
+      "rank": 2,
+      "tensor_plans": 1328,
+      "runtime_targets": 1180,
+      "span_descriptors": 1328,
+      "bytes": 22751844636,
+      "gib": 21.189306523650885
+    },
+    {
+      "rank": 3,
+      "tensor_plans": 1328,
+      "runtime_targets": 1180,
+      "span_descriptors": 1328,
+      "bytes": 22751844636,
+      "gib": 21.189306523650885
+    }
+  ]
+}

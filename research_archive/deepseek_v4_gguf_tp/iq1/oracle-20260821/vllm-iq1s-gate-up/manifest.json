@@ -1,0 +1,3664 @@
+{
+  "attention_layers": [
+    {
+      "layer": 0,
+      "path": "attention-layer-000.pt",
+      "sha256": "3d54a0a28d4cba119ff8e86b68f192ce766e2441a57d2f3bcd7abab89ae76028",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 1,
+      "path": "attention-layer-001.pt",
+      "sha256": "441899352371a9980517da1df53ac6a50e47a576028c87b64ec0ebdfbe638e73",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 2,
+      "path": "attention-layer-002.pt",
+      "sha256": "f3249db1ad74efbb7514e7c1683849d4416e08b34fdd7b1b4212624adee06e4e",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 3,
+      "path": "attention-layer-003.pt",
+      "sha256": "0e7a006bd1759170e4e4745e692c5ef25f1e22daf6ae77fffb63834c0654d2a5",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 4,
+      "path": "attention-layer-004.pt",
+      "sha256": "5214fb5bc7034c82a186612a12c36348c59a1b3ee9debb421a9c63a5677efb64",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 5,
+      "path": "attention-layer-005.pt",
+      "sha256": "225946f938a60b167ba9d6c024b074ae8cb9d1340e9e9ff7897f566f7fc14f27",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 6,
+      "path": "attention-layer-006.pt",
+      "sha256": "678d3f5aefe04a8a2e84c819123e3e8b0a67290218d7f81e9c2028d7440b7c3b",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 7,
+      "path": "attention-layer-007.pt",
+      "sha256": "7e0dd5acbf10941df834a9273eca3c268f9b50977a3174cae62b28fbe2c3d427",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 8,
+      "path": "attention-layer-008.pt",
+      "sha256": "a04089980d9a652015925acf8509c407fbe31afcaa6cb72e793eada10fc9dfda",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 9,
+      "path": "attention-layer-009.pt",
+      "sha256": "3bd1cb466e2ed7ca21c58d9450548e5b4b7314112f8794bdcca8f66fac6b02fc",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 10,
+      "path": "attention-layer-010.pt",
+      "sha256": "03859adf59bf299cd9e6e5a0c94122548b891b328e019d10dbac3b6c07423974",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 11,
+      "path": "attention-layer-011.pt",
+      "sha256": "c1f64128ca7072f5ebd4787a0a4514e73a6b697e657776b30662fa197bd7c693",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 12,
+      "path": "attention-layer-012.pt",
+      "sha256": "6e0bc36c540b7602956a5e9241e3d1a2abaf85ce69bee7641ce50dda488b915d",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 13,
+      "path": "attention-layer-013.pt",
+      "sha256": "3283ecd90b33f638bafcaa10bc011f3091d7f47f11930456e2c0840b953f483b",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 14,
+      "path": "attention-layer-014.pt",
+      "sha256": "65db9fce80f686c4c5b4fa7de32a5473ef15c3985e1d7d5c66cfa4aa7bde462f",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 15,
+      "path": "attention-layer-015.pt",
+      "sha256": "19e814ac134c2f6c215874c376b00d2c851d9b1f10ad9c0d8051783ed11e2e8b",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 16,
+      "path": "attention-layer-016.pt",
+      "sha256": "8cb85c8f3ffb9532ae6b4d083cfc6bc83969a078c990659a28b9e3d8edf06719",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 17,
+      "path": "attention-layer-017.pt",
+      "sha256": "02ea7b7d35f01ff88dbfea09afe1f4f9a4b398e74285ce5b48eace9dcf083fcf",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 18,
+      "path": "attention-layer-018.pt",
+      "sha256": "2caa9c57116a6c59785a056e132e8f7013e181fe1d78e1538e850e83aa294133",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 19,
+      "path": "attention-layer-019.pt",
+      "sha256": "876c26b5fb42a611ede5a6845ba0f43cd2d3de564858283f2e9fc0fd40484858",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 20,
+      "path": "attention-layer-020.pt",
+      "sha256": "8721ce0dc512d5f908e53fe42b1b6b3366456eac57349636e8db9a5f77e12b7e",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 21,
+      "path": "attention-layer-021.pt",
+      "sha256": "84685cf5528d7048b1a1b7eb134b61a7ad2342978a86ff42f045e613524203e7",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 22,
+      "path": "attention-layer-022.pt",
+      "sha256": "376c28330fd308e24cc7059db9c7a67d5f1d77d529ba12b44d6a7a1f4c693a26",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 23,
+      "path": "attention-layer-023.pt",
+      "sha256": "e5e0586833b5779da4190adbebf58190c4510c83ca866a2d3814f4dd496f229e",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 24,
+      "path": "attention-layer-024.pt",
+      "sha256": "17541981f1eb3967a301dbfe4cb537c6ccf9fd32588a723f0a4c70c817da7902",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 25,
+      "path": "attention-layer-025.pt",
+      "sha256": "8173852a7a0e26218367b69e318fe1dff07dd91e9deea66c129131d5e626fb75",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 26,
+      "path": "attention-layer-026.pt",
+      "sha256": "877ae41a4cef885618a0001025f5fcfe37621afaf516e7a7199bb38fc941b9b4",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 27,
+      "path": "attention-layer-027.pt",
+      "sha256": "6a5c488307f3b848d3b8e0619cb60110f8ef3bd4055ebc8bff1a2d0c5395c3de",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 28,
+      "path": "attention-layer-028.pt",
+      "sha256": "277637eae0bbe80812b093f34268f420842df2b5d4b62d75a7a7139da0f1aeee",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 29,
+      "path": "attention-layer-029.pt",
+      "sha256": "90f1fb00116fdc4cebfeb0de114d6108951fc0a17e2c6b3d35093a863d25f827",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 30,
+      "path": "attention-layer-030.pt",
+      "sha256": "d85e0942689687a014c95ce302a2cdbf77b3ef36caf3bd1e8cb29fcf2e5138ff",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 31,
+      "path": "attention-layer-031.pt",
+      "sha256": "fd5c3b0a066f5afe79cbaf910411699816fcdaf5d55ac1257bcb786ea6d74602",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 32,
+      "path": "attention-layer-032.pt",
+      "sha256": "a78591b399cee59f96723e66f7030f5b620df22cd8fca68340ee78fefb882e9b",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 33,
+      "path": "attention-layer-033.pt",
+      "sha256": "fe2bf36fe61314113223fe66a45af8b568f7f4443bb6a8c80be574e93cbac7b4",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 34,
+      "path": "attention-layer-034.pt",
+      "sha256": "175901a80c3935f65d03f21d6d0d931e9f7eb7acb557899c691957c637a4c4f6",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 35,
+      "path": "attention-layer-035.pt",
+      "sha256": "0e5209b1cd41c9b542b95152015ed3bd7db2dd6787a6e7ee6968391183279431",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 36,
+      "path": "attention-layer-036.pt",
+      "sha256": "8feac5d9f013bc5fe03507520b700536183c2da1d1da977b07ac2f2944599741",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 37,
+      "path": "attention-layer-037.pt",
+      "sha256": "643147166052c8a5d6a8c68ad2bc59e076c3d47583f0dcf8852b5a73ce089d27",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 38,
+      "path": "attention-layer-038.pt",
+      "sha256": "8cb1936b06bb4b5a05d181c383352e87ed9a63e6415831e20944a8bc3bc4c72a",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 39,
+      "path": "attention-layer-039.pt",
+      "sha256": "6eb2748ac240a124601160124d02dbd03af132b1ec4674dc5766b6a1fc13b0fe",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 40,
+      "path": "attention-layer-040.pt",
+      "sha256": "a0c5157afc5f6880fcd63509c0966c939cc31b0a76faa17bbeb5c67692bed8a2",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 41,
+      "path": "attention-layer-041.pt",
+      "sha256": "aeddee698541d556b70da5a6ce7f2bd14efeae819c365c0f49df8e2bc796b010",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    },
+    {
+      "layer": 42,
+      "path": "attention-layer-042.pt",
+      "sha256": "cf1f405d1ab515076a4a987e0ec7c6c5ab03f5e9ca001d383b71273119d75d52",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67282
+    }
+  ],
+  "ffn_gate_layers": [
+    {
+      "layer": 0,
+      "path": "ffn-gate-layer-000.pt",
+      "sha256": "213c3ab30eb737eac8b41dff5e1ccfab683674ca98480fd373e3e430794d6d35",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 1,
+      "path": "ffn-gate-layer-001.pt",
+      "sha256": "545369de42da0afbcc135e408d630b8fa31368b0069ae70780d967de4849f173",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 2,
+      "path": "ffn-gate-layer-002.pt",
+      "sha256": "00a69cb7e7cf41a8e694ef3d1d8497e826f7836aab6d385b11fc67856eb25694",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 3,
+      "path": "ffn-gate-layer-003.pt",
+      "sha256": "41aec80d664a7308c508cce64cb9afb76f364d676a43bd85db17ea2d1f621623",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 4,
+      "path": "ffn-gate-layer-004.pt",
+      "sha256": "6b2cfe494cfd8410f9f487703875505e83d4ad442cbe1b1c818872a0019c4b36",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 5,
+      "path": "ffn-gate-layer-005.pt",
+      "sha256": "f86eacc641299b98dafb85fc7973573939cdd92383315367c07b744e8336661b",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 6,
+      "path": "ffn-gate-layer-006.pt",
+      "sha256": "870d87d3ba3559c5e911803d11abd90b1c4de2a042798c86d887dbd4d2a5d4cd",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 7,
+      "path": "ffn-gate-layer-007.pt",
+      "sha256": "291ff1877a0e7034d7a3e07769ea89d8929ded302a9e77be695e5e0652330dbb",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 8,
+      "path": "ffn-gate-layer-008.pt",
+      "sha256": "b9dfe8a0ca3412c5627a34b68e8800ee7b50ad5fc41eed91fd632ce4511bb611",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 9,
+      "path": "ffn-gate-layer-009.pt",
+      "sha256": "cdfaeb7dff84886df1f62b188ddf332da6c15a8b4bc8bc22008618ba07c9a692",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 10,
+      "path": "ffn-gate-layer-010.pt",
+      "sha256": "9a7b6be40a2e7aa3ad00b507dda92635abcd2686df5cdef26e501c1308e022e1",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 11,
+      "path": "ffn-gate-layer-011.pt",
+      "sha256": "926958d55e1b1453d2e9431ac25ab54a1b1df315a8fa945cac4da5b22f064652",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 12,
+      "path": "ffn-gate-layer-012.pt",
+      "sha256": "0859c0efcefa554d01f5c358556b2aac026fb234160a3c3d09058cf864e173c8",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 13,
+      "path": "ffn-gate-layer-013.pt",
+      "sha256": "a02d38abf76224af269977cc7afa7cd7532b7abb1b08ae27ad22deab45e1f901",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 14,
+      "path": "ffn-gate-layer-014.pt",
+      "sha256": "afb14ec27cfb1f3baee823842b53a07fe5b4e33fdc2f28206691de401c8645e5",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 15,
+      "path": "ffn-gate-layer-015.pt",
+      "sha256": "6d984517d712656b2c352b855a6d9e1c349733b4edba6c2b19da7b213d64e282",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 16,
+      "path": "ffn-gate-layer-016.pt",
+      "sha256": "e4095b95628c9a1a7c2b830fd54c096d7e90680e2a06976b4b0497c97259bc67",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 17,
+      "path": "ffn-gate-layer-017.pt",
+      "sha256": "54f8cc51092ced0a2adfd60d2bdfc5fd6c572d2e944a6830c64cc231806d2eca",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 18,
+      "path": "ffn-gate-layer-018.pt",
+      "sha256": "87231fb6a597c278157599038c4c852f03679070940f4c1f038e88983a7afe65",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 19,
+      "path": "ffn-gate-layer-019.pt",
+      "sha256": "c4db20813903dee7666745ddd48b2a7c890d89d8725849afdc92fa491946a8ac",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 20,
+      "path": "ffn-gate-layer-020.pt",
+      "sha256": "6f7c085fc221dfc2337816c6ed6d152a39b7ae0589d221de31a048e34ba4964a",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 21,
+      "path": "ffn-gate-layer-021.pt",
+      "sha256": "251d68f10f39ecc2a0c7ef8ec7cb36a2773e7b9700e7a0dfd90edb80d62d5b4d",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 22,
+      "path": "ffn-gate-layer-022.pt",
+      "sha256": "597ed62bb249d127972e19ad834c1e0863e4049d9588003c82f5ecde5dc17907",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 23,
+      "path": "ffn-gate-layer-023.pt",
+      "sha256": "38a052739366df1884e8548649790bbae33dbe1b0b0a08c51e0867bf1f1c9ccd",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 24,
+      "path": "ffn-gate-layer-024.pt",
+      "sha256": "4fd3eea91b4f9c89117feaea1ec38da33f92532c94603c8ba33b209f4cc9fb3e",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 25,
+      "path": "ffn-gate-layer-025.pt",
+      "sha256": "f7e3b62d6f383e426eb5184b3106e07692c6212dfb6c7a3060919d6260f157d2",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 26,
+      "path": "ffn-gate-layer-026.pt",
+      "sha256": "ee00af31397b3b9741eadc11ef31b978c9cd7701a028abb57efb5ef79826452d",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 27,
+      "path": "ffn-gate-layer-027.pt",
+      "sha256": "a6700ae9430f15b96982c20027cfad106253ceaa42058a47c054d74364daa886",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 28,
+      "path": "ffn-gate-layer-028.pt",
+      "sha256": "e30762b07df1dc88a0665c760d7d81282221582a94ee0805bcafe37534d87b96",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 29,
+      "path": "ffn-gate-layer-029.pt",
+      "sha256": "88c507373c31eaf92ffaebc321a767da7057e2d930686e71a35af5da601c635b",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 30,
+      "path": "ffn-gate-layer-030.pt",
+      "sha256": "f28aadcdb98ac1832433c4e1c3be81dd8e94138279fcbc9590290566171d8edd",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 31,
+      "path": "ffn-gate-layer-031.pt",
+      "sha256": "d22f8c4564ce0b205d6527615acd17129e11797a05da241c5d86fd102a4c8001",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 32,
+      "path": "ffn-gate-layer-032.pt",
+      "sha256": "72ea3d62cd5b16bde77ade7a6e0bc6bb3d725c2afd0bef776f60fa9ac122bdb9",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 33,
+      "path": "ffn-gate-layer-033.pt",
+      "sha256": "752256d6fade672400c97bc7a23236d6b230d5a0dd59ae7b43af8afa9ef226cb",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 34,
+      "path": "ffn-gate-layer-034.pt",
+      "sha256": "14467f3acb5557213c9360ca0e8dcb25446c81d8104b4e894c2abe8d6a4af63f",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 35,
+      "path": "ffn-gate-layer-035.pt",
+      "sha256": "bc1978024782185e746361e21314669af0821449582f0ca9a7d6d3045f33c7ea",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 36,
+      "path": "ffn-gate-layer-036.pt",
+      "sha256": "45e9d36253072e9ebb90d6b8b21624d36979c5800ae4dacb701d630cfd7da499",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 37,
+      "path": "ffn-gate-layer-037.pt",
+      "sha256": "bb078993a794b9df3860312398e2d14da5bb14c47f0f99e2d56d5e183344cc88",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 38,
+      "path": "ffn-gate-layer-038.pt",
+      "sha256": "3abc97c3eec8aa26199c4161c096c26aa01eb47e408499af627c7c3852e09bdc",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 39,
+      "path": "ffn-gate-layer-039.pt",
+      "sha256": "f1f43fc2afa52f92df509d0aea218b532e44485b4aab82cf2cdeef32b05412dd",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 40,
+      "path": "ffn-gate-layer-040.pt",
+      "sha256": "c84c31a8efd1a9192533c87a72ead87fe31f2f047cc5d2c8df88cf1b0f3063fa",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 41,
+      "path": "ffn-gate-layer-041.pt",
+      "sha256": "2a0e7aeb6458c9defceb78b5f3d5d22d60281c80f9e7a30dcfacf2fdf65455da",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    },
+    {
+      "layer": 42,
+      "path": "ffn-gate-layer-042.pt",
+      "sha256": "302654e60d973c274cb16949b024da000d8f175ce3075adda9da6b8ad47fa894",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50827
+    }
+  ],
+  "ffn_route_weights": [
+    {
+      "layer": 0,
+      "path": "ffn-route-weights-layer-000.pt",
+      "sha256": "6c78d111dd6675727c4af176f1abe0ecd440daa13d1236525a61630f69b48994",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 1,
+      "path": "ffn-route-weights-layer-001.pt",
+      "sha256": "ec150cec906da549ab32ce2ee020f5811bd502c4f0092b68910ecbd641a8f773",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 2,
+      "path": "ffn-route-weights-layer-002.pt",
+      "sha256": "86ee1cbfebef6bbe9dec10aacdc898072dbe76bafe77ef72bba0eae1ef426b54",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 3,
+      "path": "ffn-route-weights-layer-003.pt",
+      "sha256": "f7b2ab1b3bf98c836257875f684ade8b33828690055083c4c65ffc48a5e5a350",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 4,
+      "path": "ffn-route-weights-layer-004.pt",
+      "sha256": "a8dcd97b560bfd4a5734f44577063c323bdb03dd0c642635fc06f633e7038265",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 5,
+      "path": "ffn-route-weights-layer-005.pt",
+      "sha256": "39db7da6b9e8b40b7fb220814fa07d6d884f541139810fc6dffd8a0141a565e3",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 6,
+      "path": "ffn-route-weights-layer-006.pt",
+      "sha256": "56cc9df49b010eb86d4b1995932d2b53a11f89185df780286a40f1de289e94e2",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 7,
+      "path": "ffn-route-weights-layer-007.pt",
+      "sha256": "eff506c1bc63f6f014954ca55203a3a5091f6e86518f36dc0cd94e7a3ea76548",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 8,
+      "path": "ffn-route-weights-layer-008.pt",
+      "sha256": "e44ca84217c02417c85965a0dbcf2d32405e13aaa15ae95f3166987088e1a8f4",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 9,
+      "path": "ffn-route-weights-layer-009.pt",
+      "sha256": "c3aec38c964c1853dc3ba539fd9699aafff13cbeea3b2ef13e7b2a6485e52116",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 10,
+      "path": "ffn-route-weights-layer-010.pt",
+      "sha256": "787055365047fb9ab6bebc6d3e8af27df6a89f08249ec034937e9a6c91afbce6",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 11,
+      "path": "ffn-route-weights-layer-011.pt",
+      "sha256": "387b7a9ffba2559ea1c40d26c03664bad118f3bd2eb8aed1a202483de44837c5",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 12,
+      "path": "ffn-route-weights-layer-012.pt",
+      "sha256": "b5b3600bf953754570cd43c26a3d671110feb57db8399cca7610105df1fbe356",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 13,
+      "path": "ffn-route-weights-layer-013.pt",
+      "sha256": "d5daa1dcfcc0beae1fd64015d88d9c95b9b81e4d400a3d675d909cb5580be2ed",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 14,
+      "path": "ffn-route-weights-layer-014.pt",
+      "sha256": "c3ad2b0875ad5f9899e86347516b949f4838c0f638a5a9b49e0dea32d0827c83",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 15,
+      "path": "ffn-route-weights-layer-015.pt",
+      "sha256": "5c2bf0ba2240ea074c65cb2c30186a8ac7722c7687856f30cc56c5edd7e85092",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 16,
+      "path": "ffn-route-weights-layer-016.pt",
+      "sha256": "b300980b39fbd186bf8e97f65807f410778cee7ed52650f826dfb059a07c06e6",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 17,
+      "path": "ffn-route-weights-layer-017.pt",
+      "sha256": "dd32d24100c8783691a12e910a9bef10b90415534642b683b81a1e4ae212881e",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 18,
+      "path": "ffn-route-weights-layer-018.pt",
+      "sha256": "b695c02f77cd0b3ed7029d30bd7cc1b3a1ab725563bd2ccb6ace155523eb7db4",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 19,
+      "path": "ffn-route-weights-layer-019.pt",
+      "sha256": "47457083b2e68ff61537c0d3f7a12b68a7176b64459f2cc244153fe31881ab12",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 20,
+      "path": "ffn-route-weights-layer-020.pt",
+      "sha256": "050991c1fba717e685c1b546e326733df37064aa7dae98813c70261281a6ccdb",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 21,
+      "path": "ffn-route-weights-layer-021.pt",
+      "sha256": "975f1bce6c95a3bf2268d4d1cffc3e75f7f306093c545c100533fb61b9b9134f",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 22,
+      "path": "ffn-route-weights-layer-022.pt",
+      "sha256": "601b8fcce945ca0a7c0b74559c9848b2afa684e83917ff212eda6de5ce346ed2",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 23,
+      "path": "ffn-route-weights-layer-023.pt",
+      "sha256": "173b5627e414ac739cafd65fe5976fea9fd9cb3f67cafc5bd0bfb6ec5e6ee2a6",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 24,
+      "path": "ffn-route-weights-layer-024.pt",
+      "sha256": "2b121b645a0a6a4f0e8750ec6fdb8201514ea017b9b99eb79c1f2f8d87c88d64",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 25,
+      "path": "ffn-route-weights-layer-025.pt",
+      "sha256": "19895b6e9e7215634df13e1ec814b2287056eb8e0482339670f8f3ab6945b4c9",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 26,
+      "path": "ffn-route-weights-layer-026.pt",
+      "sha256": "fa028e4f65f2137ce72fd42749656852eeee5480ce4113503815e58874bc6b42",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 27,
+      "path": "ffn-route-weights-layer-027.pt",
+      "sha256": "c79085fe91f825589b6cd5790e431ab0bfbde016f2040bf18f10a6b741cbd0ea",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 28,
+      "path": "ffn-route-weights-layer-028.pt",
+      "sha256": "d6e861677091a26e3a138724c693a208aba4e2db10e30a783f216212f1d57364",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 29,
+      "path": "ffn-route-weights-layer-029.pt",
+      "sha256": "a59c552bd564c8772ea31f6f016737325717113391b924f39cf52133eaf36ce9",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 30,
+      "path": "ffn-route-weights-layer-030.pt",
+      "sha256": "f6229f93b04b45e5164c4087795f9d31d704e0e36f057573bdcf09494b29f8c7",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 31,
+      "path": "ffn-route-weights-layer-031.pt",
+      "sha256": "8f3dc9308a345021bdb60d4d521718a2224f427b7d6bcd600aceecc935ce2c84",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 32,
+      "path": "ffn-route-weights-layer-032.pt",
+      "sha256": "71f868d542c0c28459214fed34eddb8389e4b41a5dc8d02c0f20398819af704c",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 33,
+      "path": "ffn-route-weights-layer-033.pt",
+      "sha256": "5221791824ec9a31202b2ae2fab443483bae380f4638bba2fdc9c660d2d33702",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 34,
+      "path": "ffn-route-weights-layer-034.pt",
+      "sha256": "5a555fd41643ad6c52865d25b33b5ae3f3f54922b083929318dec734ba650431",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 35,
+      "path": "ffn-route-weights-layer-035.pt",
+      "sha256": "5625f01b0c920268254283f5b7ae793a5bed1a47302ec94348e69084302c7f47",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 36,
+      "path": "ffn-route-weights-layer-036.pt",
+      "sha256": "29fd567af32286ad2c31a69883d7338d7187cc72c297330614c798fa71d72010",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 37,
+      "path": "ffn-route-weights-layer-037.pt",
+      "sha256": "25f490a437372074ad5c63254797b54aaf008a36f373ce98655292a323ad4adb",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 38,
+      "path": "ffn-route-weights-layer-038.pt",
+      "sha256": "aa31450a0e5b39ee96ac3e2f4382f7465d9e0040e30070a3fb36e5fea0e1710b",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 39,
+      "path": "ffn-route-weights-layer-039.pt",
+      "sha256": "327ff4f79bc42e02b7adfd5dd439eecbba9fbd807f02bc212830cfe3e38018b0",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 40,
+      "path": "ffn-route-weights-layer-040.pt",
+      "sha256": "4c961fa98aab564369354cb43fda741e5f9db5538a6cf31d0f8fbb7586bbd97d",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 41,
+      "path": "ffn-route-weights-layer-041.pt",
+      "sha256": "e986f07bb26d048a3cdc3e2b3e8590b0eadd5bdb566483cc66463ee17a67ec69",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    },
+    {
+      "layer": 42,
+      "path": "ffn-route-weights-layer-042.pt",
+      "sha256": "d0d55b17bcb3c83930e2c5a798ef329260eca720c86a4ef55cfaa28df03fbaa3",
+      "shape": [
+        6
+      ],
+      "size": 1802
+    }
+  ],
+  "ffn_routed_layers": [
+    {
+      "layer": 0,
+      "path": "ffn-routed-layer-000.pt",
+      "sha256": "bbcb60344eed87780a226e6ef651846a311e115e1e27c45e0526df5d9c0b5d85",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 1,
+      "path": "ffn-routed-layer-001.pt",
+      "sha256": "7e3f5123d961961153741eb70a409a6e3a2a96974d276d76c8b3b5a0bccc6c77",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 2,
+      "path": "ffn-routed-layer-002.pt",
+      "sha256": "f203093aa0518acb4e4f1274b3533057ef4dfc64138ec74521ae3a24ef3b747f",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 3,
+      "path": "ffn-routed-layer-003.pt",
+      "sha256": "e07dc3cc550563d0ead26d86f338515d63a76ad8b7bd666a2a4019aaedfd9e0f",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 4,
+      "path": "ffn-routed-layer-004.pt",
+      "sha256": "45870c214464335f396b15781d518bea1f18aceb2d7a1e24f3dbb99ba287d7cd",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 5,
+      "path": "ffn-routed-layer-005.pt",
+      "sha256": "7e9b2da537544ffd5fa682b30cd981d6fbbab690470051e16cf0f462d58ccc0e",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 6,
+      "path": "ffn-routed-layer-006.pt",
+      "sha256": "94560ed076ca506ab2d14d915b74ae1e48ec559f572869e54ef6cdd12b649f10",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 7,
+      "path": "ffn-routed-layer-007.pt",
+      "sha256": "d95f679a479c7a46e5ee439e98deaf59b05c7f2d12c8c3fc7526095305a384bb",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 8,
+      "path": "ffn-routed-layer-008.pt",
+      "sha256": "8a936c0162ee7eb49b3f7d05f73f7370a4b8330c3ac18f301139d0ca83447921",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 9,
+      "path": "ffn-routed-layer-009.pt",
+      "sha256": "37046184d1efef63f0684fab20b8e9edc6ccc2c9954925165f719c751995c170",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 10,
+      "path": "ffn-routed-layer-010.pt",
+      "sha256": "76cec922e5eb3eca33e63e55259b57f1dca53c8dd423d655cdbd4fa0553f32d0",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 11,
+      "path": "ffn-routed-layer-011.pt",
+      "sha256": "1b50cb9b655c59b524c32095d5c6c983baf57a2aeef11a6f7fd7430ed6f27060",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 12,
+      "path": "ffn-routed-layer-012.pt",
+      "sha256": "97cc51c5cc21751ace6dbea5948147f1dccd133d87ea6ce78eb64331729c10d7",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 13,
+      "path": "ffn-routed-layer-013.pt",
+      "sha256": "b12dd5eab820b7ab3d0cbf50507a85b02644d11fdb826d98a757c6bd3ac1cfa6",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 14,
+      "path": "ffn-routed-layer-014.pt",
+      "sha256": "f64e5252c895540e93f548b4882145217947784d99226314706343885a23ba8a",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 15,
+      "path": "ffn-routed-layer-015.pt",
+      "sha256": "c2656d5f520885911e0fa2752e804667fec17a90576b9edbfa0f71e2b20839b7",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 16,
+      "path": "ffn-routed-layer-016.pt",
+      "sha256": "fb1db06bc6cdbd18415f00faf6a3275dba6c56b8423f126d67cc4f3c86eb21cd",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 17,
+      "path": "ffn-routed-layer-017.pt",
+      "sha256": "f689902a8b42656885fdf40821f99a3f44140cc344732056a41410fa251d9af6",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 18,
+      "path": "ffn-routed-layer-018.pt",
+      "sha256": "d8dd4f2d5c413a49e40dac279470653e4316ae11f1e67dd7ef045a875f4ce970",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 19,
+      "path": "ffn-routed-layer-019.pt",
+      "sha256": "c728145e784a5d10852b7eb5c57807c6f6a862c6a5cbe8bc51a16efbcd811427",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 20,
+      "path": "ffn-routed-layer-020.pt",
+      "sha256": "54f386f0655c2eb6aef1a157b37d031f362784837a7c7a602942f3d90b3d9a0d",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 21,
+      "path": "ffn-routed-layer-021.pt",
+      "sha256": "6485e4c1a3fdc5f8bc0e1d35e36e305e3f119c05a99d8dadbc99aa851b513ea3",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 22,
+      "path": "ffn-routed-layer-022.pt",
+      "sha256": "24c35ad4011ebdc0ea4e5c299648befb078b8e158ec7c1659b6091245084d885",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 23,
+      "path": "ffn-routed-layer-023.pt",
+      "sha256": "55ad89e9400f777f1261419627831d329a62bfda3c798c6f789e3c0cc0e10014",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 24,
+      "path": "ffn-routed-layer-024.pt",
+      "sha256": "715afd1dff8d6cb6e54de3c6ad701e804792229e94ef9408dbb67173fe1d5b52",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 25,
+      "path": "ffn-routed-layer-025.pt",
+      "sha256": "e9aa7619d18d0f3a972575a9bd7af605f2b7eb447d3e4fdab5c72e1830049ae4",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 26,
+      "path": "ffn-routed-layer-026.pt",
+      "sha256": "8a22b7e8ed3cf07bd91e1e49251f7f787a6223f7083ab88251734f932634a773",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 27,
+      "path": "ffn-routed-layer-027.pt",
+      "sha256": "237c3ae845d5f7d7717ecd1a7b56b98638e0469aefec6da3d272c593cc0b31b9",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 28,
+      "path": "ffn-routed-layer-028.pt",
+      "sha256": "09322aa98c7f35582f8d4c322332ecc9e011fa49cb869adc698745d4d79925dc",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 29,
+      "path": "ffn-routed-layer-029.pt",
+      "sha256": "bd5b678ecee9103112199a3ca99c73ac17d6c1c4551bf08f215b6adce7af1bf0",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 30,
+      "path": "ffn-routed-layer-030.pt",
+      "sha256": "e043218a8a7e4a6f51924d808a9a5fab94c7821162d11510f4b08167acc05981",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 31,
+      "path": "ffn-routed-layer-031.pt",
+      "sha256": "f4608193404b0a1ca4659c60afbdf45815a49f0003a6ff12553abb45af25feb6",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 32,
+      "path": "ffn-routed-layer-032.pt",
+      "sha256": "0edeb5fc5c49fe3f33852bc7d5f0460f47bf6583a7dda925b7f17db9bfe17bb4",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 33,
+      "path": "ffn-routed-layer-033.pt",
+      "sha256": "0a587432b4a498bc16717b362559ce67d47d47a5b73d5754234d256e0e7c5677",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 34,
+      "path": "ffn-routed-layer-034.pt",
+      "sha256": "056ff5d860df1a292a553057b7cbab3f606a5479e9e122f63ce39803213fed99",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 35,
+      "path": "ffn-routed-layer-035.pt",
+      "sha256": "1602c1796d006edf2af98292faa296c82d9d7663e0716995e3832d60ab8e1cb6",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 36,
+      "path": "ffn-routed-layer-036.pt",
+      "sha256": "b26e6fb19beac17a3238e2ac63cacb51fd746728568de1886508d09eb6141e89",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 37,
+      "path": "ffn-routed-layer-037.pt",
+      "sha256": "f9c0d97499a8ab2242b232453183127e443c08a0495583246405ea2ae42fedbe",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 38,
+      "path": "ffn-routed-layer-038.pt",
+      "sha256": "b2ee5bdf8e2d05fe51e55f2de15f4f4183911570b54e81e5c822aff36b2c173e",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 39,
+      "path": "ffn-routed-layer-039.pt",
+      "sha256": "7049bd667c40560de4b4d6efea7132b3267ad3a613c507d042f5800c1c61b64e",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 40,
+      "path": "ffn-routed-layer-040.pt",
+      "sha256": "bd83f6f552fe416d69818161065038793629cde8fcf63ee5d5d1c4fcec003cc1",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 41,
+      "path": "ffn-routed-layer-041.pt",
+      "sha256": "6ee6093cb5307111bd30e9a85767c856acc8f6a59cf7b5e6105ba17cf33f24c7",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 42,
+      "path": "ffn-routed-layer-042.pt",
+      "sha256": "437001ec76aa34560802d870108899bfe90c6c669e44750e5916371df88c3eed",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    }
+  ],
+  "ffn_routes": [
+    {
+      "layer": 0,
+      "path": "ffn-routes-layer-000.pt",
+      "sha256": "6aa93b737565efc8ca6b1c4354a7fa195d268695ea821e0e7c88d422448c6000",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 1,
+      "path": "ffn-routes-layer-001.pt",
+      "sha256": "10e6e596f9370a2e878982bd7149f24c88f0cabc4c92577e7188265cb1194250",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 2,
+      "path": "ffn-routes-layer-002.pt",
+      "sha256": "e55749258407aa0fa900246bfa36cc912d2fea998566152ec0e2e785d71697a2",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 3,
+      "path": "ffn-routes-layer-003.pt",
+      "sha256": "034b9fec37908693c87d0e383c5672980cadd0b51c1364cd07ceb225eac5d6a6",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 4,
+      "path": "ffn-routes-layer-004.pt",
+      "sha256": "8a06027fff1bee427bd837f493f24f796dcb611715e6475d516b8d4bee8944fe",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 5,
+      "path": "ffn-routes-layer-005.pt",
+      "sha256": "ca6b77d8e86e52e631c4a9d8d8cd17b68340c0039de756698e47025544cd9ff0",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 6,
+      "path": "ffn-routes-layer-006.pt",
+      "sha256": "0e2b8bc266241eddf2f13cc1836a63d87c2a45ee2d3e821c501c70283b2e4cc5",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 7,
+      "path": "ffn-routes-layer-007.pt",
+      "sha256": "6b9d9dc9d5c873afd1d79233fb4b2a1a2551fb99679286b44db00561a1f08560",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 8,
+      "path": "ffn-routes-layer-008.pt",
+      "sha256": "dc9480a0ab8ed3c420ed5bf2079e3909cb335a51d5122010cca0ac417d251484",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 9,
+      "path": "ffn-routes-layer-009.pt",
+      "sha256": "6b9b44d71c857975775ce7a8c904c40fd6ad15b55e8534d7fcc55fbf8b115d13",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 10,
+      "path": "ffn-routes-layer-010.pt",
+      "sha256": "917553a2dec70ca5cee6b419c49aaa55741593569cec3f4d7860488865fe98bf",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 11,
+      "path": "ffn-routes-layer-011.pt",
+      "sha256": "749af2421343df705b9f946507a7d297d725e5721f6fbfea0d4675dd23faae36",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 12,
+      "path": "ffn-routes-layer-012.pt",
+      "sha256": "7c7b275769a85e0f569cc11450c21a4900a5a4b55e7318cf90bb53f6994f6b5c",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 13,
+      "path": "ffn-routes-layer-013.pt",
+      "sha256": "3eb627d11dbfb6b564d49d0a198ddb32b0f082776e2829a4c846714cda7ad62a",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 14,
+      "path": "ffn-routes-layer-014.pt",
+      "sha256": "9cdab38e0953bbddf31e0dddf89acd52e4d1a516862d265e3ecfbda89891d400",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 15,
+      "path": "ffn-routes-layer-015.pt",
+      "sha256": "56ffee10bbb8910fad13ce58214a946a1ac35e83843fb2e9fa9202cd6921d088",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 16,
+      "path": "ffn-routes-layer-016.pt",
+      "sha256": "ff62d7b2b311a97403926bfebdc86e3ec6df21d14ccef7d4105d7259a186c69b",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 17,
+      "path": "ffn-routes-layer-017.pt",
+      "sha256": "bc6d1ea5df6bf3e7857f7dde3bdd94c4349380d394992a6221b97669fbc6aa29",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 18,
+      "path": "ffn-routes-layer-018.pt",
+      "sha256": "504339048114cca368f8ec0abb4f6b56dc44a80ce8d40aa54b0a01a899a168e4",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 19,
+      "path": "ffn-routes-layer-019.pt",
+      "sha256": "f66d02490c11c908fd0b724b7e07749982e5591571c2de2ab955c0723e489781",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 20,
+      "path": "ffn-routes-layer-020.pt",
+      "sha256": "bb161b9eabec67b4313cfe21c641c79334fe75bda050ed311e20b72153b2d90d",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 21,
+      "path": "ffn-routes-layer-021.pt",
+      "sha256": "9b91030d59cc98a366bb2299b644651b43323837dc2b82d88b74bc52a53a9c67",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 22,
+      "path": "ffn-routes-layer-022.pt",
+      "sha256": "59c6c9e0a570eea833b533b3794606f582b50da00346a513efe31ad8222f52e4",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 23,
+      "path": "ffn-routes-layer-023.pt",
+      "sha256": "bae26b75bb2a52d4cdf466d7abbc799a97c8115465ef2c9e680fc827c2db38bb",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 24,
+      "path": "ffn-routes-layer-024.pt",
+      "sha256": "5753b0b0cfd842916c2ba73f20f129a8ee5e9b1a0b0d0c05d73a9642392a69ce",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 25,
+      "path": "ffn-routes-layer-025.pt",
+      "sha256": "2d290cb78101ded876aacb9288c7f4f79f522598fc4ba52fa3b3d78baccad8cd",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 26,
+      "path": "ffn-routes-layer-026.pt",
+      "sha256": "be8b0c7bdd62066c38c3bfeadd5b0b66aee4b009be0a3fa35d611d1acb56a3bf",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 27,
+      "path": "ffn-routes-layer-027.pt",
+      "sha256": "e5eaaac2fc7cb81906dccfd30153821df8a30e77abe1e49ea491ce2898d08e1a",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 28,
+      "path": "ffn-routes-layer-028.pt",
+      "sha256": "b85163d33917d8861b1cd3f0f447bd710286d8dc6001dc5b944c696e13384978",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 29,
+      "path": "ffn-routes-layer-029.pt",
+      "sha256": "54a659eb947bd06999e761ab47253686795618e47ddd67af900f87ca426c2f73",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 30,
+      "path": "ffn-routes-layer-030.pt",
+      "sha256": "f73f2439c34e4866f6c878a0fef4e052154e1eeb2a20ed448fe42539787ef239",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 31,
+      "path": "ffn-routes-layer-031.pt",
+      "sha256": "bc23c9563d3381e12dd0acb543d2747e42c5a4122dc32272785b3afa5e159e82",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 32,
+      "path": "ffn-routes-layer-032.pt",
+      "sha256": "9e2457b16955750789798d486ed919c1e852be1b6a682a2d6b6a5eee135a0a6a",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 33,
+      "path": "ffn-routes-layer-033.pt",
+      "sha256": "dbcce6c62e8bc301b04c9f8323175cefa73b4b4d260d558fd739439c9264a2ae",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 34,
+      "path": "ffn-routes-layer-034.pt",
+      "sha256": "a1332b4a27a0147055b2bb2be1d45e8494c92dc1010aa41534a39b7ccb7b3695",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 35,
+      "path": "ffn-routes-layer-035.pt",
+      "sha256": "e2ecab62b076df2703974cada5dd1c452d86e3f715add4fedab56f467658df0c",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 36,
+      "path": "ffn-routes-layer-036.pt",
+      "sha256": "ee12a914219113b1f2a9a8e23b1ca5766bda0578cf99289f9a170594b963cde2",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 37,
+      "path": "ffn-routes-layer-037.pt",
+      "sha256": "8d787ee795d83b593a1953fd9a01fda86bca4f18bb12cc5c7d1418a96d7a1d18",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 38,
+      "path": "ffn-routes-layer-038.pt",
+      "sha256": "7630bd0d929ae892ae9efd6a5aa457c94fad890ad44259a795cac1fea43b154d",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 39,
+      "path": "ffn-routes-layer-039.pt",
+      "sha256": "8f14c479133b8a5ef855657d11390d7f6c816c53fc7c07be4c4170bcc742386a",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 40,
+      "path": "ffn-routes-layer-040.pt",
+      "sha256": "57ac8c622a339882d15d0fdf51c094594c69ead6c500f101dfb1099f5770fb95",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 41,
+      "path": "ffn-routes-layer-041.pt",
+      "sha256": "01e9a4ea4774245278a8fc626bf2e6001ffb3dc83deb1bd8f00fe29c4989112d",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    },
+    {
+      "layer": 42,
+      "path": "ffn-routes-layer-042.pt",
+      "sha256": "0be6f0ce9dea0804f3167f4e1ed73e8340b90cbf5be0dcedb03231b919325d0b",
+      "shape": [
+        6
+      ],
+      "size": 1753
+    }
+  ],
+  "ffn_shared_layers": [
+    {
+      "layer": 0,
+      "path": "ffn-shared-layer-000.pt",
+      "sha256": "fde33ded0d0721ebed2e59a02e6293f6184686fba0c741142d0967e98157e6e8",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 1,
+      "path": "ffn-shared-layer-001.pt",
+      "sha256": "4a08b38fd0702ccc6277a29ff43f7b3cb0103ae70ff6e6540e610b9cae90efd4",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 2,
+      "path": "ffn-shared-layer-002.pt",
+      "sha256": "80755273f985afa1a836f13fb8845cba23e24b3b6ab0e11e35805e819f1539b2",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 3,
+      "path": "ffn-shared-layer-003.pt",
+      "sha256": "25acc75c06b0b463b8ab5e1568b70da97a83b29926b481c5b24702f672159ca7",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 4,
+      "path": "ffn-shared-layer-004.pt",
+      "sha256": "b034bb4f87feb11489cbb69a254d7e5f0ef9303b35358c61eecf498a8b469cc6",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 5,
+      "path": "ffn-shared-layer-005.pt",
+      "sha256": "aa7317062322fe73c7cdc68f6b4eaa3f8c29e21eb4d34615c4e64a031b1fece8",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 6,
+      "path": "ffn-shared-layer-006.pt",
+      "sha256": "6994e7d6efba079b738a1e8ff46e4e36b7c82d01830ee80d6ddb91c567720ace",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 7,
+      "path": "ffn-shared-layer-007.pt",
+      "sha256": "bffec2e9d9c3b5b4dd1d9b0b3c619415c3591ba57593956513fc24dde7f9bfb0",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 8,
+      "path": "ffn-shared-layer-008.pt",
+      "sha256": "8e25d2ec07067fa8ffa102411cb9c27f95fdad33f5b4bf1c54ee4722c5915a5c",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 9,
+      "path": "ffn-shared-layer-009.pt",
+      "sha256": "ed0f8256ffcc699f16f79b4941a69c3499d195a10a3e7b9c15b1e160030ad6b6",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 10,
+      "path": "ffn-shared-layer-010.pt",
+      "sha256": "5188e5fac4baebbb68a9ca60760c0b5a6428581b499d7cca91a6b01c8ef955d3",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 11,
+      "path": "ffn-shared-layer-011.pt",
+      "sha256": "db60bd824145a5baa135dcd3892b166ad1f51fa24c9999edefa250397812e482",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 12,
+      "path": "ffn-shared-layer-012.pt",
+      "sha256": "d32e5251fa2c3f52790633c27e4e40f2a4508ae7fcd407a43bcc0d1f0752666c",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 13,
+      "path": "ffn-shared-layer-013.pt",
+      "sha256": "3bccf7a9330250108f271105dfdd2a0775bee70806eb3228384c69e8ab682388",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 14,
+      "path": "ffn-shared-layer-014.pt",
+      "sha256": "f15e32f2107eca49ec6bea150a888140d3fcb5d708f1f25df7dfccddfe52d1c4",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 15,
+      "path": "ffn-shared-layer-015.pt",
+      "sha256": "c0ee00c8af9b7183e5dd69140bc8e9a40eab150741c46e1c5c29d28728bf91a7",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 16,
+      "path": "ffn-shared-layer-016.pt",
+      "sha256": "eb17bb30bc40505a347e7b31ab92a5cb8a88bf46396586969272d98616a6a51f",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 17,
+      "path": "ffn-shared-layer-017.pt",
+      "sha256": "33ab1b5b884eb9dee2fc055e997712cbe19c6f3a6c0548580777528f61d549aa",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 18,
+      "path": "ffn-shared-layer-018.pt",
+      "sha256": "60e5f5a505ceab871082220cccafb982c5ed4aca110bc79d582687adbf950298",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 19,
+      "path": "ffn-shared-layer-019.pt",
+      "sha256": "4bd65edd617ad9bf80dc32e1f06c793da8f6edcd51e49c35fee053af456e3ca3",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 20,
+      "path": "ffn-shared-layer-020.pt",
+      "sha256": "ba968cf82dbb4e393f0f8106d91010fc242a776d101f66ad3dc46bc589a1445b",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 21,
+      "path": "ffn-shared-layer-021.pt",
+      "sha256": "d89d8ee603683c21d656bcdeecb5c80ccd4b295b67cfd8e617e31de070b02127",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 22,
+      "path": "ffn-shared-layer-022.pt",
+      "sha256": "26d5036e03c12b9b450c0c563392397bbd02c8049e6450e07fa017e6e79680d8",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 23,
+      "path": "ffn-shared-layer-023.pt",
+      "sha256": "d0cdfaf581bf2e54d0219fb4e1125fbb18b1d14b777b6f75ed528b8707e5b764",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 24,
+      "path": "ffn-shared-layer-024.pt",
+      "sha256": "8e8ee5efffe39370c2b2624be5ee7f808a053896839e61e581e1a34d6e53b31d",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 25,
+      "path": "ffn-shared-layer-025.pt",
+      "sha256": "3b61337ba339d8a33fa4f112433cf87920c640f83e4152519878da149fc88161",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 26,
+      "path": "ffn-shared-layer-026.pt",
+      "sha256": "e10191f4d337227e6009ec85d75ea307895905796757595f5f0bf95543855f8d",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 27,
+      "path": "ffn-shared-layer-027.pt",
+      "sha256": "d02a710c3d72eaebe0c14216cea68d38fa17b267dae9b18db24c213460778ae9",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 28,
+      "path": "ffn-shared-layer-028.pt",
+      "sha256": "2adce084cc84a54570c1b191403f366a05e17f42d0b1781cc0ee09f5cca4f3c8",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 29,
+      "path": "ffn-shared-layer-029.pt",
+      "sha256": "bedc7387fb751c1b16bb31a53e57186a0e3925a5062b7147aca3d49b3c65f086",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 30,
+      "path": "ffn-shared-layer-030.pt",
+      "sha256": "87f7b847e0277c8329a9f5026721c83455b3202a294baf0fa1e0c3d76a5e9d16",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 31,
+      "path": "ffn-shared-layer-031.pt",
+      "sha256": "94a163ccc837887b3740ef08eb30e1b55b0c69ffe11b3a629b29aa9f6f8eddc5",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 32,
+      "path": "ffn-shared-layer-032.pt",
+      "sha256": "09fdf91688530ec265a06131ce5766a2d89bb09ba5aaf2eb789ce9679b996c2e",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 33,
+      "path": "ffn-shared-layer-033.pt",
+      "sha256": "b72bbc85f7b8dbd028e23f3aeab7ecd9e3a00fed983f5f9985a845d77bce8710",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 34,
+      "path": "ffn-shared-layer-034.pt",
+      "sha256": "6785a5cd87e741fae3c8831e6d4e1c36a912857746773097f564d1c055db85cf",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 35,
+      "path": "ffn-shared-layer-035.pt",
+      "sha256": "87b3676ea2c2edf24f0b678da10e79124edd8f54bb0a15c627971993da208ce8",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 36,
+      "path": "ffn-shared-layer-036.pt",
+      "sha256": "32e76b1c5221481cc0dec314ebb3354a77c2105f91b3aa2d3c31d78812eff04f",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 37,
+      "path": "ffn-shared-layer-037.pt",
+      "sha256": "1dfa4dfbdb8e63e37a904c9ad17aa0a9c9df170976e8b6592ee3d029973b6745",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 38,
+      "path": "ffn-shared-layer-038.pt",
+      "sha256": "264364fa3f8f9236fb96d16b790ad0556503aa938ea585c50e1ea31cd068fb9e",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 39,
+      "path": "ffn-shared-layer-039.pt",
+      "sha256": "f1f84e9d36cca21f80368b7ec592c1b75e6e65cb31e1f77a21d73f575fd8239d",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 40,
+      "path": "ffn-shared-layer-040.pt",
+      "sha256": "d8cf2b8f3c38caf171b23eb9eb5e1473168ecfec99d75c36c510d378b9fe5c1e",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 41,
+      "path": "ffn-shared-layer-041.pt",
+      "sha256": "98885c5e702e5da2c9d43c714029997186a1d26edee17b6a7ffb2769ec09ac43",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    },
+    {
+      "layer": 42,
+      "path": "ffn-shared-layer-042.pt",
+      "sha256": "688a5d6b616548a3bfb364392c38160f69462c2143c772ba9e41ecc138755d1f",
+      "shape": [
+        4096
+      ],
+      "size": 18137
+    }
+  ],
+  "ffn_up_layers": [
+    {
+      "layer": 0,
+      "path": "ffn-up-layer-000.pt",
+      "sha256": "d90c3c1aee287227cd874481b32fbb0adede8f0842fcdafd94c915dfae43f92f",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 1,
+      "path": "ffn-up-layer-001.pt",
+      "sha256": "c3f13bd8d37c95cee3ff5edd8e85cf6eaf5c721626f052123f024b1a713e7c0d",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 2,
+      "path": "ffn-up-layer-002.pt",
+      "sha256": "1b828c1930059e1baeb02133e5a759937dbd0c5a87b7ce01f0d1c32616a2a424",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 3,
+      "path": "ffn-up-layer-003.pt",
+      "sha256": "bd461405916fffc1031ae2f82dcd61425e078208a6e99ef200c6973b468a25b0",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 4,
+      "path": "ffn-up-layer-004.pt",
+      "sha256": "cb383138bac8db475e859713491f6cd740f7f5d7118c35d66f33e66efd2ada24",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 5,
+      "path": "ffn-up-layer-005.pt",
+      "sha256": "3dc4a68f7e1bb21a9d9002b63fc294a3d084c3c3d5dd4a7ef5620b8f0c3862a5",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 6,
+      "path": "ffn-up-layer-006.pt",
+      "sha256": "b41be27e9194187b751e71471116b5dbcb271f010366012842e8e50232863c24",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 7,
+      "path": "ffn-up-layer-007.pt",
+      "sha256": "29453b67fbfe8e7f34d7014e84a362a9bd6a57a07b9059ebf164b4e68c93565b",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 8,
+      "path": "ffn-up-layer-008.pt",
+      "sha256": "d374d92857bf2ffda2bd8f92b2aadfc5532431aaa727cdd2f20e5c9761f48c7d",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 9,
+      "path": "ffn-up-layer-009.pt",
+      "sha256": "6374ed293a4dcdd8972c151cfcbb94a33fcdd03f529c2862c50607650b3fcb00",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 10,
+      "path": "ffn-up-layer-010.pt",
+      "sha256": "f022411e9aa38d99a92eb480067c1b25be0c78e3e3aaa4009efb824c1a60898c",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 11,
+      "path": "ffn-up-layer-011.pt",
+      "sha256": "6cc1bad8bb95d12234c57dbada918b24d24f7173b7bb972283db6c90c9344d93",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 12,
+      "path": "ffn-up-layer-012.pt",
+      "sha256": "1824aea5732b23ee5a385e25ae5f7bcca191b69a03c60ad83b922a0fb991c84f",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 13,
+      "path": "ffn-up-layer-013.pt",
+      "sha256": "108f3c91e774c8a28956cb5497cf6421ffb264151ad23aa0a3363e5754ac91db",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 14,
+      "path": "ffn-up-layer-014.pt",
+      "sha256": "24586b9fce557d4da6e9bc3f5f2c593f7729f44f872aa674b970ca0a1afd6211",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 15,
+      "path": "ffn-up-layer-015.pt",
+      "sha256": "a0694fcbbb627aed7202af2aa22b0a374b6743b30f30df6da10b55db067fdeff",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 16,
+      "path": "ffn-up-layer-016.pt",
+      "sha256": "d20961b84d68b1df651ed374bab26e40ad29a39568dac5069d63e359571b3166",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 17,
+      "path": "ffn-up-layer-017.pt",
+      "sha256": "f0b9a7487656a9c41c962fa83b38957ee9ad48c0608062ffbdabcde6280b938d",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 18,
+      "path": "ffn-up-layer-018.pt",
+      "sha256": "0f56ecd464dece5fd74324cf6c889f063f36a944ce66f0686d68d4cd7ab6bc9d",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 19,
+      "path": "ffn-up-layer-019.pt",
+      "sha256": "9450e4b59a87b2347e6c1485a6b39b7f6ca8369568602231f86a9e2b33120fcf",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 20,
+      "path": "ffn-up-layer-020.pt",
+      "sha256": "d19e03b906d5fdc2b6f265c8ad6d1d2ddb41b2eccb77f5a02f5b707e30ddc2ee",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 21,
+      "path": "ffn-up-layer-021.pt",
+      "sha256": "e27b74088bef1b482c8993092719d44b0a8540f5dc0dbd1890462387128f7765",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 22,
+      "path": "ffn-up-layer-022.pt",
+      "sha256": "e2c68bd9c058ffd67aa279e855dd781dabb3a19cddc40237d84f21aef81e9077",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 23,
+      "path": "ffn-up-layer-023.pt",
+      "sha256": "8ab9f923b98248ad39ded87e6a1d8ec38ff9fa5386548b35538efcdd39af331a",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 24,
+      "path": "ffn-up-layer-024.pt",
+      "sha256": "8295edda9af865f8771d9811eec76fc37c070f0591cca6fb15029ba3aeacfc75",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 25,
+      "path": "ffn-up-layer-025.pt",
+      "sha256": "9d06a36328b7b043d99d80aec61ebb31f7e8555b3d53780a1b2ffd01aecfe202",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 26,
+      "path": "ffn-up-layer-026.pt",
+      "sha256": "39c04280423c17228451e69b05c438811ca0cd994d63b6e16b5f9af8d4212270",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 27,
+      "path": "ffn-up-layer-027.pt",
+      "sha256": "3d6c42c821ca64e55545670c90010589105d02ff5f4605f7a59aade1a68fea8a",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 28,
+      "path": "ffn-up-layer-028.pt",
+      "sha256": "8437c676e9050a3839af4c272a1e3238aa719784cdc8e64730d146d2aaa97f75",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 29,
+      "path": "ffn-up-layer-029.pt",
+      "sha256": "0c2140cba0725f78bcdbbe2f1edbe7489436c2b73bca872bde0b6c45462089c8",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 30,
+      "path": "ffn-up-layer-030.pt",
+      "sha256": "ccc40bfe1beacdc2aaaab573d1cf9a63ee39b28e32e2fe2e9ca3f571ddde0f73",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 31,
+      "path": "ffn-up-layer-031.pt",
+      "sha256": "3d3397d44e4d20430d1e451e8ec31abd3cb7de5870b519d15544ac2aa2adc745",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 32,
+      "path": "ffn-up-layer-032.pt",
+      "sha256": "b2fff44be37019fa6fd682fb34c7f0af2f65245a0b05821169d6f8ef2ca47759",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 33,
+      "path": "ffn-up-layer-033.pt",
+      "sha256": "526ced6b1f02ff22135180d84a2339f9d1d0ff75b83d255c42aef9be3246fd58",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 34,
+      "path": "ffn-up-layer-034.pt",
+      "sha256": "bdb13200eb0a61f0c6caddacdca0261b073dfba25a48a9bb0f946a72120baeee",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 35,
+      "path": "ffn-up-layer-035.pt",
+      "sha256": "877b73f0f630cd104d1fcbb5f41403fd2e02e6a70013a80a1267c4f845532763",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 36,
+      "path": "ffn-up-layer-036.pt",
+      "sha256": "63a887f589bc01442458b71e0db3657e8122159087ede5c6582458e7e1dce74d",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 37,
+      "path": "ffn-up-layer-037.pt",
+      "sha256": "7f81857f12d90067d50347f89a1afcf3e957df1f5501785d199eebe5595b6ec1",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 38,
+      "path": "ffn-up-layer-038.pt",
+      "sha256": "b830174d4e80c41592393151860253497617ef78abd9203b499f721410674430",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 39,
+      "path": "ffn-up-layer-039.pt",
+      "sha256": "1cca1230ce2e6234b53389fbd729fe28befcbff6d5fbe16e9a7d318331f1e7a9",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 40,
+      "path": "ffn-up-layer-040.pt",
+      "sha256": "df5a375719cdbe0082e53bd9cd13b7d29068249318e74db8a93e038787ca8379",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 41,
+      "path": "ffn-up-layer-041.pt",
+      "sha256": "825655f4c76056debe49248aa4e516393e0b0dca3b72198fa0087c7ddf820148",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    },
+    {
+      "layer": 42,
+      "path": "ffn-up-layer-042.pt",
+      "sha256": "d48a54fc1ba63dc36938005f8a3a50ec28e2b497136746f0f05f25a7eece7970",
+      "shape": [
+        6,
+        2048
+      ],
+      "size": 50813
+    }
+  ],
+  "format": "gguf-dsv4-layer-oracle-v1",
+  "layers": [
+    {
+      "layer": 0,
+      "path": "layer-000.pt",
+      "sha256": "0aa754329142c38562b05ac38c4e83d852a9e4a4bd6ec07bfbc9cb020ded0a19",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 1,
+      "path": "layer-001.pt",
+      "sha256": "7200ab2437f082c33dc686dc410de9a55dca36749adeedeafbe4c4ae0d6ad692",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 2,
+      "path": "layer-002.pt",
+      "sha256": "8341dcf91146b718dd8f3f32c5a9384e1974e5c98bb002f8a939246403d69321",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 3,
+      "path": "layer-003.pt",
+      "sha256": "16ce0a710a61f73fa897fb48f3d97d9c45d9d3fe698f2fc2048fc469f6188589",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 4,
+      "path": "layer-004.pt",
+      "sha256": "e0899df2bcf6c8e2238cd75ba1fdf09ab5afc54d30c45d9063e6b038e025f26e",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 5,
+      "path": "layer-005.pt",
+      "sha256": "0340e05a73278a075b177c9e9a84b8d96d626351ba2c8d07c24f7775cbe557e2",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 6,
+      "path": "layer-006.pt",
+      "sha256": "444d863e0ee1623474ece7c6bbf5ff23878fab25208958eb775cdbad9fbaf8f3",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 7,
+      "path": "layer-007.pt",
+      "sha256": "d254b589c3e1b966c4ec5a2e7dd732eaff8ee32a4696d5cb381d4da8f1a91dba",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 8,
+      "path": "layer-008.pt",
+      "sha256": "2532a6bc6eadf6263863550f9bb428a51aa34319e6eb739130da449509998e1c",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 9,
+      "path": "layer-009.pt",
+      "sha256": "cb7d307c7489816f9eb4bfccaed7da53c6e828dd96315970b5bf369d008ef3d0",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 10,
+      "path": "layer-010.pt",
+      "sha256": "6f71e88f61c27518e6569defe655f4fe31a83a0784335e1a0a1fd60ce1d08069",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 11,
+      "path": "layer-011.pt",
+      "sha256": "9231afa5a74d566c2dff88ca817dcbe810340d437e0fdcd3e1db92abfb536942",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 12,
+      "path": "layer-012.pt",
+      "sha256": "a63dfdf22b632fa51f4de20acbf626d6bd21243e6745cfa0c628af697d043c99",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 13,
+      "path": "layer-013.pt",
+      "sha256": "2ad4edc15c3bfc636f29492d334c5e765623905a84856bf522cd30642bdd2065",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 14,
+      "path": "layer-014.pt",
+      "sha256": "0c37029ef091c17dc263c827dc50f99f353beb8437259127682119bb14770556",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 15,
+      "path": "layer-015.pt",
+      "sha256": "9007f7d15a858ab8271a4ba92942e3faa966296ef3c83dee737a373d289aad7d",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 16,
+      "path": "layer-016.pt",
+      "sha256": "dcd876da6f8030bc3e454cb4aa9583c0ed3ef8478f84ea38a971d662819f139d",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 17,
+      "path": "layer-017.pt",
+      "sha256": "ddb36f430c39cd14b9cb5eeb1ce52ab2a873ccd8ae5009011d4fca336f7b9950",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 18,
+      "path": "layer-018.pt",
+      "sha256": "9da302cbe1ee292ee4e3caa14061806d8ddffb234044e1dbc64daf45fb470c35",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 19,
+      "path": "layer-019.pt",
+      "sha256": "fae7a3a6175c0009468168e73253f77a093536a8d99080abd721c9ba63783354",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 20,
+      "path": "layer-020.pt",
+      "sha256": "2afeb18e1ae777df10aec39242671dc23779a7bad04048586ba8eeb6ba4f8b72",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 21,
+      "path": "layer-021.pt",
+      "sha256": "4d2951ee0a19fc30ae60faf6f74ff6580657432c4d9af76216c2781625736133",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 22,
+      "path": "layer-022.pt",
+      "sha256": "740e02d539773b1af0f04f2316b1fabd6637eac87d1e31cc1be6ff03163d13f7",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 23,
+      "path": "layer-023.pt",
+      "sha256": "6cd4f85d8f38553682569753900445c2357698d5083705382b1ad4be6338ba03",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 24,
+      "path": "layer-024.pt",
+      "sha256": "d258e874e2695a6165cf79872c5646306d404324f735a79ea176c7ce434222d3",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 25,
+      "path": "layer-025.pt",
+      "sha256": "a725b012d97feb8af9d0eeed012820e6c563d3fe9165ee513c8b54dc54fd55a2",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 26,
+      "path": "layer-026.pt",
+      "sha256": "f25f10c88644b4e3aa2ec46a426a628ef2a3da3187b9f25455c244e94e64a56d",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 27,
+      "path": "layer-027.pt",
+      "sha256": "0430f84a50c07ceaf4895b59975338eda21067a82da1edb6a01eed161f6f2e62",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 28,
+      "path": "layer-028.pt",
+      "sha256": "f1e760c21a04b1acc0e95bfc70e2d40ab835c2a5e8610a2f196712142a7d8629",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 29,
+      "path": "layer-029.pt",
+      "sha256": "37f6009ebc4758d3f9bc4055559913afab4293c78be6ea6f7cf7ca56b68eb4e4",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 30,
+      "path": "layer-030.pt",
+      "sha256": "2a88eb4e4592f1c5eef96dd404e2d8e3bb6eb06d52e8403c8f32e473d326a1de",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 31,
+      "path": "layer-031.pt",
+      "sha256": "30a6a40e1bf2b80b776037dbf71e13cc98a8a74488bf8233eefeaf8813a58d43",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 32,
+      "path": "layer-032.pt",
+      "sha256": "a4e2b4568f2148f8baec2ba3af892cbaff3d3ae46770fab50dc6ef0c0a6ca5f8",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 33,
+      "path": "layer-033.pt",
+      "sha256": "9e031fda0ada627514e40cf21c9cdb7e122d02b9bf8bdc883b4be0eb291d4ee4",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 34,
+      "path": "layer-034.pt",
+      "sha256": "803190c075008896de9409d301711359c5a019f160a6d3f27c636475efd99fdd",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 35,
+      "path": "layer-035.pt",
+      "sha256": "0c34dd9bfda812cdad3289575f591b0543bca371fe2a734e575bac46fc468243",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 36,
+      "path": "layer-036.pt",
+      "sha256": "972ac338d3c502a29c88a70e0cf3fd5d601884be9e93684ba66a094ebcc21c39",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 37,
+      "path": "layer-037.pt",
+      "sha256": "4521b6b259b154170fb77ddc5e2645cda705f17d2b1705bb1a1802334b735bb2",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 38,
+      "path": "layer-038.pt",
+      "sha256": "2023a8679a25e7f61a95d62aecf67850f3499c8f463a8506cfa6b2f8c2fb1d8b",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 39,
+      "path": "layer-039.pt",
+      "sha256": "83fdfeec543bc615214a78974dff2b81077a33ede4d079d23fddba01367bbe1a",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 40,
+      "path": "layer-040.pt",
+      "sha256": "768baf4f0005d4bd7a09dd270c76da127dd5a31e860e1122341662556af98bf3",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 41,
+      "path": "layer-041.pt",
+      "sha256": "24ae8e54327a459d90deee4a563fe4a804e168f734e31d75f8af4bcc3d15e2d6",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    },
+    {
+      "layer": 42,
+      "path": "layer-042.pt",
+      "sha256": "71dee84cb0845f18780a08fc0f06275a05e8b172e06bd1ccaa3373f89c1ccb19",
+      "shape": [
+        4,
+        4096
+      ],
+      "size": 67148
+    }
+  ],
+  "logits": {
+    "path": "logits.pt",
+    "sha256": "bcaa6a6399c6466e32e12efe5e827cb1d7e4bcfd613805eb3167c85f642928ab",
+    "shape": [
+      129280
+    ],
+    "size": 518711
+  },
+  "token_ids": [
+    0,
+    271,
+    372,
+    27193,
+    271,
+    3476,
+    611,
+    3278,
+    304,
+    260,
+    1341,
+    294,
+    6704,
+    304,
+    1694,
+    3287,
+    270,
+    3967,
+    734,
+    3417,
+    16,
+    2042,
+    588,
+    34756,
+    6704,
+    513,
+    4985,
+    260,
+    38322,
+    128825,
+    72461,
+    4941,
+    12548,
+    48902,
+    5603,
+    1277,
+    270,
+    2502,
+    979,
+    30,
+    128825,
+    72461,
+    4941,
+    12548,
+    1018,
+    30,
+    128825,
+    40148,
+    5406,
+    2329,
+    84476,
+    6792,
+    5896,
+    35044,
+    3816,
+    30,
+    128825,
+    41523,
+    2329,
+    84476,
+    46630,
+    4130,
+    61729,
+    35044,
+    4,
+    3418,
+    1281,
+    11476,
+    94,
+    19836,
+    3320,
+    6,
+    46630,
+    4130,
+    61729,
+    56909,
+    1718,
+    128825,
+    41523,
+    1018,
+    7835,
+    1718,
+    128825,
+    40148,
+    5406,
+    1018,
+    30,
+    128825,
+    40148,
+    5406,
+    2329,
+    84476,
+    6792,
+    5896,
+    35044,
+    20,
+    3816,
+    7835,
+    1718,
+    128825,
+    40148,
+    5406,
+    1018,
+    1718,
+    128825,
+    72461,
+    4941,
+    12548,
+    4697,
+    3524,
+    8252,
+    1531,
+    366,
+    12038,
+    412,
+    344,
+    305,
+    1341,
+    3608,
+    4463,
+    1281,
+    11476,
+    4,
+    37419,
+    1884,
+    710,
+    915,
+    4815,
+    343,
+    62896,
+    14,
+    2631,
+    2065,
+    634,
+    14,
+    31939,
+    14,
+    8435,
+    754,
+    2281,
+    270,
+    1990,
+    295,
+    26639,
+    8786,
+    305,
+    1341,
+    3608,
+    4463,
+    1281,
+    19836,
+    4,
+    108526,
+    3575,
+    6892,
+    71144,
+    344,
+    22104,
+    343,
+    89944,
+    284,
+    513,
+    223,
+    128821,
+    754,
+    440,
+    74366,
+    5238,
+    782,
+    5553,
+    22805,
+    6352,
+    223,
+    128821,
+    1613,
+    128822,
+    119907,
+    1117,
+    4105,
+    10699,
+    469,
+    4087,
+    4256,
+    339,
+    13079,
+    6922,
+    14,
+    5238,
+    6578,
+    1561,
+    223,
+    128822,
+    418,
+    4105,
+    10699,
+    469,
+    4087,
+    4256,
+    339,
+    795,
+    17829,
+    28249,
+    13178,
+    8380,
+    271,
+    24313,
+    2852,
+    3362,
+    582,
+    1133,
+    65,
+    50219,
+    1760,
+    582,
+    20855,
+    3362,
+    582,
+    25529,
+    2573,
+    9670,
+    66910,
+    582,
+    46172,
+    3362,
+    28612,
+    4611,
+    3362,
+    582,
+    10325,
+    1760,
+    582,
+    68838,
+    3362,
+    28612,
+    37399,
+    3362,
+    28612,
+    4611,
+    3362,
+    582,
+    4463,
+    4,
+    55695,
+    582,
+    24486,
+    3362,
+    20584,
+    37399,
+    13747,
+    33236,
+    3476,
+    74366,
+    29851,
+    1605,
+    270,
+    3554,
+    6428,
+    4105,
+    2329,
+    305,
+    10767,
+    5815,
+    8380,
+    304,
+    34756,
+    4105,
+    10699,
+    603,
+    128803,
+    14885,
+    1178,
+    65,
+    50219,
+    304,
+    4085,
+    11111,
+    14,
+    1539,
+    8470,
+    295,
+    834,
+    10175,
+    3920,
+    342,
+    1309,
+    411,
+    56295,
+    16,
+    128804,
+    128822,
+    271,
+    30,
+    128825,
+    72461,
+    4941,
+    12548,
+    1018,
+    30,
+    128825,
+    40148,
+    5406,
+    2329,
+    1281,
+    1133,
+    65,
+    50219,
+    3816,
+    30,
+    128825,
+    41523,
+    2329,
+    1281,
+    37399,
+    4,
+    3418,
+    1281,
+    11476,
+    3320,
+    51119,
+    1718,
+    128825,
+    41523,
+    1018,
+    1718,
+    128825,
+    40148,
+    5406,
+    1018,
+    1718,
+    128825,
+    72461,
+    4941,
+    12548,
+    32,
+    1,
+    128803,
+    30,
+    72461,
+    46148,
+    32,
+    24313,
+    37399,
+    16562,
+    51119,
+    10177,
+    22526,
+    16562,
+    5296,
+    9641,
+    10177,
+    88634,
+    4941,
+    3362,
+    929,
+    24568,
+    72461,
+    46148,
+    4697,
+    45585,
+    270,
+    4087,
+    29849,
+    1928,
+    16,
+    128804,
+    128822
+  ],
+  "token_ids_sha256": "1e337ed31b12934b17db89bf7c8b0519db309b89369b22ba1595313e11228aea"
+}

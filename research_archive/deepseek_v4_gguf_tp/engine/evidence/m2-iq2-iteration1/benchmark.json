@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "device": "NVIDIA GeForce RTX 3090",
+  "capability": [
+    8,
+    6
+  ],
+  "input_columns": 4096,
+  "output_rows": 2048,
+  "iterations": 1000,
+  "warmup": 100,
+  "results": [
+    {
+      "token_count": 1,
+      "weight_bytes": 2162688,
+      "raw_ms": 0.0539504623413086,
+      "aligned_ms": 0.05286092758178711,
+      "aligned_over_raw": 0.9798049041242922,
+      "raw_graph_ms": 0.05367398452758789,
+      "aligned_graph_ms": 0.05259775924682617,
+      "aligned_graph_over_raw_graph": 0.9799488469090915,
+      "raw_gbps": 40.08655173922543,
+      "aligned_gbps": 40.912789444601806
+    },
+    {
+      "token_count": 2,
+      "weight_bytes": 2162688,
+      "raw_ms": 0.0881981430053711,
+      "aligned_ms": 0.08694169616699218,
+      "aligned_over_raw": 0.9857542710587183,
+      "raw_graph_ms": 0.08788377380371094,
+      "aligned_graph_ms": 0.08663852691650391,
+      "aligned_graph_over_raw_graph": 0.9858307531264155,
+      "raw_gbps": 24.52078837837092,
+      "aligned_gbps": 24.8751530663267
+    },
+    {
+      "token_count": 4,
+      "weight_bytes": 2162688,
+      "raw_ms": 0.16346617126464844,
+      "aligned_ms": 0.1613578186035156,
+      "aligned_over_raw": 0.9871022080909974,
+      "raw_graph_ms": 0.1631825866699219,
+      "aligned_graph_ms": 0.16104856872558593,
+      "aligned_graph_over_raw_graph": 0.9869225142958877,
+      "raw_gbps": 13.230186914322791,
+      "aligned_gbps": 13.4030567512449
+    }
+  ]
+}

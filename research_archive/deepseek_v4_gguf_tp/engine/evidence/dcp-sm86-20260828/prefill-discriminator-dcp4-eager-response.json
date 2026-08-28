@@ -1,0 +1,39 @@
+{
+  "id": "chatcmpl-b9a04cd8d93985cc",
+  "object": "chat.completion",
+  "created": 1787903888,
+  "model": "deepseek-v4-flash-0731-gguf-tp-dcp",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "CR",
+        "refusal": null,
+        "annotations": null,
+        "audio": null,
+        "function_call": null,
+        "reasoning": null
+      },
+      "logprobs": null,
+      "finish_reason": "length",
+      "stop_reason": null,
+      "token_ids": null,
+      "routed_experts": null
+    }
+  ],
+  "service_tier": null,
+  "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-683ae8d3",
+  "usage": {
+    "prompt_tokens": 9830,
+    "total_tokens": 9846,
+    "completion_tokens": 16,
+    "prompt_tokens_details": null
+  },
+  "prompt_logprobs": null,
+  "prompt_token_ids": null,
+  "prompt_text": null,
+  "kv_transfer_params": null,
+  "ec_transfer_params": null,
+  "metrics": null
+}

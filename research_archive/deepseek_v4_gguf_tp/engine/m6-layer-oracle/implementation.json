@@ -1,0 +1,26 @@
+{
+  "cpu_validation": {
+    "comparator": "3 focused tests pass: exact pass, checksum-valid numerical fail, corrupt-payload rejection",
+    "llama_full_cpu_link": "blocked by pinned baseline undefined ggml_backend_cuda_tensor_set_input_async; GPU CUDA build required",
+    "llama_translation_unit": "compiled",
+    "vllm_tests": "10 passed"
+  },
+  "format": "gguf-tp-m6-layer-oracle-implementation-v1",
+  "llama_cpp": {
+    "base": "0379cf4bf889f3d28038a005210c4bc193fc8ba1",
+    "commit": "04636336e8bb0be49cbb45d00bd215bc9f124ff2",
+    "tree": "426c87947153b2ab2a78d3b60e1331bcdf48a2d6"
+  },
+  "sha256": {
+    "compare_m6_layer_oracle.py": "0b6a4bf70b5522e99302f41ba530c6f286eb9b95767d726ff1d3b397239b1254",
+    "llama/examples/ds4-layer-oracle/ds4-layer-oracle.cpp": "61fae7094d84cb900234fe6568343e474938d343b4af0b46052836f5e86aef0f",
+    "test_compare_m6_layer_oracle.py": "5df07bc5167bd9c2a61ee42449beba55c2b2b65ec243327b95b10f959cc40d32",
+    "vllm/models/deepseek_v4/gguf_dsv4_layer_oracle.py": "4a2501e825395f4ec4045615c9aaaff571217bf016f90f1692fc7083aa07185f",
+    "vllm/models/deepseek_v4/nvidia/model.py": "89f90cb02e323fe56518597a1af57d70b3fe03d93145571177d4bcc157d0d009"
+  },
+  "vllm": {
+    "base": "3ec20cebe",
+    "commit": "41a672a0be912c23e97a4230d124f9d55f50a4cb",
+    "tree": "e9ede11c6b32581b12afb3f35e6beb3c8d93b1d9"
+  }
+}

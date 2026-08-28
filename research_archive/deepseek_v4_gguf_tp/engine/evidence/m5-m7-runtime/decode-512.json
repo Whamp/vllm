@@ -1,0 +1,382 @@
+{
+  "protocol": "3 warmup + 5 measured",
+  "sampling": {
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "top_k": 20,
+    "max_tokens": 512,
+    "seed": 1234
+  },
+  "runs": [
+    {
+      "run": 1,
+      "elapsed_s": 6.778812594944611,
+      "completion_tokens": 512,
+      "wall_tps": 75.52945192522813,
+      "finish_reason": "length",
+      "response": {
+        "id": "chatcmpl-90df228c7414ed42",
+        "object": "chat.completion",
+        "created": 1787049956,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "I'll create a comprehensive in-memory B-tree database implementation with transactions, serialization, and tests. This will be a production-quality implementation with extensive documentation.\n\n```python\n\"\"\"\nIn-Memory B-Tree Database with Transaction Support\n====================================================\n\nThis module implements a complete in-memory B-tree database with:\n- Full B-tree indexing with configurable order\n- ACID transaction support with WAL (Write-Ahead Logging)\n- Serialization/deserialization to JSON format\n- Comprehensive test suite\n- Thread-safe operations with fine-grained locking\n\nThe implementation follows the classic B-tree algorithms with:\n- Node splitting on overflow\n- Node merging on underflow\n- Root node management\n- Range queries with cursor support\n\nAuthor: Database Implementation\nVersion: 1.0.0\n\"\"\"\n\nfrom typing import Any, Dict, List, Optional, Tuple, Iterator, Generic, TypeVar, Callable\nfrom collections import defaultdict\nimport json\nimport threading\nimport time\nimport uuid\nfrom dataclasses import dataclass, field\nfrom enum import Enum\nimport logging\nimport os\n\n# Type variable for generic key-value pairs\nK = TypeVar('K')  # Key type\nV = TypeVar('V')  # Value type\n\n# Configure logging\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\n\nclass TransactionStatus(Enum):\n    \"\"\"Transaction lifecycle states.\"\"\"\n    ACTIVE = \"active\"\n    COMMITTED = \"committed\"\n    ABORTED = \"aborted\"\n    PREPARED = \"prepared\"\n\n\nclass LockMode(Enum):\n    \"\"\"Lock modes for concurrency control.\"\"\"\n    SHARED = \"shared\"\n    EXCLUSIVE = \"exclusive\"\n\n\n@dataclass\nclass TransactionRecord:\n    \"\"\"\n    Represents a transaction with its metadata.\n    \n    Attributes:\n        tx_id: Unique transaction identifier\n        status: Current transaction status\n        created_at: Timestamp when transaction started\n        operations: List of operations performed\n        snapshot: Snapshot of database state at transaction start\n    \"\"\"\n    tx_id: str\n    status: TransactionStatus\n    created_at: float\n    operations: List[Dict[str, Any]] = field(default_factory=list)\n    snapshot: Optional[Dict[str, Any]] = None\n\n\n@dataclass\nclass BTreeNode:\n    \"\"\"\n    B-tree node structure.\n    \n    A node contains keys and values (or child pointers for internal nodes).\n",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 36,
+          "total_tokens": 548,
+          "completion_tokens": 512,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    },
+    {
+      "run": 2,
+      "elapsed_s": 6.673476530006155,
+      "completion_tokens": 512,
+      "wall_tps": 76.72163042724117,
+      "finish_reason": "length",
+      "response": {
+        "id": "chatcmpl-b76c668a73d18d1b",
+        "object": "chat.completion",
+        "created": 1787049962,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "I'll create a comprehensive in-memory B-tree database implementation with transactions, serialization, and tests. This will be a production-quality implementation with extensive documentation.\n\n```python\n\"\"\"\nIn-Memory B-Tree Database with Transaction Support\n====================================================\n\nThis module implements a complete in-memory B-tree database with:\n- Full B-tree indexing with configurable order\n- ACID transaction support with WAL (Write-Ahead Logging)\n- Serialization/deserialization to JSON format\n- Comprehensive test suite\n- Thread-safe operations with fine-grained locking\n\nThe implementation follows the classic B-tree algorithms with:\n- Node splitting on overflow\n- Node merging on underflow\n- Root node management\n- Range queries with cursor support\n\nAuthor: Database Implementation\nVersion: 1.0.0\n\"\"\"\n\nfrom typing import Any, Dict, List, Optional, Tuple, Iterator, Generic, TypeVar, Callable\nfrom collections import defaultdict\nimport json\nimport threading\nimport time\nimport uuid\nfrom dataclasses import dataclass, field\nfrom enum import Enum\nimport logging\nimport os\n\n# Type variable for generic key-value pairs\nK = TypeVar('K')  # Key type\nV = TypeVar('V')  # Value type\n\n# Configure logging\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\n\nclass TransactionStatus(Enum):\n    \"\"\"Transaction lifecycle states.\"\"\"\n    ACTIVE = \"active\"\n    COMMITTED = \"committed\"\n    ABORTED = \"aborted\"\n    PREPARED = \"prepared\"\n\n\nclass LockMode(Enum):\n    \"\"\"Lock modes for concurrency control.\"\"\"\n    SHARED = \"shared\"\n    EXCLUSIVE = \"exclusive\"\n\n\n@dataclass\nclass TransactionRecord:\n    \"\"\"\n    Represents a transaction with its metadata.\n    \n    Attributes:\n        tx_id: Unique transaction identifier\n        status: Current transaction status\n        created_at: Timestamp when transaction started\n        operations: List of operations performed\n        snapshot: Snapshot of database state at transaction start\n    \"\"\"\n    tx_id: str\n    status: TransactionStatus\n    created_at: float\n    operations: List[Dict[str, Any]] = field(default_factory=list)\n    snapshot: Optional[Dict[str, Any]] = None\n\n\n@dataclass\nclass BTreeNode:\n    \"\"\"\n    B-tree node structure.\n    \n    A node contains keys and values (or child pointers for internal nodes).\n",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 36,
+          "total_tokens": 548,
+          "completion_tokens": 512,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    },
+    {
+      "run": 3,
+      "elapsed_s": 6.672238657949492,
+      "completion_tokens": 512,
+      "wall_tps": 76.73586426498531,
+      "finish_reason": "length",
+      "response": {
+        "id": "chatcmpl-81ce84c9339cdc89",
+        "object": "chat.completion",
+        "created": 1787049969,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "I'll create a comprehensive in-memory B-tree database implementation with transactions, serialization, and tests. This will be a production-quality implementation with extensive documentation.\n\n```python\n\"\"\"\nIn-Memory B-Tree Database with Transaction Support\n====================================================\n\nThis module implements a complete in-memory B-tree database with:\n- Full B-tree indexing with configurable order\n- ACID transaction support with WAL (Write-Ahead Logging)\n- Serialization/deserialization to JSON format\n- Comprehensive test suite\n- Thread-safe operations with fine-grained locking\n\nThe implementation follows the classic B-tree algorithms with:\n- Node splitting on overflow\n- Node merging on underflow\n- Root node management\n- Range queries with cursor support\n\nAuthor: Database Implementation\nVersion: 1.0.0\n\"\"\"\n\nfrom typing import Any, Dict, List, Optional, Tuple, Iterator, Generic, TypeVar, Callable\nfrom collections import defaultdict\nimport json\nimport threading\nimport time\nimport uuid\nfrom dataclasses import dataclass, field\nfrom enum import Enum\nimport logging\nimport os\n\n# Type variable for generic key-value pairs\nK = TypeVar('K')  # Key type\nV = TypeVar('V')  # Value type\n\n# Configure logging\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\n\nclass TransactionStatus(Enum):\n    \"\"\"Transaction lifecycle states.\"\"\"\n    ACTIVE = \"active\"\n    COMMITTED = \"committed\"\n    ABORTED = \"aborted\"\n    PREPARED = \"prepared\"\n\n\nclass LockMode(Enum):\n    \"\"\"Lock modes for concurrency control.\"\"\"\n    SHARED = \"shared\"\n    EXCLUSIVE = \"exclusive\"\n\n\n@dataclass\nclass TransactionRecord:\n    \"\"\"\n    Represents a transaction with its metadata.\n    \n    Attributes:\n        tx_id: Unique transaction identifier\n        status: Current transaction status\n        created_at: Timestamp when transaction started\n        operations: List of operations performed\n        snapshot: Snapshot of database state at transaction start\n    \"\"\"\n    tx_id: str\n    status: TransactionStatus\n    created_at: float\n    operations: List[Dict[str, Any]] = field(default_factory=list)\n    snapshot: Optional[Dict[str, Any]] = None\n\n\n@dataclass\nclass BTreeNode:\n    \"\"\"\n    B-tree node structure.\n    \n    A node contains keys and values (or child pointers for internal nodes).\n",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 36,
+          "total_tokens": 548,
+          "completion_tokens": 512,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    },
+    {
+      "run": 4,
+      "elapsed_s": 6.676175593165681,
+      "completion_tokens": 512,
+      "wall_tps": 76.69061318940265,
+      "finish_reason": "length",
+      "response": {
+        "id": "chatcmpl-bb57db77037af31c",
+        "object": "chat.completion",
+        "created": 1787049976,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "I'll create a comprehensive in-memory B-tree database implementation with transactions, serialization, and tests. This will be a production-quality implementation with extensive documentation.\n\n```python\n\"\"\"\nIn-Memory B-Tree Database with Transaction Support\n====================================================\n\nThis module implements a complete in-memory B-tree database with:\n- Full B-tree indexing with configurable order\n- ACID transaction support with WAL (Write-Ahead Logging)\n- Serialization/deserialization to JSON format\n- Comprehensive test suite\n- Thread-safe operations with fine-grained locking\n\nThe implementation follows the classic B-tree algorithms with:\n- Node splitting on overflow\n- Node merging on underflow\n- Root node management\n- Range queries with cursor support\n\nAuthor: Database Implementation\nVersion: 1.0.0\n\"\"\"\n\nfrom typing import Any, Dict, List, Optional, Tuple, Iterator, Generic, TypeVar, Callable\nfrom collections import defaultdict\nimport json\nimport threading\nimport time\nimport uuid\nfrom dataclasses import dataclass, field\nfrom enum import Enum\nimport logging\nimport os\n\n# Type variable for generic key-value pairs\nK = TypeVar('K')  # Key type\nV = TypeVar('V')  # Value type\n\n# Configure logging\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\n\nclass TransactionStatus(Enum):\n    \"\"\"Transaction lifecycle states.\"\"\"\n    ACTIVE = \"active\"\n    COMMITTED = \"committed\"\n    ABORTED = \"aborted\"\n    PREPARED = \"prepared\"\n\n\nclass LockMode(Enum):\n    \"\"\"Lock modes for concurrency control.\"\"\"\n    SHARED = \"shared\"\n    EXCLUSIVE = \"exclusive\"\n\n\n@dataclass\nclass TransactionRecord:\n    \"\"\"\n    Represents a transaction with its metadata.\n    \n    Attributes:\n        tx_id: Unique transaction identifier\n        status: Current transaction status\n        created_at: Timestamp when transaction started\n        operations: List of operations performed\n        snapshot: Snapshot of database state at transaction start\n    \"\"\"\n    tx_id: str\n    status: TransactionStatus\n    created_at: float\n    operations: List[Dict[str, Any]] = field(default_factory=list)\n    snapshot: Optional[Dict[str, Any]] = None\n\n\n@dataclass\nclass BTreeNode:\n    \"\"\"\n    B-tree node structure.\n    \n    A node contains keys and values (or child pointers for internal nodes).\n",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 36,
+          "total_tokens": 548,
+          "completion_tokens": 512,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    },
+    {
+      "run": 5,
+      "elapsed_s": 6.677409818163142,
+      "completion_tokens": 512,
+      "wall_tps": 76.6764380115348,
+      "finish_reason": "length",
+      "response": {
+        "id": "chatcmpl-b513a2709246938a",
+        "object": "chat.completion",
+        "created": 1787049982,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "I'll create a comprehensive in-memory B-tree database implementation with transactions, serialization, and tests. This will be a production-quality implementation with extensive documentation.\n\n```python\n\"\"\"\nIn-Memory B-Tree Database with Transaction Support\n====================================================\n\nThis module implements a complete in-memory B-tree database with:\n- Full B-tree indexing with configurable order\n- ACID transaction support with WAL (Write-Ahead Logging)\n- Serialization/deserialization to JSON format\n- Comprehensive test suite\n- Thread-safe operations with fine-grained locking\n\nThe implementation follows the classic B-tree algorithms with:\n- Node splitting on overflow\n- Node merging on underflow\n- Root node management\n- Range queries with cursor support\n\nAuthor: Database Implementation\nVersion: 1.0.0\n\"\"\"\n\nfrom typing import Any, Dict, List, Optional, Tuple, Iterator, Generic, TypeVar, Callable\nfrom collections import defaultdict\nimport json\nimport threading\nimport time\nimport uuid\nfrom dataclasses import dataclass, field\nfrom enum import Enum\nimport logging\nimport os\n\n# Type variable for generic key-value pairs\nK = TypeVar('K')  # Key type\nV = TypeVar('V')  # Value type\n\n# Configure logging\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\n\nclass TransactionStatus(Enum):\n    \"\"\"Transaction lifecycle states.\"\"\"\n    ACTIVE = \"active\"\n    COMMITTED = \"committed\"\n    ABORTED = \"aborted\"\n    PREPARED = \"prepared\"\n\n\nclass LockMode(Enum):\n    \"\"\"Lock modes for concurrency control.\"\"\"\n    SHARED = \"shared\"\n    EXCLUSIVE = \"exclusive\"\n\n\n@dataclass\nclass TransactionRecord:\n    \"\"\"\n    Represents a transaction with its metadata.\n    \n    Attributes:\n        tx_id: Unique transaction identifier\n        status: Current transaction status\n        created_at: Timestamp when transaction started\n        operations: List of operations performed\n        snapshot: Snapshot of database state at transaction start\n    \"\"\"\n    tx_id: str\n    status: TransactionStatus\n    created_at: float\n    operations: List[Dict[str, Any]] = field(default_factory=list)\n    snapshot: Optional[Dict[str, Any]] = None\n\n\n@dataclass\nclass BTreeNode:\n    \"\"\"\n    B-tree node structure.\n    \n    A node contains keys and values (or child pointers for internal nodes).\n",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 36,
+          "total_tokens": 548,
+          "completion_tokens": 512,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    },
+    {
+      "run": 6,
+      "elapsed_s": 6.672976167872548,
+      "completion_tokens": 512,
+      "wall_tps": 76.72738327240779,
+      "finish_reason": "length",
+      "response": {
+        "id": "chatcmpl-955e678599064751",
+        "object": "chat.completion",
+        "created": 1787049989,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "I'll create a comprehensive in-memory B-tree database implementation with transactions, serialization, and tests. This will be a production-quality implementation with extensive documentation.\n\n```python\n\"\"\"\nIn-Memory B-Tree Database with Transaction Support\n====================================================\n\nThis module implements a complete in-memory B-tree database with:\n- Full B-tree indexing with configurable order\n- ACID transaction support with WAL (Write-Ahead Logging)\n- Serialization/deserialization to JSON format\n- Comprehensive test suite\n- Thread-safe operations with fine-grained locking\n\nThe implementation follows the classic B-tree algorithms with:\n- Node splitting on overflow\n- Node merging on underflow\n- Root node management\n- Range queries with cursor support\n\nAuthor: Database Implementation\nVersion: 1.0.0\n\"\"\"\n\nfrom typing import Any, Dict, List, Optional, Tuple, Iterator, Generic, TypeVar, Callable\nfrom collections import defaultdict\nimport json\nimport threading\nimport time\nimport uuid\nfrom dataclasses import dataclass, field\nfrom enum import Enum\nimport logging\nimport os\n\n# Type variable for generic key-value pairs\nK = TypeVar('K')  # Key type\nV = TypeVar('V')  # Value type\n\n# Configure logging\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\n\nclass TransactionStatus(Enum):\n    \"\"\"Transaction lifecycle states.\"\"\"\n    ACTIVE = \"active\"\n    COMMITTED = \"committed\"\n    ABORTED = \"aborted\"\n    PREPARED = \"prepared\"\n\n\nclass LockMode(Enum):\n    \"\"\"Lock modes for concurrency control.\"\"\"\n    SHARED = \"shared\"\n    EXCLUSIVE = \"exclusive\"\n\n\n@dataclass\nclass TransactionRecord:\n    \"\"\"\n    Represents a transaction with its metadata.\n    \n    Attributes:\n        tx_id: Unique transaction identifier\n        status: Current transaction status\n        created_at: Timestamp when transaction started\n        operations: List of operations performed\n        snapshot: Snapshot of database state at transaction start\n    \"\"\"\n    tx_id: str\n    status: TransactionStatus\n    created_at: float\n    operations: List[Dict[str, Any]] = field(default_factory=list)\n    snapshot: Optional[Dict[str, Any]] = None\n\n\n@dataclass\nclass BTreeNode:\n    \"\"\"\n    B-tree node structure.\n    \n    A node contains keys and values (or child pointers for internal nodes).\n",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 36,
+          "total_tokens": 548,
+          "completion_tokens": 512,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    },
+    {
+      "run": 7,
+      "elapsed_s": 6.678378370823339,
+      "completion_tokens": 512,
+      "wall_tps": 76.66531777187679,
+      "finish_reason": "length",
+      "response": {
+        "id": "chatcmpl-be5a7037be6e506c",
+        "object": "chat.completion",
+        "created": 1787049996,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "I'll create a comprehensive in-memory B-tree database implementation with transactions, serialization, and tests. This will be a production-quality implementation with extensive documentation.\n\n```python\n\"\"\"\nIn-Memory B-Tree Database with Transaction Support\n====================================================\n\nThis module implements a complete in-memory B-tree database with:\n- Full B-tree indexing with configurable order\n- ACID transaction support with WAL (Write-Ahead Logging)\n- Serialization/deserialization to JSON format\n- Comprehensive test suite\n- Thread-safe operations with fine-grained locking\n\nThe implementation follows the classic B-tree algorithms with:\n- Node splitting on overflow\n- Node merging on underflow\n- Root node management\n- Range queries with cursor support\n\nAuthor: Database Implementation\nVersion: 1.0.0\n\"\"\"\n\nfrom typing import Any, Dict, List, Optional, Tuple, Iterator, Generic, TypeVar, Callable\nfrom collections import defaultdict\nimport json\nimport threading\nimport time\nimport uuid\nfrom dataclasses import dataclass, field\nfrom enum import Enum\nimport logging\nimport os\n\n# Type variable for generic key-value pairs\nK = TypeVar('K')  # Key type\nV = TypeVar('V')  # Value type\n\n# Configure logging\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\n\nclass TransactionStatus(Enum):\n    \"\"\"Transaction lifecycle states.\"\"\"\n    ACTIVE = \"active\"\n    COMMITTED = \"committed\"\n    ABORTED = \"aborted\"\n    PREPARED = \"prepared\"\n\n\nclass LockMode(Enum):\n    \"\"\"Lock modes for concurrency control.\"\"\"\n    SHARED = \"shared\"\n    EXCLUSIVE = \"exclusive\"\n\n\n@dataclass\nclass TransactionRecord:\n    \"\"\"\n    Represents a transaction with its metadata.\n    \n    Attributes:\n        tx_id: Unique transaction identifier\n        status: Current transaction status\n        created_at: Timestamp when transaction started\n        operations: List of operations performed\n        snapshot: Snapshot of database state at transaction start\n    \"\"\"\n    tx_id: str\n    status: TransactionStatus\n    created_at: float\n    operations: List[Dict[str, Any]] = field(default_factory=list)\n    snapshot: Optional[Dict[str, Any]] = None\n\n\n@dataclass\nclass BTreeNode:\n    \"\"\"\n    B-tree node structure.\n    \n    A node contains keys and values (or child pointers for internal nodes).\n",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 36,
+          "total_tokens": 548,
+          "completion_tokens": 512,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    },
+    {
+      "run": 8,
+      "elapsed_s": 6.673025340074673,
+      "completion_tokens": 512,
+      "wall_tps": 76.72681788351646,
+      "finish_reason": "length",
+      "response": {
+        "id": "chatcmpl-94606e6fec3664b1",
+        "object": "chat.completion",
+        "created": 1787050003,
+        "model": "deepseek-v4-flash-0731-gguf-tp",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "I'll create a comprehensive in-memory B-tree database implementation with transactions, serialization, and tests. This will be a production-quality implementation with extensive documentation.\n\n```python\n\"\"\"\nIn-Memory B-Tree Database with Transaction Support\n====================================================\n\nThis module implements a complete in-memory B-tree database with:\n- Full B-tree indexing with configurable order\n- ACID transaction support with WAL (Write-Ahead Logging)\n- Serialization/deserialization to JSON format\n- Comprehensive test suite\n- Thread-safe operations with fine-grained locking\n\nThe implementation follows the classic B-tree algorithms with:\n- Node splitting on overflow\n- Node merging on underflow\n- Root node management\n- Range queries with cursor support\n\nAuthor: Database Implementation\nVersion: 1.0.0\n\"\"\"\n\nfrom typing import Any, Dict, List, Optional, Tuple, Iterator, Generic, TypeVar, Callable\nfrom collections import defaultdict\nimport json\nimport threading\nimport time\nimport uuid\nfrom dataclasses import dataclass, field\nfrom enum import Enum\nimport logging\nimport os\n\n# Type variable for generic key-value pairs\nK = TypeVar('K')  # Key type\nV = TypeVar('V')  # Value type\n\n# Configure logging\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\n\nclass TransactionStatus(Enum):\n    \"\"\"Transaction lifecycle states.\"\"\"\n    ACTIVE = \"active\"\n    COMMITTED = \"committed\"\n    ABORTED = \"aborted\"\n    PREPARED = \"prepared\"\n\n\nclass LockMode(Enum):\n    \"\"\"Lock modes for concurrency control.\"\"\"\n    SHARED = \"shared\"\n    EXCLUSIVE = \"exclusive\"\n\n\n@dataclass\nclass TransactionRecord:\n    \"\"\"\n    Represents a transaction with its metadata.\n    \n    Attributes:\n        tx_id: Unique transaction identifier\n        status: Current transaction status\n        created_at: Timestamp when transaction started\n        operations: List of operations performed\n        snapshot: Snapshot of database state at transaction start\n    \"\"\"\n    tx_id: str\n    status: TransactionStatus\n    created_at: float\n    operations: List[Dict[str, Any]] = field(default_factory=list)\n    snapshot: Optional[Dict[str, Any]] = None\n\n\n@dataclass\nclass BTreeNode:\n    \"\"\"\n    B-tree node structure.\n    \n    A node contains keys and values (or child pointers for internal nodes).\n",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "length",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev4+g2a3dd2ea7-tp4-56f193fc",
+        "usage": {
+          "prompt_tokens": 36,
+          "total_tokens": 548,
+          "completion_tokens": 512,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    }
+  ],
+  "mean_wall_tps": 76.6973140257477,
+  "cv_percent": 0.033389707473492986
+}
