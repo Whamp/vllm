@@ -480,6 +480,12 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
       "csrc/libtorch_stable/attention/dcp_utils/dcp_direct_q_gather.cu"
       "csrc/libtorch_stable/quantization/gguf_dsv4/iq2_xxs_matvec.cu"
       "csrc/libtorch_stable/quantization/gguf_dsv4/iq2_xxs_grouped.cu"
+      "csrc/libtorch_stable/quantization/gguf_dsv4/iq1_iq3_matvec.cu"
+      "csrc/libtorch_stable/quantization/gguf_dsv4/iq1_grouped.cu"
+      "csrc/libtorch_stable/quantization/gguf_dsv4/iq3_mxfp4_grouped.cu"
+      "csrc/libtorch_stable/quantization/gguf_dsv4/mxfp4_matvec.cu"
+      "csrc/libtorch_stable/quantization/gguf_dsv4/q456_k_matvec.cu"
+      "csrc/libtorch_stable/quantization/gguf_dsv4/q456_k_grouped.cu"
       "csrc/libtorch_stable/quantization/gguf_dsv4/q2_k_matvec.cu"
       "csrc/libtorch_stable/quantization/gguf_dsv4/q2_k_grouped.cu"
       "csrc/libtorch_stable/quantization/gguf_dsv4/swiglu_q8.cu")

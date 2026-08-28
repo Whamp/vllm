@@ -24,13 +24,29 @@ GGUF_TYPES: dict[int, GGUFTypeSpec] = {
     8: GGUFTypeSpec("Q8_0", 32, 34),
     9: GGUFTypeSpec("Q8_1", 32, 36),
     10: GGUFTypeSpec("Q2_K", 256, 84),
+    12: GGUFTypeSpec("Q4_K", 256, 144),
+    13: GGUFTypeSpec("Q5_K", 256, 176),
+    14: GGUFTypeSpec("Q6_K", 256, 210),
     16: GGUFTypeSpec("IQ2_XXS", 256, 66),
+    18: GGUFTypeSpec("IQ3_XXS", 256, 98),
+    19: GGUFTypeSpec("IQ1_S", 256, 50),
     24: GGUFTypeSpec("I8", 1, 1),
     26: GGUFTypeSpec("I32", 1, 4),
     27: GGUFTypeSpec("I64", 1, 8),
     28: GGUFTypeSpec("F64", 1, 8),
+    29: GGUFTypeSpec("IQ1_M", 256, 56),
     30: GGUFTypeSpec("BF16", 1, 2),
+    39: GGUFTypeSpec("MXFP4", 32, 17),
 }
+
+GGUF_TYPE_SPECS_BY_NAME = {
+    type_spec.name: type_spec for type_spec in GGUF_TYPES.values()
+}
+GGUF_QUANTIZED_TYPE_NAMES = frozenset(
+    type_name
+    for type_name, type_spec in GGUF_TYPE_SPECS_BY_NAME.items()
+    if type_spec.block_elements > 1
+)
 
 
 @dataclass(frozen=True)
