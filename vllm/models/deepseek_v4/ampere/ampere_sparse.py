@@ -498,7 +498,10 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
             swa_metadata.seq_lens[:num_decodes] // self.compress_ratio
         )
         max_entries = int(global_entry_lens.max().item())
-        if max_entries <= local_entry_indices.shape[1]:
+        # Startup dummy runs exercise at most a handful of entries over
+        # uninitialized cache rows. Real C128 decode can still be below its
+        # fixed metadata width, so do not skip it merely because n <= width.
+        if max_entries <= 4:
             return
         gathered_rows, virtual_block_table = sm86_dcp_allgather_k_entries(
             kv_cache,
