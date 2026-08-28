@@ -681,6 +681,11 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
         extra_indices = None
         if topk_indices is not None:
             extra_indices = topk_indices.reshape(num_decode_tokens, -1).contiguous()
+            if self._flash_mla_partial_decode is not None:
+                # The partial FlashMLA adapter requires an in-bounds value in
+                # every dense tail column even though extra_lens masks it.
+                # Slot 0 is never consumed past the tight per-token length.
+                extra_indices.clamp_min_(0)
 
         expected_row_bytes = get_deepseek_v4_cache_layout(self.kv_cache_dtype).row_bytes
         cache_shapes = {"swa_cache": self.swa_cache_layer.kv_cache}
