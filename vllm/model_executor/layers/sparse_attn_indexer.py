@@ -40,6 +40,11 @@ from vllm.v1.attention.backends.mla.indexer import (
     DeepseekV32IndexerMetadata,
     indexer_decode_shard_rows,
 )
+from vllm.v1.attention.backends.mla.sm86_dcp_layout import (
+    sm86_dcp_global_to_local,
+    sm86_dcp_local_to_global,
+    sm86_dcp_owns,
+)
 from vllm.v1.attention.ops.common import pack_seq_triton, unpack_seq_triton
 from vllm.v1.attention.ops.mqa_logits_triton import (
     fp8_mqa_logits_triton,
@@ -131,6 +136,177 @@ def _merge_dcp_topk_global(
     gathered = get_dcp_group().all_gather(packed, dim=1)
     stable_topk_from_gathered_candidates_cutedsl(
         gathered, topk_tokens, out=topk_indices
+    )
+
+
+_SM86_DCP_INVALID_SCORE = float("-inf")
+
+
+def _sm86_dcp_global_topk(
+    local_values: torch.Tensor,
+    local_global_indices: torch.Tensor,
+    topk_tokens: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Merge fixed-width rank-local candidates into deterministic global top-k.
+
+    Scores stay fp32. Equal scores select the lower global entry index. Invalid
+    ``-1`` candidates sort after every real candidate, including a real
+    candidate whose score is negative infinity.
+    """
+    dcp_group = get_dcp_group()
+    candidate_values = dcp_group.all_gather(local_values.contiguous(), dim=1)
+    candidate_indices = dcp_group.all_gather(
+        local_global_indices.contiguous(), dim=1
+    )
+    invalid = candidate_indices < 0
+    candidate_values = torch.where(
+        invalid,
+        torch.full_like(candidate_values, _SM86_DCP_INVALID_SCORE),
+        candidate_values,
+    )
+    sortable_indices = torch.where(
+        invalid,
+        torch.full_like(candidate_indices, torch.iinfo(torch.int32).max),
+        candidate_indices,
+    )
+    index_order = torch.argsort(sortable_indices, dim=-1, stable=True)
+    values_by_index = torch.gather(candidate_values, -1, index_order)
+    indices_by_index = torch.gather(candidate_indices, -1, index_order)
+    score_order = torch.argsort(
+        values_by_index,
+        dim=-1,
+        descending=True,
+        stable=True,
+    )[..., :topk_tokens]
+    top_values = torch.gather(values_by_index, -1, score_order)
+    top_indices = torch.gather(indices_by_index, -1, score_order)
+    top_indices = torch.where(
+        top_values == _SM86_DCP_INVALID_SCORE,
+        torch.full_like(top_indices, -1),
+        top_indices,
+    )
+    return top_values, top_indices
+
+
+def _sm86_dcp_topk_prefill(
+    logits: torch.Tensor,
+    row_starts: torch.Tensor,
+    local_topk_indices: torch.Tensor,
+    topk_tokens: int,
+    dcp_rank: int,
+    dcp_world_size: int,
+    cp_interleave: int,
+    has_local_kv: bool,
+) -> torch.Tensor:
+    """Return deterministic global entry IDs from rank-local prefill top-k."""
+    valid = local_topk_indices >= 0
+    if has_local_kv:
+        gather_indices = torch.clamp(local_topk_indices, min=0).to(torch.int64)
+        gather_indices = gather_indices + row_starts.to(torch.int64).unsqueeze(1)
+        gather_indices = torch.clamp(gather_indices, max=logits.shape[1] - 1)
+        gathered_values = torch.gather(logits, 1, gather_indices)
+        local_values = torch.where(
+            valid,
+            gathered_values,
+            torch.full_like(gathered_values, _SM86_DCP_INVALID_SCORE),
+        )
+    else:
+        local_values = torch.full(
+            local_topk_indices.shape,
+            _SM86_DCP_INVALID_SCORE,
+            dtype=torch.float32,
+            device=local_topk_indices.device,
+        )
+    local_indices = torch.where(
+        valid,
+        local_topk_indices,
+        torch.full_like(local_topk_indices, -1),
+    )
+    global_candidates = sm86_dcp_local_to_global(
+        local_indices,
+        dcp_rank,
+        dcp_world_size,
+        cp_interleave,
+    )
+    _, global_indices = _sm86_dcp_global_topk(
+        local_values,
+        global_candidates,
+        topk_tokens,
+    )
+    return global_indices
+
+
+def _sm86_dcp_topk_decode(
+    logits: torch.Tensor,
+    local_seq_lens: torch.Tensor,
+    local_topk_indices: torch.Tensor,
+    topk_tokens: int,
+    dcp_rank: int,
+    dcp_world_size: int,
+    cp_interleave: int,
+) -> torch.Tensor:
+    """Select global decode top-k and return this rank's local owned entries."""
+    num_rows = local_topk_indices.shape[0]
+    row_lens = local_seq_lens.reshape(-1)[:num_rows]
+    valid = (local_topk_indices >= 0) & (
+        local_topk_indices < row_lens.unsqueeze(1)
+    )
+    safe_indices = torch.clamp(
+        local_topk_indices,
+        min=0,
+        max=max(logits.shape[1] - 1, 0),
+    ).to(torch.int64)
+    gathered_values = torch.gather(logits, 1, safe_indices)
+    local_values = torch.where(
+        valid,
+        gathered_values,
+        torch.full_like(gathered_values, _SM86_DCP_INVALID_SCORE),
+    )
+    local_indices = torch.where(
+        valid,
+        local_topk_indices,
+        torch.full_like(local_topk_indices, -1),
+    )
+    global_candidates = sm86_dcp_local_to_global(
+        local_indices,
+        dcp_rank,
+        dcp_world_size,
+        cp_interleave,
+    )
+    global_values, global_indices = _sm86_dcp_global_topk(
+        local_values,
+        global_candidates,
+        topk_tokens,
+    )
+    owned = sm86_dcp_owns(
+        global_indices,
+        dcp_rank,
+        dcp_world_size,
+        cp_interleave,
+    )
+    owned_values = torch.where(
+        owned,
+        global_values,
+        torch.full_like(global_values, _SM86_DCP_INVALID_SCORE),
+    )
+    owned_order = torch.argsort(
+        owned_values,
+        dim=-1,
+        descending=True,
+        stable=True,
+    )
+    owned_sorted = torch.gather(owned, -1, owned_order)
+    global_sorted = torch.gather(global_indices, -1, owned_order)
+    local_out = sm86_dcp_global_to_local(
+        global_sorted,
+        dcp_rank,
+        dcp_world_size,
+        cp_interleave,
+    )
+    return torch.where(
+        owned_sorted,
+        local_out,
+        torch.full_like(local_out, -1),
     )
 
 
@@ -592,15 +768,29 @@ def sparse_attn_indexer(
                     topk_tokens,
                 )
 
-            _merge_dcp_topk_global(
-                logits,
-                topk_indices,
-                topk_tokens,
-                dcp_rank,
-                dcp_world_size,
-                cp_kv_cache_interleave_size,
-                row_starts=chunk.cu_seqlen_ks,
-            )
+            if attn_metadata_narrowed.use_sm86_dcp_topk:
+                topk_indices.copy_(
+                    _sm86_dcp_topk_prefill(
+                        logits,
+                        chunk.cu_seqlen_ks,
+                        topk_indices,
+                        topk_tokens,
+                        dcp_rank,
+                        dcp_world_size,
+                        cp_kv_cache_interleave_size,
+                        has_local_kv=chunk.local_total_seq_lens > 0,
+                    )
+                )
+            else:
+                _merge_dcp_topk_global(
+                    logits,
+                    topk_indices,
+                    topk_tokens,
+                    dcp_rank,
+                    dcp_world_size,
+                    cp_kv_cache_interleave_size,
+                    row_starts=chunk.cu_seqlen_ks,
+                )
 
             if chunk.shard_row_counts is not None:
                 # TP query-sharding: this rank filled only its own rows of the
@@ -800,7 +990,19 @@ def sparse_attn_indexer(
                 topk_tokens,
             )
 
-        if decode_metadata.global_seq_lens is not None:
+        if attn_metadata_narrowed.use_sm86_dcp_topk:
+            topk_indices.copy_(
+                _sm86_dcp_topk_decode(
+                    logits,
+                    seq_lens,
+                    topk_indices,
+                    topk_tokens,
+                    dcp_rank,
+                    dcp_world_size,
+                    cp_kv_cache_interleave_size,
+                )
+            )
+        elif decode_metadata.global_seq_lens is not None:
             _merge_dcp_topk_global(
                 logits,
                 topk_indices,

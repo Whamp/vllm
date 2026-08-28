@@ -27,12 +27,14 @@ from vllm.v1.kv_cache_interface import (
     KVCacheConfig,
     KVCacheGroupSpec,
     KVCacheSpec,
+    KVCacheSpecKind,
     KVCacheTensor,
     MambaSpec,
     MLAAttentionSpec,
     SlidingWindowMLASpec,
     SlidingWindowSpec,
     UniformTypeKVCacheSpecs,
+    get_kv_cache_spec_kind,
 )
 from vllm.v1.kv_cache_spec_registry import KVCacheSpecRegistry
 from vllm.v1.request import Request
@@ -623,6 +625,19 @@ def hash_block_tokens(
     )
 
 
+def is_dcp_exempt_spec(kv_cache_spec: KVCacheSpec) -> bool:
+    """Return whether an SM86 DCP cache group stays replicated per rank.
+
+    DeepSeek V4 sliding-window KV and compressor-state groups need contiguous
+    absolute-position lookback. Round-robin DCP sharding would split that
+    state, so these groups keep their original per-rank block geometry.
+    """
+    return envs.VLLM_SM86_DCP and get_kv_cache_spec_kind(kv_cache_spec) in (
+        KVCacheSpecKind.SLIDING_WINDOW,
+        KVCacheSpecKind.SLIDING_WINDOW_MLA,
+    )
+
+
 def resolve_kv_cache_block_sizes(
     kv_cache_config: KVCacheConfig,
     vllm_config: VllmConfig,
@@ -633,7 +648,8 @@ def resolve_kv_cache_block_sizes(
       scheduler (e.g. for ``num_computed_tokens`` rounding). Single group:
       ``cache_config.block_size * dcp``. Multiple groups: LCM of every
       group's effective block size. Attention groups are scaled by DCP;
-      Mamba groups keep their full per-rank state and are not scaled.
+      Mamba and DCP-exempt sliding-window groups keep their full per-rank
+      state and are not scaled.
     - ``hash_block_size`` is the granularity at which ``Request.block_hashes``
       is computed. Single group: equals scheduler block size. Multiple groups:
       ``cache_config.prefix_match_unit`` override if set, else the GCD of
@@ -653,6 +669,7 @@ def resolve_kv_cache_block_sizes(
     group_block_sizes = [
         g.kv_cache_spec.block_size * dcp
         if isinstance(g.kv_cache_spec, AttentionSpec)
+        and not is_dcp_exempt_spec(g.kv_cache_spec)
         else g.kv_cache_spec.block_size
         for g in groups
     ]

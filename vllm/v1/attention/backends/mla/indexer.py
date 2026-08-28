@@ -642,6 +642,8 @@ class DeepseekV32IndexerMetadata:
 
     decode: DeepSeekV32IndexerDecodeMetadata | None = None
     prefill: DeepseekV32IndexerPrefillMetadata | None = None
+    # Select the pure-Torch deterministic global top-k for compressed SM86 DCP.
+    use_sm86_dcp_topk: bool = False
 
 
 def get_max_prefill_buffer_size(vllm_config: VllmConfig):
@@ -814,11 +816,21 @@ class DeepseekV32IndexerMetadataBuilder(AttentionMetadataBuilder):
         # Get compress_ratio for DeepseekV4 support
         if isinstance(self.kv_cache_spec, MLAAttentionSpec):
             self.compress_ratio = self.kv_cache_spec.compress_ratio
-        if self.dcp_world_size > 1 and self.compress_ratio > 1:
+        if (
+            self.dcp_world_size > 1
+            and self.compress_ratio > 1
+            and not envs.VLLM_SM86_DCP
+        ):
             raise NotImplementedError(
                 "DCP is not supported with sparse indexer KV compression "
-                f"(compress_ratio={self.compress_ratio})."
+                f"(compress_ratio={self.compress_ratio}) unless "
+                "VLLM_SM86_DCP=1."
             )
+        self.use_sm86_dcp = (
+            envs.VLLM_SM86_DCP
+            and self.dcp_world_size > 1
+            and self.compress_ratio > 1
+        )
 
         # Pre-allocate buffers for CUDA graph compatibility when
         if self.compress_ratio > 1:
@@ -1045,6 +1057,9 @@ class DeepseekV32IndexerMetadataBuilder(AttentionMetadataBuilder):
                 self.kv_cache_spec.storage_block_size,
                 self.compress_ratio,
                 out=self.compressed_slot_mapping_buffer,
+                dcp_world_size=(self.dcp_world_size if self.use_sm86_dcp else 1),
+                dcp_rank=(self.dcp_rank if self.use_sm86_dcp else 0),
+                dcp_entry_interleave=self.cp_kv_cache_interleave_size,
             )
             if self.pcp_world_size > 1:
                 compressed_slot_mapping = get_pcp_group().all_gather(
@@ -1212,7 +1227,7 @@ class DeepseekV32IndexerMetadataBuilder(AttentionMetadataBuilder):
             # DCP: localize the now-expanded per-token global bounds to this
             # rank's owned KV. Done here (after expansion) so each token's global
             # causal length is localized individually; see the comment above.
-            if dcp_local_seq_lens is not None:
+            if dcp_local_seq_lens is not None and not self.use_sm86_dcp:
                 seq_lens = self._dcp_localize_decode_seq_lens(
                     seq_lens, num_decodes, seq_lens_is_buffer_view
                 )
@@ -1229,6 +1244,15 @@ class DeepseekV32IndexerMetadataBuilder(AttentionMetadataBuilder):
                     )
                     self.expanded_seq_lens_buffer[num_decodes:num_decode_tokens] = 0
                     seq_lens = self.expanded_seq_lens_buffer[:num_decode_tokens]
+
+                if self.use_sm86_dcp:
+                    localized = get_dcp_local_seq_lens(
+                        seq_lens,
+                        self.dcp_world_size,
+                        self.dcp_rank,
+                        self.cp_kv_cache_interleave_size,
+                    )
+                    seq_lens.copy_(localized)
 
             # Non-MTP: deep_gemm paged MQA logits requires 2D context_lens
             # (csrc/apis/attention.hpp). Unsqueeze to (B, 1) so downstream
@@ -1269,6 +1293,7 @@ class DeepseekV32IndexerMetadataBuilder(AttentionMetadataBuilder):
             num_prefill_tokens=num_prefill_tokens,
             prefill=prefill_metadata,
             decode=decode_metadata,
+            use_sm86_dcp_topk=self.use_sm86_dcp,
         )
 
         return attn_metadata

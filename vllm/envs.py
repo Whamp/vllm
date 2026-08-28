@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     VLLM_XLA_CACHE_PATH: str = os.path.join(VLLM_CACHE_ROOT, "xla_cache")
     VLLM_XLA_CHECK_RECOMPILATION: bool = False
     VLLM_SPARSE_INDEXER_MAX_LOGITS_MB: int = 512
+    VLLM_SM86_DCP: bool = False
     VLLM_DSV4_WO_A_MARLIN_DIAGONAL: bool = False
     VLLM_USE_RAY_COMPILED_DAG_CHANNEL_TYPE: Literal["auto", "nccl", "shm"] = "auto"
     VLLM_USE_RAY_COMPILED_DAG_OVERLAP_COMM: bool = False
@@ -1079,6 +1080,10 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Default: 512 MB
     "VLLM_SPARSE_INDEXER_MAX_LOGITS_MB": lambda: int(
         os.getenv("VLLM_SPARSE_INDEXER_MAX_LOGITS_MB", "512")
+    ),
+    # Enable the DeepSeek V4 SM86 decode-context-parallel implementation.
+    "VLLM_SM86_DCP": lambda: (
+        os.getenv("VLLM_SM86_DCP", "0").strip().lower() in ("1", "true")
     ),
     # Pack DeepSeek V4's grouped output projection for FP8 Marlin, apply one
     # local full projection, and select the block-diagonal group outputs.

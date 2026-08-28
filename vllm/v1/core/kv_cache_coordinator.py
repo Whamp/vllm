@@ -11,6 +11,7 @@ from vllm.v1.core.kv_cache_metrics import KVCacheMetricsCollector
 from vllm.v1.core.kv_cache_utils import (
     BlockHash,
     KVCacheBlock,
+    is_dcp_exempt_spec,
 )
 from vllm.v1.core.single_type_kv_cache_manager import (
     CrossAttentionManager,
@@ -569,14 +570,16 @@ class HybridKVCacheCoordinator(KVCacheCoordinator):
         )
         assert pcp_world_size == 1, "PCP not support hybrid attn now."
         if dcp_world_size > 1:
-            # DCP shards full-attention KV across ranks and replicates Mamba
-            # state; other spec types (e.g. sliding window) have no DCP-aware
-            # handling yet, so reject them explicitly.
-            for g in kv_cache_config.kv_cache_groups:
-                assert isinstance(g.kv_cache_spec, (FullAttentionSpec, MambaSpec)), (
-                    "DCP with hybrid KV cache layouts only supports "
-                    "full-attention and Mamba groups, got: "
-                    f"{type(g.kv_cache_spec).__name__}."
+            # Full attention shards across DCP ranks. Mamba and explicitly
+            # exempt DeepSeek V4 sliding-window groups stay replicated.
+            for group in kv_cache_config.kv_cache_groups:
+                spec = group.kv_cache_spec
+                assert isinstance(spec, (FullAttentionSpec, MambaSpec)) or (
+                    is_dcp_exempt_spec(spec)
+                ), (
+                    "DCP with hybrid KV cache layouts supports full-attention, "
+                    "Mamba, and explicitly replicated groups, got: "
+                    f"{type(spec).__name__}."
                 )
         # Partial hash hits are limited to full-attention + mamba ("align")
         # without context parallelism.

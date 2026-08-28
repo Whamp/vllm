@@ -57,6 +57,7 @@ class BlockTable:
         kernel_block_size: int,
         cp_kv_cache_interleave_size: int,
         slot_mapping_mode: SlotMappingMode = SlotMappingMode.TOKEN_TO_KV_SLOT,
+        shard_dcp: bool = True,
     ):
         """
         Args:
@@ -72,6 +73,9 @@ class BlockTable:
             slot_mapping_mode: How this cache group maps scheduled tokens to
                 cache slots. Mamba-like state caches do not use token slot
                 mappings and should use SlotMappingMode.NONE.
+            shard_dcp: Whether to round-robin this group's slots across DCP
+                ranks. DeepSeek V4 sliding-window groups set this to False and
+                keep a complete replicated block table on each rank.
         """
         self.max_num_reqs = max_num_reqs
         self.max_num_batched_tokens = max_num_batched_tokens
@@ -130,6 +134,9 @@ class BlockTable:
             self.dcp_rank = get_dcp_group().rank_in_group
         except AssertionError:
             # DCP might not be initialized in testing
+            self.dcp_world_size = 1
+            self.dcp_rank = 0
+        if not shard_dcp:
             self.dcp_world_size = 1
             self.dcp_rank = 0
         self.cp_kv_cache_interleave_size = cp_kv_cache_interleave_size
@@ -281,6 +288,7 @@ class MultiGroupBlockTable:
         max_num_blocks: list[int],
         cp_kv_cache_interleave_size: int = 1,
         slot_mapping_modes: list[SlotMappingMode] | None = None,
+        dcp_exempt: list[bool] | None = None,
     ) -> None:
         if len(kernel_block_sizes) != len(block_sizes):
             raise ValueError(
@@ -292,6 +300,13 @@ class MultiGroupBlockTable:
         if len(slot_mapping_modes) != len(block_sizes):
             raise ValueError(
                 f"slot_mapping_modes length ({len(slot_mapping_modes)}) "
+                f"must match block_sizes length ({len(block_sizes)})"
+            )
+        if dcp_exempt is None:
+            dcp_exempt = [False] * len(block_sizes)
+        if len(dcp_exempt) != len(block_sizes):
+            raise ValueError(
+                f"dcp_exempt length ({len(dcp_exempt)}) "
                 f"must match block_sizes length ({len(block_sizes)})"
             )
 
@@ -323,14 +338,20 @@ class MultiGroupBlockTable:
                 kernel_block_size,
                 cp_kv_cache_interleave_size,
                 slot_mapping_mode=slot_mapping_mode,
+                shard_dcp=not exempt,
             )
             for (
                 block_size,
                 kernel_block_size,
                 max_num_blocks_per_req,
                 slot_mapping_mode,
+                exempt,
             ) in zip(
-                block_sizes, kernel_block_sizes, max_num_blocks, slot_mapping_modes
+                block_sizes,
+                kernel_block_sizes,
+                max_num_blocks,
+                slot_mapping_modes,
+                dcp_exempt,
             )
         ]
 

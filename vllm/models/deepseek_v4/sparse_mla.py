@@ -7,8 +7,10 @@ from typing import Any, ClassVar
 
 import torch
 
+from vllm import envs
 from vllm.config import VllmConfig
 from vllm.config.cache import CacheDType
+from vllm.distributed import get_dcp_group
 from vllm.models.deepseek_v4.cache_layout import get_deepseek_v4_cache_layout
 from vllm.platforms.interface import DeviceCapability
 from vllm.triton_utils import tl, triton
@@ -22,7 +24,10 @@ from vllm.v1.attention.backend import (
     MultipleOf,
 )
 from vllm.v1.attention.backends.mla.compressor_utils import get_compressed_slot_mapping
-from vllm.v1.attention.backends.utils import split_decodes_and_prefills
+from vllm.v1.attention.backends.utils import (
+    get_dcp_local_seq_lens,
+    split_decodes_and_prefills,
+)
 from vllm.v1.kv_cache_interface import AttentionSpec
 
 # Pad C128A topk width to this alignment. 128 covers both h_q=64 (B_TOPK=64) and
@@ -156,6 +161,15 @@ class DeepseekV4FlashMLAMetadataBuilder(
 
         assert hasattr(self.kv_cache_spec, "compress_ratio")
         self.compress_ratio = self.kv_cache_spec.compress_ratio
+        parallel_config = vllm_config.parallel_config
+        self.dcp_world_size = parallel_config.decode_context_parallel_size
+        self.dcp_rank = get_dcp_group().rank_in_group if self.dcp_world_size > 1 else 0
+        self.dcp_entry_interleave = parallel_config.cp_kv_cache_interleave_size
+        self.use_sm86_dcp = (
+            envs.VLLM_SM86_DCP
+            and self.dcp_world_size > 1
+            and self.compress_ratio > 1
+        )
 
         # Pre-allocate compressed slot mapping buffer for CUDA graph address
         # stability when compress_ratio > 1.
@@ -187,6 +201,16 @@ class DeepseekV4FlashMLAMetadataBuilder(
             self.c128a_decode_lens_buffer = torch.empty(
                 max_num_batched_tokens, dtype=torch.int32, device=device
             )
+            if self.use_sm86_dcp:
+                owned_bound = cdiv(
+                    c128a_max_compressed,
+                    self.dcp_world_size * self.dcp_entry_interleave,
+                ) * self.dcp_entry_interleave
+                self.c128a_dcp_decode_width = min(
+                    cdiv(owned_bound, _C128A_TOPK_ALIGNMENT)
+                    * _C128A_TOPK_ALIGNMENT,
+                    c128a_max_compressed,
+                )
             self.c128a_prefill_buffer = torch.empty(
                 (max_num_batched_tokens, c128a_max_compressed),
                 dtype=torch.int32,
@@ -212,6 +236,9 @@ class DeepseekV4FlashMLAMetadataBuilder(
                 int(self.kv_cache_spec.storage_block_size),
                 self.compress_ratio,
                 out=self.compressed_slot_mapping_buffer,
+                dcp_world_size=(self.dcp_world_size if self.use_sm86_dcp else 1),
+                dcp_rank=(self.dcp_rank if self.use_sm86_dcp else 0),
+                dcp_entry_interleave=self.dcp_entry_interleave,
             )
 
         c128a_fields: dict[str, torch.Tensor | None] = {}
@@ -268,19 +295,32 @@ class DeepseekV4FlashMLAMetadataBuilder(
             self.c128a_max_compressed,
         )
         block_size = self.kv_cache_spec.block_size // self.compress_ratio
-        global_decode, decode_lens, prefill_local = build_c128a_topk_metadata(
-            cm.positions[:num_total],
-            self.compress_ratio,
-            num_decode_tokens,
-            req_id_per_token,
-            cm.block_table_tensor[:num_decodes],
-            block_size,
-            cm.slot_mapping,
-            self.c128a_global_decode_buffer,
-            self.c128a_decode_lens_buffer,
-            self.c128a_prefill_buffer,
-            max_compressed_tokens=active_topk_width,
-        )
+        if self.use_sm86_dcp:
+            global_decode, decode_lens, prefill_local = (
+                self._build_c128a_metadata_sm86_dcp(
+                    cm,
+                    req_id_per_token,
+                    num_decodes,
+                    num_decode_tokens,
+                    num_total,
+                    active_topk_width,
+                    block_size,
+                )
+            )
+        else:
+            global_decode, decode_lens, prefill_local = build_c128a_topk_metadata(
+                cm.positions[:num_total],
+                self.compress_ratio,
+                num_decode_tokens,
+                req_id_per_token,
+                cm.block_table_tensor[:num_decodes],
+                block_size,
+                cm.slot_mapping,
+                self.c128a_global_decode_buffer,
+                self.c128a_decode_lens_buffer,
+                self.c128a_prefill_buffer,
+                max_compressed_tokens=active_topk_width,
+            )
 
         result: dict[str, torch.Tensor | None] = {}
         if num_decode_tokens > 0:
@@ -291,6 +331,86 @@ class DeepseekV4FlashMLAMetadataBuilder(
         if num_prefill_tokens > 0:
             result["c128a_prefill_topk_indices"] = prefill_local
         return result
+
+    def _build_c128a_metadata_sm86_dcp(
+        self,
+        cm: CommonAttentionMetadata,
+        req_id_per_token: torch.Tensor,
+        num_decodes: int,
+        num_decode_tokens: int,
+        num_total: int,
+        active_topk_width: int,
+        block_size: int,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Build rank-local C128 decode rows and global-order prefill rows."""
+        _, _, prefill_local = build_c128a_topk_metadata(
+            cm.positions[num_decode_tokens:num_total],
+            self.compress_ratio,
+            0,
+            req_id_per_token[num_decode_tokens:num_total],
+            cm.block_table_tensor[:num_decodes],
+            block_size,
+            cm.slot_mapping,
+            self.c128a_global_decode_buffer,
+            self.c128a_decode_lens_buffer,
+            self.c128a_prefill_buffer,
+            max_compressed_tokens=active_topk_width,
+        )
+        decode_width = self.c128a_dcp_decode_width
+        global_decode = self.c128a_global_decode_buffer.view(-1)[
+            : num_decode_tokens * decode_width
+        ].view(num_decode_tokens, decode_width)
+        decode_lens = self.c128a_decode_lens_buffer[:num_decode_tokens]
+        if num_decode_tokens > 0:
+            indices, lengths = build_sm86_dcp_c128_decode_entries(
+                cm.positions[:num_decode_tokens],
+                compress_ratio=self.compress_ratio,
+                decode_width=decode_width,
+                dcp_world_size=self.dcp_world_size,
+                dcp_rank=self.dcp_rank,
+                cp_interleave=self.dcp_entry_interleave,
+                max_global_entries=self.c128a_max_compressed,
+            )
+            global_decode.copy_(indices)
+            decode_lens.copy_(lengths)
+        return global_decode, decode_lens, prefill_local
+
+
+def build_sm86_dcp_c128_decode_entries(
+    positions: torch.Tensor,
+    *,
+    compress_ratio: int,
+    decode_width: int,
+    dcp_world_size: int,
+    dcp_rank: int,
+    cp_interleave: int,
+    max_global_entries: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Build prefix-compact rank-local C128A decode entry rows."""
+    global_counts = torch.clamp(
+        (positions.to(torch.int64) + 1) // compress_ratio,
+        max=max_global_entries,
+    )
+    local_counts = torch.clamp(
+        get_dcp_local_seq_lens(
+            global_counts,
+            dcp_world_size,
+            dcp_rank,
+            cp_interleave,
+        ),
+        max=decode_width,
+    ).to(torch.int32)
+    entry_range = torch.arange(
+        decode_width,
+        dtype=torch.int32,
+        device=positions.device,
+    )
+    indices = torch.where(
+        entry_range.unsqueeze(0) < local_counts.unsqueeze(1),
+        entry_range.unsqueeze(0).expand(positions.shape[0], decode_width),
+        torch.full((), -1, dtype=torch.int32, device=positions.device),
+    )
+    return indices, local_counts
 
 
 def build_c128a_topk_metadata(

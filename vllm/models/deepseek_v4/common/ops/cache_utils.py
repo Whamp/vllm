@@ -14,8 +14,9 @@ preparation.
   window indices for sparse prefill.
 """
 
+from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import torch
 
@@ -32,9 +33,16 @@ from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
 from vllm.utils.import_utils import is_cutedsl_supported
 from vllm.utils.math_utils import next_power_of_2
+from vllm.v1.attention.backends.mla.sm86_dcp_layout import (
+    sm86_dcp_global_to_local,
+    sm86_dcp_owner,
+)
 from vllm.v1.attention.ops.fp8_sm80 import _decode_fp8_f32, _encode_fp8_u8
 
 from .fused_indexer_q import _fp32x2_to_fp4x2_software
+
+if TYPE_CHECKING:
+    from vllm.distributed.parallel_state import GroupCoordinator
 
 
 @triton.jit
@@ -421,6 +429,173 @@ def dequantize_and_gather_k_cache_triton(
     )
 
 
+_SM86_DCP_ENTRY_DATA_BYTES = 576
+_SM86_DCP_ENTRY_SCALE_BYTES = 8
+_SM86_DCP_ENTRY_BYTES = 584
+_SM86_DCP_PACK_WORKERS = 128
+_SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE_SIZE = 8
+_SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE: OrderedDict[
+    tuple[Any, ...], torch.Tensor
+] = OrderedDict()
+
+
+def _sm86_dcp_virtual_block_table(
+    max_entries: int,
+    max_local_entries: int,
+    num_reqs: int,
+    dcp_world_size: int,
+    cp_interleave: int,
+    device: torch.device,
+) -> torch.Tensor:
+    """Map global entries to rows in a rank-major gathered staging buffer."""
+    key = (
+        max_entries,
+        max_local_entries,
+        num_reqs,
+        dcp_world_size,
+        cp_interleave,
+        device,
+    )
+    cached = _SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE.get(key)
+    if cached is not None:
+        _SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE.move_to_end(key)
+        return cached
+
+    entries = torch.arange(max_entries, dtype=torch.int64, device=device)
+    owners = sm86_dcp_owner(entries, dcp_world_size, cp_interleave)
+    local_entries = sm86_dcp_global_to_local(
+        entries,
+        owners,
+        dcp_world_size,
+        cp_interleave,
+    )
+    rank_rows = owners * (num_reqs * max_local_entries) + local_entries
+    request_rows = (
+        torch.arange(num_reqs, dtype=torch.int64, device=device)
+        * max_local_entries
+    )
+    table = (rank_rows.unsqueeze(0) + request_rows.unsqueeze(1)).to(torch.int32)
+
+    _SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE[key] = table
+    while len(_SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE) > (
+        _SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE_SIZE
+    ):
+        _SM86_DCP_VIRTUAL_BLOCK_TABLE_CACHE.popitem(last=False)
+    return table
+
+
+@triton.jit(do_not_specialize=["local_start"])
+def _sm86_dcp_pack_k_entries_kernel(
+    staging_ptr,
+    k_cache_ptr,
+    local_lens_ptr,
+    block_table_ptr,
+    block_table_stride,
+    staging_stride0,
+    staging_stride1,
+    local_start,
+    cache_block_size: tl.constexpr,
+    token_data_size: tl.constexpr,
+    scale_dim: tl.constexpr,
+    block_stride: tl.constexpr,
+):
+    req_idx = tl.program_id(0)
+    worker_idx = tl.program_id(1)
+    num_workers = tl.num_programs(1)
+    local_len = tl.load(local_lens_ptr + req_idx)
+    for staging_idx in range(worker_idx, local_len, num_workers):
+        local_entry = local_start + staging_idx
+        logical_block = local_entry // cache_block_size
+        block_offset = local_entry % cache_block_size
+        physical_block = tl.load(
+            block_table_ptr + req_idx * block_table_stride + logical_block
+        )
+        cache_block = k_cache_ptr + physical_block.to(tl.int64) * block_stride
+        token_data = cache_block + block_offset * token_data_size
+        token_scales = (
+            cache_block
+            + cache_block_size * token_data_size
+            + block_offset * scale_dim
+        )
+        staging_row = (
+            staging_ptr
+            + req_idx * staging_stride0
+            + staging_idx * staging_stride1
+        )
+
+        byte_offsets = tl.arange(0, 64)
+        for chunk_idx in tl.static_range(token_data_size // 64):
+            values = tl.load(token_data + chunk_idx * 64 + byte_offsets)
+            tl.store(staging_row + chunk_idx * 64 + byte_offsets, values)
+        scale_offsets = tl.arange(0, scale_dim)
+        scales = tl.load(token_scales + scale_offsets)
+        tl.store(staging_row + token_data_size + scale_offsets, scales)
+
+
+def sm86_dcp_allgather_k_entries(
+    k_cache: torch.Tensor,
+    global_entry_lens: torch.Tensor,
+    block_table: torch.Tensor,
+    block_size: int,
+    dcp_group: "GroupCoordinator",
+    cp_interleave: int,
+    max_entries: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Gather sharded FP8 DS-MLA rows in global compressed-entry order."""
+    from vllm.v1.attention.backends.utils import get_dcp_local_seq_lens
+
+    world_size = dcp_group.world_size
+    rank = dcp_group.rank_in_group
+    num_reqs = global_entry_lens.shape[0]
+    local_lens = get_dcp_local_seq_lens(
+        global_entry_lens,
+        world_size,
+        rank,
+        cp_interleave,
+    )
+    cycle = cp_interleave * world_size
+    max_local_entries = (
+        max_entries // cycle * cp_interleave
+        + min(max_entries % cycle, cp_interleave)
+    )
+    if max_local_entries <= 0:
+        raise ValueError("SM86 DCP gather requires at least one compressed entry")
+
+    staging = torch.empty(
+        (num_reqs, max_local_entries, _SM86_DCP_ENTRY_BYTES),
+        dtype=torch.uint8,
+        device=k_cache.device,
+    )
+    _sm86_dcp_pack_k_entries_kernel[(num_reqs, _SM86_DCP_PACK_WORKERS)](
+        staging,
+        k_cache,
+        local_lens,
+        block_table,
+        block_table.stride(0),
+        staging.stride(0),
+        staging.stride(1),
+        0,
+        cache_block_size=block_size,
+        token_data_size=_SM86_DCP_ENTRY_DATA_BYTES,
+        scale_dim=_SM86_DCP_ENTRY_SCALE_BYTES,
+        block_stride=k_cache.stride(0),
+    )
+    gathered = dcp_group.all_gather(staging, dim=0)
+    gathered_rows = gathered.reshape(
+        world_size * num_reqs * max_local_entries,
+        _SM86_DCP_ENTRY_BYTES,
+    )
+    virtual_block_table = _sm86_dcp_virtual_block_table(
+        max_entries,
+        max_local_entries,
+        num_reqs,
+        world_size,
+        cp_interleave,
+        k_cache.device,
+    )
+    return gathered_rows, virtual_block_table
+
+
 def dequantize_and_gather_k_cache(
     # [num_reqs, max_num_tokens, head_size]
     out: torch.Tensor,
@@ -436,6 +611,9 @@ def dequantize_and_gather_k_cache(
     offset: int,
     use_fnuz: bool = False,
     cache_dtype: str = "fp8_ds_mla",
+    dcp_group: "GroupCoordinator | None" = None,
+    dcp_interleave: int = 1,
+    dcp_max_entries: int | None = None,
 ) -> None:
     """Dequantize and gather a paged DeepSeek V4 K cache.
 
@@ -443,7 +621,42 @@ def dequantize_and_gather_k_cache(
     ``False`` for ``compressed_k_cache`` (Triton encoder is OCP everywhere),
     ``current_platform.is_fp8_fnuz()`` for ``swa_k_cache`` (C++ encoder
     writes FNUZ on gfx942 and OCP on gfx950).
+
+    For SM86 DCP compressed prefill, ``dcp_group`` gathers rank-local raw
+    bytes into global entry order before the unchanged Triton dequantizer.
+    Replicated SWA groups must not pass a DCP group.
     """
+    if dcp_group is not None and dcp_group.world_size > 1:
+        if cache_dtype != "fp8_ds_mla":
+            raise ValueError("SM86 DCP prefill gather requires fp8_ds_mla")
+        if gather_lens is not None:
+            raise ValueError("SM86 DCP compressed gather reads the full prefix")
+        if dcp_max_entries is None:
+            raise ValueError("SM86 DCP compressed gather needs dcp_max_entries")
+        if dcp_max_entries <= 0:
+            return
+        gathered_rows, virtual_block_table = sm86_dcp_allgather_k_entries(
+            k_cache,
+            seq_lens,
+            block_table,
+            block_size,
+            dcp_group,
+            dcp_interleave,
+            dcp_max_entries,
+        )
+        dequantize_and_gather_k_cache_triton(
+            out,
+            gathered_rows,
+            seq_lens=seq_lens,
+            gather_lens=None,
+            block_table=virtual_block_table,
+            block_size=1,
+            offset=offset,
+            use_fnuz=use_fnuz,
+            cache_dtype=cache_dtype,
+        )
+        return
+
     if cache_dtype == "fp8_ds_mla" and is_cutedsl_supported():
         # lazily import, otherwise some tests fail due to CUDA driver init failure.
         from vllm.models.deepseek_v4.nvidia.ops.dequant_gather_k_cutedsl import (

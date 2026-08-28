@@ -18,6 +18,9 @@ def _compressed_slot_mapping_kernel(
     block_table_stride,
     block_size,
     COMPRESS_RATIO: tl.constexpr,
+    DCP_WORLD_SIZE: tl.constexpr,
+    DCP_RANK: tl.constexpr,
+    DCP_ENTRY_INTERLEAVE: tl.constexpr,
     PAD_ID: tl.constexpr,
     TRITON_BLOCK_SIZE: tl.constexpr,
 ):
@@ -37,6 +40,21 @@ def _compressed_slot_mapping_kernel(
         pos = start_pos + i + tl.arange(0, TRITON_BLOCK_SIZE)
         is_valid = (pos + 1) % COMPRESS_RATIO == 0
         pos_after_compress = pos // COMPRESS_RATIO
+
+        if DCP_WORLD_SIZE > 1:
+            owner = (pos_after_compress // DCP_ENTRY_INTERLEAVE) % DCP_WORLD_SIZE
+            is_valid = is_valid & (owner == DCP_RANK)
+            rank_stride = DCP_WORLD_SIZE * DCP_ENTRY_INTERLEAVE
+            full_cycles = pos_after_compress // rank_stride
+            remainder = pos_after_compress - full_cycles * rank_stride
+            local_extra = tl.maximum(
+                tl.minimum(
+                    remainder - DCP_RANK * DCP_ENTRY_INTERLEAVE,
+                    DCP_ENTRY_INTERLEAVE,
+                ),
+                0,
+            )
+            pos_after_compress = full_cycles * DCP_ENTRY_INTERLEAVE + local_extra
 
         block_ids = pos_after_compress // block_size
         block_numbers = tl.load(
@@ -58,6 +76,9 @@ def get_compressed_slot_mapping(
     block_size: int,
     compress_ratio: int,
     out: torch.Tensor | None = None,
+    dcp_world_size: int = 1,
+    dcp_rank: int = 0,
+    dcp_entry_interleave: int = 1,
 ) -> torch.Tensor:
     if out is not None:
         # Guard: for padded / invalid sequences.
@@ -80,6 +101,9 @@ def get_compressed_slot_mapping(
         block_table.stride(0),
         block_size,
         compress_ratio,
+        DCP_WORLD_SIZE=dcp_world_size,
+        DCP_RANK=dcp_rank,
+        DCP_ENTRY_INTERLEAVE=dcp_entry_interleave,
         PAD_ID=-1,
         TRITON_BLOCK_SIZE=1024,
     )

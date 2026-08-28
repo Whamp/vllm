@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 import torch
 from typing_extensions import Self
 
+from vllm import envs
 from vllm.logger import init_logger
 from vllm.utils.math_utils import cdiv, round_up
 from vllm.utils.torch_utils import get_dtype_size, nvfp4_kv_cache_full_dim
@@ -614,10 +615,16 @@ class SlidingWindowSpec(AttentionSpec):
         # [XXCD][EF] to store the 6-token window [CDEF].
         return cdiv(num_tokens, self.block_size) + 1
 
+    def max_num_blocks_per_req(self, vllm_config: VllmConfig, max_len: int) -> int:
+        if envs.VLLM_SM86_DCP:
+            return cdiv(max_len, self.block_size)
+        return super().max_num_blocks_per_req(vllm_config, max_len)
+
     def max_memory_usage_bytes(self, vllm_config: VllmConfig) -> int:
-        assert vllm_config.parallel_config.decode_context_parallel_size == 1, (
-            "DCP not support sliding window."
-        )
+        if not envs.VLLM_SM86_DCP:
+            assert vllm_config.parallel_config.decode_context_parallel_size == 1, (
+                "DCP not support sliding window."
+            )
         max_blocks = self.max_admission_blocks_per_request(
             max_in_flight_tokens=vllm_config.max_in_flight_tokens,
             max_model_len=vllm_config.model_config.max_model_len,
