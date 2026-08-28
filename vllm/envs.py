@@ -59,6 +59,7 @@ if TYPE_CHECKING:
     VLLM_XLA_CHECK_RECOMPILATION: bool = False
     VLLM_SPARSE_INDEXER_MAX_LOGITS_MB: int = 512
     VLLM_SM86_DCP: bool = False
+    VLLM_SM86_DCP_VALIDATE_TOPK: bool = False
     VLLM_DSV4_INDEXER_PREFILL_BUFFER_TOKENS: int = 0
     VLLM_DSV4_WO_A_MARLIN_DIAGONAL: bool = False
     VLLM_USE_RAY_COMPILED_DAG_CHANNEL_TYPE: Literal["auto", "nccl", "shm"] = "auto"
@@ -1085,6 +1086,10 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Enable the DeepSeek V4 SM86 decode-context-parallel implementation.
     "VLLM_SM86_DCP": lambda: (
         os.getenv("VLLM_SM86_DCP", "0").strip().lower() in ("1", "true")
+    ),
+    "VLLM_SM86_DCP_VALIDATE_TOPK": lambda: (
+        os.getenv("VLLM_SM86_DCP_VALIDATE_TOPK", "0").strip().lower()
+        in ("1", "true")
     ),
     "VLLM_DSV4_INDEXER_PREFILL_BUFFER_TOKENS": lambda: int(
         os.getenv("VLLM_DSV4_INDEXER_PREFILL_BUFFER_TOKENS", "0")

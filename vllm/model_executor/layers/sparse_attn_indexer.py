@@ -43,6 +43,7 @@ from vllm.v1.attention.backends.mla.indexer import (
 from vllm.v1.attention.backends.mla.sm86_dcp_layout import (
     sm86_dcp_global_to_local,
     sm86_dcp_local_to_global,
+    sm86_dcp_owner,
     sm86_dcp_owns,
 )
 from vllm.v1.attention.ops.common import pack_seq_triton, unpack_seq_triton
@@ -206,6 +207,70 @@ def _sm86_dcp_global_topk(
     return top_values, top_indices
 
 
+def _validate_sm86_dcp_global_topk(
+    local_logits: torch.Tensor,
+    local_row_lens: torch.Tensor,
+    selected_global_indices: torch.Tensor,
+    topk_tokens: int,
+    dcp_world_size: int,
+    cp_interleave: int,
+) -> None:
+    """Fail if candidate-only merge differs from full-score global selection."""
+    dcp_group = get_dcp_group()
+    gathered_logits = dcp_group.all_gather(local_logits.contiguous(), dim=1)
+    gathered_lens = dcp_group.all_gather(
+        local_row_lens.reshape(-1, 1).to(torch.int32).contiguous(),
+        dim=1,
+    )
+    global_lens = gathered_lens.sum(dim=1)
+    local_width = local_logits.shape[1]
+    global_width = local_width * dcp_world_size
+    global_entries = torch.arange(
+        global_width,
+        dtype=torch.int64,
+        device=local_logits.device,
+    )
+    owners = sm86_dcp_owner(global_entries, dcp_world_size, cp_interleave)
+    local_entries = sm86_dcp_global_to_local(
+        global_entries,
+        owners,
+        dcp_world_size,
+        cp_interleave,
+    )
+    gathered_columns = owners * local_width + local_entries
+    global_logits = gathered_logits[:, gathered_columns]
+    valid = global_entries.unsqueeze(0) < global_lens.unsqueeze(1)
+    global_logits = torch.where(
+        valid,
+        global_logits,
+        torch.full_like(global_logits, _SM86_DCP_INVALID_SCORE),
+    )
+    expected = torch.argsort(
+        global_logits,
+        dim=-1,
+        descending=True,
+        stable=True,
+    )[:, :topk_tokens].to(torch.int32)
+    expected = torch.where(
+        torch.gather(valid, 1, expected.to(torch.int64)),
+        expected,
+        torch.full_like(expected, -1),
+    )
+    expected_sets = torch.sort(expected, dim=-1).values
+    selected_sets = torch.sort(selected_global_indices, dim=-1).values
+    mismatch = torch.any(expected_sets != selected_sets, dim=-1)
+    if bool(torch.any(mismatch).item()):
+        row = int(torch.nonzero(mismatch, as_tuple=False)[0].item())
+        different_entries = int(
+            (expected_sets[row] != selected_sets[row]).sum().item()
+        )
+        raise RuntimeError(
+            "SM86 DCP global top-k candidate merge mismatch: "
+            f"row={row}, global_len={int(global_lens[row].item())}, "
+            f"different_entries={different_entries}"
+        )
+
+
 def _sm86_dcp_topk_prefill(
     logits: torch.Tensor,
     row_starts: torch.Tensor,
@@ -299,6 +364,15 @@ def _sm86_dcp_topk_decode(
         global_candidates,
         topk_tokens,
     )
+    if envs.VLLM_SM86_DCP_VALIDATE_TOPK:
+        _validate_sm86_dcp_global_topk(
+            logits,
+            row_lens,
+            global_indices,
+            topk_tokens,
+            dcp_world_size,
+            cp_interleave,
+        )
     owned = sm86_dcp_owns(
         global_indices,
         dcp_rank,
