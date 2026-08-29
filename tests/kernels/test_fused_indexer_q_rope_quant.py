@@ -232,6 +232,80 @@ def test_fused_indexer_q_rope_quant_matches_unfused(
         f"weights mismatch: max abs diff "
         f"{(weights_ref - weights_fused).abs().max().item()}"
     )
+    if output_buffers is not None:
+        assert weights_fused is output_buffers[-1]
+
+
+@pytest.mark.skip_global_cleanup
+@pytest.mark.parametrize("use_fp4", [False, True])
+def test_fused_indexer_reuses_caller_output_buffers(monkeypatch, use_fp4: bool):
+    from vllm.models.deepseek_v4.common.ops import fused_indexer_q as fused_module
+
+    class FakeKernel:
+        def __getitem__(self, grid):
+            return lambda *args, **kwargs: None
+
+    monkeypatch.setattr(fused_module, "is_cutedsl_supported", lambda: False)
+    monkeypatch.setattr(fused_module.current_platform, "is_xpu", lambda: False)
+    monkeypatch.setattr(
+        fused_module.current_platform,
+        "fp8_dtype",
+        lambda: torch.float8_e4m3fn,
+    )
+    monkeypatch.setattr(
+        fused_module.current_platform,
+        "has_device_capability",
+        lambda capability: False,
+    )
+    monkeypatch.setattr(
+        fused_module,
+        "_fused_indexer_q_rope_mxfp4_kernel",
+        FakeKernel(),
+    )
+    monkeypatch.setattr(
+        fused_module,
+        "_fused_indexer_q_rope_quant_kernel",
+        FakeKernel(),
+    )
+
+    num_tokens = 2
+    positions = torch.arange(num_tokens)
+    q = torch.zeros(num_tokens, N_HEAD, HEAD_DIM, dtype=torch.bfloat16)
+    cos_sin_cache = torch.zeros(MAX_POS, ROPE_DIM)
+    weights = torch.zeros(num_tokens, N_HEAD, dtype=torch.bfloat16)
+    weights_out = torch.empty_like(weights, dtype=torch.float32)
+    output_buffers: tuple[torch.Tensor, ...]
+    if use_fp4:
+        q_out = torch.empty(num_tokens, N_HEAD, HEAD_DIM // 2, dtype=torch.uint8)
+        q_scale = torch.empty(
+            num_tokens,
+            N_HEAD,
+            HEAD_DIM // fused_module.MXFP4_BLOCK_SIZE,
+            dtype=torch.uint8,
+        )
+        output_buffers = (q_out, q_scale, weights_out)
+    else:
+        q_out = torch.empty_like(q, dtype=torch.float8_e4m3fn)
+        output_buffers = (q_out, weights_out)
+
+    q_quant, returned_weights = fused_module.fused_indexer_q_rope_quant(
+        positions,
+        q,
+        cos_sin_cache,
+        weights,
+        1.0,
+        1.0,
+        use_fp4=use_fp4,
+        output_buffers=output_buffers,
+    )
+
+    assert returned_weights is weights_out
+    if use_fp4:
+        returned_q, returned_scale = q_quant
+        assert returned_q is q_out
+        assert returned_scale.data_ptr() == q_scale.data_ptr()
+    else:
+        assert q_quant is q_out
 
 
 def test_fused_indexer_mxfp4_is_cuda_graph_deterministic():

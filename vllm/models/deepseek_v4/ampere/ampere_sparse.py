@@ -216,6 +216,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
         attn_metadata: DeepseekV4ROCMAiterMLASparseMetadata | None,
         swa_only: bool,
         output: torch.Tensor,
+        adaptive_splits: bool,
     ) -> None:
         flash_mla_decode = self._flash_mla_decode
         if flash_mla_decode is None:
@@ -226,6 +227,7 @@ class DeepseekV4AmpereMLAAttention(DeepseekV4ROCMAiterMLAAttention):
                 attn_metadata=attn_metadata,
                 swa_only=swa_only,
                 output=output,
+                adaptive_splits=adaptive_splits,
             )
             return
         if self.kv_cache_dtype not in ("fp8_ds_mla", "fp4_ds_mla"):

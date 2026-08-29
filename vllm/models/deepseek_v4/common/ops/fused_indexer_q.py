@@ -363,7 +363,13 @@ def fused_indexer_q_rope_quant(
     num_index_q_heads = index_q.shape[1]
     index_q_head_dim = index_q.shape[2]
 
-    index_weights_out = torch.empty_like(index_weights, dtype=torch.float32)
+    if output_buffers is None:
+        index_weights_out = torch.empty_like(index_weights, dtype=torch.float32)
+    else:
+        expected_num_buffers = 3 if use_fp4 else 2
+        assert len(output_buffers) == expected_num_buffers
+        index_weights_out = output_buffers[-1]
+        assert index_weights_out.shape == index_weights.shape
 
     if use_fp4:
         assert index_q_head_dim % MXFP4_BLOCK_SIZE == 0, (

@@ -342,6 +342,26 @@ def test_every_launched_program_has_work():
     assert len(covered) == sum(ratios)
 
 
+@pytest.mark.skip_global_cleanup
+def test_large_dsv4_launch_geometry_stays_within_grid_limits():
+    """The flattened launch must not recreate the old rectangular-grid overflow."""
+    n_blocks = 6870
+    page_sizes = [9344 if index % 2 == 0 else 292 for index in range(181)]
+    meta = KVBlockZeroer.build_meta(
+        [0] * len(page_sizes),
+        page_sizes,
+        page_sizes,
+        [1] * len(page_sizes),
+        torch.device("cpu"),
+    )
+    assert meta is not None
+    n_chunks = meta[-1]
+
+    old_max_chunks = max(page_sizes) // 4
+    assert n_blocks * len(page_sizes) * old_max_chunks > 2**31 - 1
+    assert n_blocks * n_chunks < 2**31 - 1
+
+
 class _FakeBackend:
     """[num_blocks, page] storages: dim 0 is the block dim."""
 

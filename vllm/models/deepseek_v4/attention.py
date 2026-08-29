@@ -969,6 +969,13 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         # [B, H=1, N, C] -> [B, N, C]
         self.kv_cache = kv_cache.squeeze(1)
 
+    def _global_topk_output_buffers(
+        self, topk_indices: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor] | None:
+        if self.compress_ratio != 4 or self.eager_scratch_pool is None:
+            return None
+        return self.eager_scratch_pool.global_topk_outputs(topk_indices)
+
     def get_attn_backend(self) -> type[AttentionBackend]:
         return self.backend_cls
 

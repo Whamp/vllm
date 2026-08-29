@@ -55,6 +55,66 @@ def _on_gfx950() -> bool:
         return False
 
 
+@pytest.mark.skip_global_cleanup
+def test_compute_global_topk_reuses_output_buffers(monkeypatch):
+    from vllm.models.deepseek_v4.common.ops import cache_utils
+
+    class FakeKernel:
+        def __getitem__(self, grid):
+            return lambda *args, **kwargs: None
+
+    monkeypatch.setattr(
+        cache_utils,
+        "_compute_global_topk_indices_and_lens_kernel",
+        FakeKernel(),
+    )
+    topk_indices = torch.zeros((2, 3), dtype=torch.int32)
+    output_buffers = (
+        torch.empty_like(topk_indices),
+        torch.empty(2, dtype=torch.int32),
+    )
+    actual = cache_utils.compute_global_topk_indices_and_lens(
+        topk_indices,
+        torch.zeros(2, dtype=torch.int32),
+        torch.zeros((2, 2), dtype=torch.int32),
+        2,
+        torch.ones(2, dtype=torch.bool),
+        output_buffers=output_buffers,
+    )
+
+    assert actual[0] is output_buffers[0]
+    assert actual[1] is output_buffers[1]
+
+
+@pytest.mark.skip_global_cleanup
+def test_ampere_sparse_attention_reuses_global_topk_output_buffers():
+    from vllm.models.deepseek_v4.attention import DeepseekV4Attention
+
+    topk_indices = torch.zeros((2, 3), dtype=torch.int32)
+    expected = (torch.empty(1), torch.empty(1))
+
+    class ScratchPool:
+        def global_topk_outputs(self, value):
+            assert value is topk_indices
+            return expected
+
+    attention = SimpleNamespace(compress_ratio=4, eager_scratch_pool=ScratchPool())
+    assert (
+        DeepseekV4Attention._global_topk_output_buffers(attention, topk_indices)
+        is expected
+    )
+
+    attention.compress_ratio = 128
+    assert (
+        DeepseekV4Attention._global_topk_output_buffers(attention, topk_indices) is None
+    )
+    attention.compress_ratio = 4
+    attention.eager_scratch_pool = None
+    assert (
+        DeepseekV4Attention._global_topk_output_buffers(attention, topk_indices) is None
+    )
+
+
 @pytest.mark.skipif(not current_platform.is_rocm(), reason="ROCm-only dispatch")
 def test_cp_gather_despecialized_kernel_is_gfx950_only(monkeypatch):
     from vllm.v1.attention.ops import rocm_aiter_mla_sparse as mod
