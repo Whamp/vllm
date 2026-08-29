@@ -35,8 +35,8 @@ def _quantize_hyperconnection_activation_kernel(
         other=0.0,
     ).to(tl.float32)
     absolute_maximum = tl.max(tl.abs(values))
-    scale = tl.where(absolute_maximum == 0, 1.0, absolute_maximum / _INT8_MAX)
-    codes = round_int8(tl.maximum(-_INT8_MAX, tl.minimum(_INT8_MAX, values / scale)))
+    scale = tl.where(absolute_maximum == 0, 1.0, absolute_maximum / 127.0)
+    codes = round_int8(tl.maximum(-127.0, tl.minimum(127.0, values / scale)))
     tl.store(
         quantized_ptr + token_index * input_columns + column_offsets,
         codes,
@@ -58,17 +58,17 @@ def _hyperconnection_int8_decode_kernel(
     group_size: tl.constexpr,
     group_count: tl.constexpr,
 ) -> None:
-    token_offsets = tl.program_id(0) * _DOT_M + tl.arange(0, _DOT_M)
-    output_offsets = tl.program_id(1) * _DOT_N + tl.arange(0, _DOT_N)
+    token_offsets = tl.program_id(0) * 16 + tl.arange(0, 16)
+    output_offsets = tl.program_id(1) * 16 + tl.arange(0, 16)
     token_mask = token_offsets < token_count
     output_mask = output_offsets < output_rows
-    output_accumulator = tl.zeros((_DOT_M, _DOT_N), dtype=tl.float32)
+    output_accumulator = tl.zeros((16, 16), dtype=tl.float32)
 
     for group_index in tl.range(0, group_count, loop_unroll_factor=1):
-        integer_accumulator = tl.zeros((_DOT_M, _DOT_N), dtype=tl.int32)
+        integer_accumulator = tl.zeros((16, 16), dtype=tl.int32)
         group_start = group_index * group_size
-        for tile_start in tl.range(0, group_size, _DOT_K, loop_unroll_factor=1):
-            column_offsets = group_start + tile_start + tl.arange(0, _DOT_K)
+        for tile_start in tl.range(0, group_size, 32, loop_unroll_factor=1):
+            column_offsets = group_start + tile_start + tl.arange(0, 32)
             activation = tl.load(
                 activation_ptr
                 + token_offsets[:, None] * input_columns
