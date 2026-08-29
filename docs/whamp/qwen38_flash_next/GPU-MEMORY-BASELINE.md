@@ -269,10 +269,13 @@ CUDA-Graph replay, and the M=256 performance gate. Matrix RHT reduced M=1 from
 attempted. See [QSA-INT4-CACHE.md](QSA-INT4-CACHE.md).
 
 The replacement is preregistered in
-[QSA-INT4-DIRECT-DESIGN.md](QSA-INT4-DIRECT-DESIGN.md). It retains the packed
-writer and BF16 fallback but replaces float unpack-and-dot with INT8-query by
-packed-INT4-key scores and INT8 weighted-probability by packed-INT4-value
-accumulation. No implementation or performance evidence exists yet.
+[QSA-INT4-DIRECT-DESIGN.md](QSA-INT4-DIRECT-DESIGN.md). A 20-seed CPU
+arithmetic screen rejected uniform Q4 K/V under the fixed numerical bound and
+selected symmetric Q8 K plus asymmetric Q4 V. The mixed format passed at 0.11904
+maximum NRMSE and 0.99294 minimum cosine, and uses 5,472 complete QSA cache
+bytes per token and rank. It retains BF16 fallback and uses INT8-query by
+INT8-key scores plus INT8 weighted-probability by packed-INT4-value
+accumulation. No GPU implementation or performance evidence exists yet.
 
 ### H5: executor budget ceiling
 

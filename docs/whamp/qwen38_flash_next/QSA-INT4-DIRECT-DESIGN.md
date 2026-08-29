@@ -1,19 +1,26 @@
-# Direct quantized QSA INT4 design for SM86
+# Direct Q8-K/Q4-V QSA design for SM86
 
 ## Status
 
 This document preregisters a new Qwen3.8 QSA cache reader. No implementation or
 performance claim exists yet.
 
+A subsequent CPU arithmetic screen rejected uniform Q4 K/V under the fixed
+absolute numerical bound and selected symmetric Q8 K plus asymmetric Q4 V. The
+mixed format passed all unchanged arithmetic gates and uses 5,472 complete QSA
+cache bytes per token and rank versus 13,056 for BF16. See
+[evidence/qwen38-qsa-int4-direct-20260829/README.md](evidence/qwen38-qsa-int4-direct-20260829/README.md).
+
 The prior INT4 cache reader is rejected. It unpacked INT4 values into floating
 point, performed two transformed K dots and two transformed V dots, and remained
 2.03 times slower than BF16 at M=1 after its best bounded tuning. See
 [QSA-INT4-CACHE.md](QSA-INT4-CACHE.md).
 
-The replacement keeps the proven packed cache writer and row layout but changes
-the attention arithmetic. It quantizes transformed queries and value-weighted
-softmax probabilities so the score and value products execute as integer dot
-products on RTX 3090 Tensor Cores.
+The replacement keeps the proven per-token-head paging and inline-scale layout.
+Keys use symmetric INT8 codes with one FP32 scale. Values retain asymmetric
+packed INT4 codes with one FP32 scale/ZP word. The reader quantizes transformed
+queries and value-weighted softmax probabilities so both products execute as
+integer dot products on RTX 3090 Tensor Cores.
 
 ## Fixed environment and result boundary
 
@@ -21,8 +28,8 @@ products on RTX 3090 Tensor Cores.
 | --- | --- |
 | GPU | NVIDIA RTX 3090, SM86 |
 | Model | Intel Qwen3.8 Flash Next AutoRound |
-| Main cache | `int4_per_token_head`, asymmetric packed INT4 |
-| Cache row | packed K, FP32 K scale/ZP, packed V, FP32 V scale/ZP |
+| Main cache | symmetric Q8 K plus asymmetric packed Q4 V |
+| Cache row | INT8 K, FP32 K scale, packed V, FP32 V scale/ZP |
 | Query geometry | 6 query heads, 1 KV head, head dimension 256 |
 | Selection width | 2,051 tokens |
 | Decode shape | M=1 and M=2 |
@@ -40,38 +47,39 @@ M=256. A candidate that misses either shape does not advance to a model launch.
 
 ## Preserved storage and writer contract
 
-The implementation must reuse vLLM's existing per-token-head INT4 writer and
-inline scale views in
+The implementation must reuse vLLM's existing per-token-head paging, randomized
+Hadamard transform, value packing, and inline scale views in
 [`vllm/v1/attention/ops/int4_per_token_head.py`](../../../vllm/v1/attention/ops/int4_per_token_head.py).
 It must preserve:
 
 - randomized Hadamard transformation before K/V quantization;
-- asymmetric low-nibble-first INT4 packing;
-- one FP32 scale word per token and head with the zero point in its low nibble;
+- symmetric signed INT8 keys with one positive FP32 scale per token and head;
+- asymmetric low-nibble-first INT4 values with one FP32 scale word whose low
+  nibble stores the zero point;
 - HND and NHD paging, block tables, duplicate selected tokens, and `-1`
   sentinels;
 - raw and compressed QSA indexer caches, top-k selection, MRoPE, and scheduling;
-- byte-for-byte BF16 behavior when INT4 is disabled.
+- byte-for-byte BF16 behavior when the mixed cache is disabled.
 
-For head dimension 256, each main-cache token uses 264 bytes per QSA layer
-instead of 1,024 BF16 bytes. Across 12 QSA layers, the main cache uses 3,168
+For head dimension 256, each main-cache token uses 392 bytes per QSA layer
+instead of 1,024 BF16 bytes. Across 12 QSA layers, the main cache uses 4,704
 bytes per token. The unchanged compressed-indexer side cache adds 768 bytes, for
-3,936 bytes per token and rank.
+5,472 bytes per token and rank.
 
 ## Quantized score contract
 
 Let `H` denote the existing unnormalized randomized Hadamard transform, `d=256`,
-`q_h = H(q)`, and let a packed key reconstruct as
-`k_h ~= (k_code - k_zp) * k_scale`.
+`q_h = H(q)`, and let a key reconstruct as `k_h ~= k_code * k_scale`.
 
 For each query head:
 
 1. Compute `q_h` with the existing transform signs and ordering.
 2. Choose one positive symmetric query scale `q_scale`.
 3. Quantize `q_code = round(clamp(q_h / q_scale, -127, 127))`.
-4. Compute the integer score
-   `s_int = dot(q_code, k_code) - k_zp * sum(q_code)`.
-5. Convert once with
+4. Reconstruct each transformed key as `k_h ~= k_code * k_scale`, where
+   `k_code` is signed INT8.
+5. Compute the integer score `s_int = dot(q_code, k_code)`.
+6. Convert once with
    `score = s_int * q_scale * k_scale / (d * sqrt(d))`.
 
 The `1/d` factor compensates for the unnormalized transform. The attention scale
@@ -79,8 +87,8 @@ is applied exactly once. Invalid cache entries receive negative infinity before
 softmax.
 
 The SM86 implementation must lower the inner product to integer Tensor-Core or
-DP4A instructions. Unpacking INT4 to floating point before the dot is not this
-design.
+DP4A instructions. Dequantizing keys to floating point before the dot is not
+this design.
 
 ## Quantized value contract
 
@@ -110,7 +118,7 @@ without the token's V scale changes the value equation and is a counterfeit.
 The first implementation uses three caller-stream operations:
 
 1. fused randomized-Hadamard query transform plus symmetric INT8 quantization;
-2. paged sparse INT8-query by packed-INT4-key score, online softmax, and
+2. paged sparse INT8-query by INT8-key score, online softmax, and
    INT8-weighted-probability by packed-INT4-value accumulation;
 3. fused inverse randomized-Hadamard transform, normalization, and BF16 store.
 
@@ -129,8 +137,8 @@ The direct path must pass every gate below before a full-model launch:
 - normalized RMSE at most 0.17 against an independent BF16 sparse-attention
   reference;
 - cosine similarity at least 0.985;
-- no more than 0.02 additional NRMSE and no more than 0.002 lower cosine than the
-  archived matrix-RHT INT4 reader on the same seeded cases;
+- no more than 0.02 additional NRMSE and no more than 0.002 lower cosine than a
+  matching float-unpack Q8-K/Q4-V reader on the same seeded cases;
 - finite, bitwise-equal CUDA Graph replay;
 - exact caller-stream ordering without default-stream dependence;
 - stable lower-index handling for duplicate and sentinel selections;
@@ -145,14 +153,14 @@ VRAM evidence against BF16.
 
 Property-based tests will generate one or two requests, one to four pages, one
 to four query rows, duplicate selected tokens, `-1` sentinels, random packed
-codes, independent key/value scales and zero points, and split counts from 1 to
-32. The independent oracle dequantizes literals and evaluates ordinary BF16
+codes, independent key/value scales, value zero points, and split counts from 1
+to 32. The independent oracle dequantizes literals and evaluates ordinary BF16
 attention without calling production pack, transform, score, or merge helpers.
 
 The property must kill these compiled counterfeits at the numerical assertion:
 
 1. omit query scaling;
-2. omit key zero-point correction;
+2. omit key scaling or reinterpret signed key codes as unsigned;
 3. omit the `1/d` transformed-score normalization;
 4. quantize `p_t` without multiplying by `v_scale_t`;
 5. omit value zero-point correction;
@@ -169,10 +177,11 @@ serving-shape dispatch or performance.
 Acceptance requires all of the following on server60:
 
 - packaged SM86 code in the exact runtime image;
-- runtime selection of the direct INT4 QSA path only when explicitly enabled;
+- runtime selection of the direct Q8-K/Q4-V QSA path only when explicitly
+  enabled;
 - SASS containing integer Tensor-Core or DP4A instructions in the score and
   value kernels;
-- no float expansion of packed K/V before the named integer dots;
+- no float expansion of INT8 K or packed INT4 V before the named integer dots;
 - measured M=1 and M=256 kernel timing within 1.25 times BF16;
 - an ablation showing the gain disappears when the direct integer core is
   replaced by the archived floating-point split-dot core.
