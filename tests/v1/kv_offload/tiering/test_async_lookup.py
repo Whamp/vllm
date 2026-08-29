@@ -35,6 +35,24 @@ class InMemoryLookupManager(AsyncLookupManager):
         return results
 
 
+class BlockingLookupManager(AsyncLookupManager):
+    """Test manager that keeps the first lookup in flight."""
+
+    def __init__(self):
+        super().__init__(tier_type="test")
+        self.probe_started = threading.Event()
+        self.release_probe = threading.Event()
+        self.probe_count = 0
+
+    def batch_lookup(
+        self, keys: list[OffloadKey], req_context: ReqContext
+    ) -> Iterable[bool]:
+        self.probe_count += 1
+        self.probe_started.set()
+        assert self.release_probe.wait(timeout=5)
+        return [True] * len(keys)
+
+
 class TestAsyncLookupManager:
     def test_new_key_returns_none(self):
         mgr = InMemoryLookupManager()
@@ -158,6 +176,40 @@ class TestAsyncLookupManager:
         mgr = InMemoryLookupManager()
         mgr.shutdown()
         assert not mgr._thread.is_alive()
+
+    @pytest.mark.skip_global_cleanup
+    def test_cleanup_reuses_in_flight_probe_for_next_request(self):
+        mgr = BlockingLookupManager()
+        key = _key(1)
+        try:
+            assert mgr.lookup(key, _ctx("finished")) is None
+            mgr.flush()
+            assert mgr.probe_started.wait(timeout=5)
+
+            mgr.cleanup("finished")
+            assert mgr.lookup(key, _ctx("replacement")) is None
+            mgr.flush()
+        finally:
+            mgr.release_probe.set()
+            mgr.shutdown()
+
+        assert mgr.probe_count == 1
+
+    @pytest.mark.skip_global_cleanup
+    def test_cleanup_discards_unclaimed_result_after_probe_finishes(self):
+        mgr = BlockingLookupManager()
+        key = _key(1)
+        try:
+            assert mgr.lookup(key, _ctx("finished")) is None
+            mgr.flush()
+            assert mgr.probe_started.wait(timeout=5)
+            mgr.cleanup("finished")
+        finally:
+            mgr.release_probe.set()
+            mgr.shutdown()
+
+        mgr.drain_results()
+        assert mgr.lookup(key, _ctx("new")) is None
 
     def test_mark_miss_flips_cached_verdict_without_reprobing(self):
         """Failed-load livelock regression (#49176). After a failed load the

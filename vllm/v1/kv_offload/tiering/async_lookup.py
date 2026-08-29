@@ -180,6 +180,9 @@ class AsyncLookupManager(ABC):
                         "failed-load livelock"
                     )
                     state.result = result
+                    # cleanup() keeps unresolved entries until their result arrives.
+                    if not state.request_ids:
+                        del self._lookup_state[key]
 
     def mark_miss(self, keys: Collection[OffloadKey]) -> None:
         """Force the cached verdict for ``keys`` to False after a failed load, so
@@ -199,7 +202,8 @@ class AsyncLookupManager(ABC):
         for key in self._req_keys.pop(req_id, ()):
             state = self._lookup_state[key]
             state.request_ids.discard(req_id)
-            if not state.request_ids:
+            # Re-enqueuing an unresolved key can deliver two results for it.
+            if not state.request_ids and state.result is not None:
                 del self._lookup_state[key]
 
     def shutdown(self) -> None:
