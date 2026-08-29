@@ -225,6 +225,12 @@ scales, side-cache treatment, conversion work, or kernel efficiency. Start this
 work only after H1 to H3 establish the fixed-residency baseline and available
 headroom for kernel bring-up.
 
+**FP8 result: reject.** Typed E4M3 does not compile for SM86 in the installed
+Triton. Typed E5M2 missed the numerical bound at 0.059410 normalized RMSE.
+Integer-decoded E4M3 passed numerical and M=1 timing gates but ran 28.46 times
+slower than BF16 at M=256. No full-model FP8 launch was attempted. See
+[QSA-FP8-CACHE.md](QSA-FP8-CACHE.md). Q4 remains a separate experiment.
+
 ## Restored service
 
 After capture, the diagnostic container was removed and the original service

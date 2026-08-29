@@ -1,0 +1,80 @@
+{
+  "acceptance": {
+    "maximum_fp8_to_bf16_kernel_time_ratio": 1.25,
+    "maximum_normalized_rmse": 0.05,
+    "minimum_cosine_similarity": 0.995
+  },
+  "compute_capability": [
+    8,
+    6
+  ],
+  "cuda_graph": {
+    "bitwise_equal": true,
+    "finite": true
+  },
+  "device": "NVIDIA GeForce RTX 3090",
+  "numerical": {
+    "cosine_similarity": 0.9995071887969971,
+    "maximum_absolute_error": 0.00732421875,
+    "normalized_rmse": 0.031408388167619705
+  },
+  "performance": {
+    "m1": {
+      "bf16": {
+        "median_microseconds": 139.54559564590454,
+        "samples": [
+          141.97759628295898,
+          140.05600214004517,
+          139.54559564590454,
+          139.10880088806152,
+          137.83040046691895
+        ]
+      },
+      "fp8": {
+        "median_microseconds": 140.339195728302,
+        "samples": [
+          140.3648018836975,
+          141.593599319458,
+          138.34240436553955,
+          139.23840522766113,
+          140.339195728302
+        ]
+      },
+      "fp8_to_bf16_ratio": 1.0056870306706864,
+      "passed": true
+    },
+    "m256": {
+      "bf16": {
+        "median_microseconds": 588.5439872741699,
+        "samples": [
+          588.5439872741699,
+          588.6975765228271,
+          588.3391857147217,
+          588.3391857147217,
+          588.7487888336182
+        ]
+      },
+      "fp8": {
+        "median_microseconds": 16750.515747070312,
+        "samples": [
+          16757.862854003906,
+          16745.497131347656,
+          16744.268798828125,
+          16757.58056640625,
+          16750.515747070312
+        ]
+      },
+      "fp8_to_bf16_ratio": 28.46094108386019,
+      "passed": false
+    }
+  },
+  "performance_gate_passed": false,
+  "schema_version": 1,
+  "writer": {
+    "key_bytes_match": true,
+    "key_scale": 0.25,
+    "tokens": 9,
+    "value_bytes_match": true,
+    "value_scale": 0.125
+  }
+}
