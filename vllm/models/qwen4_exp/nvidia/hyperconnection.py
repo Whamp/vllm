@@ -25,6 +25,7 @@ Typical usage inside a transformer decoder layer::
 import torch
 from torch import nn
 
+import vllm.envs as envs
 from vllm.model_executor.layers.linear import (
     MergedColumnParallelLinear,
     ReplicatedLinear,
@@ -34,6 +35,10 @@ from vllm.model_executor.models.utils import maybe_prefix
 from ..common.hyperconnection import (
     GroupedGemmaRMSNorm,
     HyperConnectionConfig,
+)
+from .hyperconnection_int8 import (
+    HyperconnectionInt8ScaleLayout,
+    Qwen4ExpHyperconnectionInt8LinearMethod,
 )
 from .ops.hc import (
     grouped_gemma_rmsnorm,
@@ -123,6 +128,23 @@ class GatedResidual(nn.Module):
             prefix=maybe_prefix(prefix, "input_mix_weight_up"),
             return_bias=False,
         )
+
+        if envs.VLLM_QWEN4_EXP_HYPERCONNECTION_INT8:
+            if self.use_combine:
+                down_layer = self.input_mix_weight_down_block_inject
+                valid_output_rows = self.lora_rank + self.hc_count
+            else:
+                down_layer = self.input_mix_weight_down
+                valid_output_rows = None
+            down_layer.quant_method = Qwen4ExpHyperconnectionInt8LinearMethod(
+                scale_layout=HyperconnectionInt8ScaleLayout.K_GROUP_128,
+                valid_output_rows=valid_output_rows,
+            )
+            self.input_mix_weight_up.quant_method = (
+                Qwen4ExpHyperconnectionInt8LinearMethod(
+                    scale_layout=HyperconnectionInt8ScaleLayout.PER_ROW,
+                )
+            )
 
     def mix(
         self, hidden_states: torch.Tensor
