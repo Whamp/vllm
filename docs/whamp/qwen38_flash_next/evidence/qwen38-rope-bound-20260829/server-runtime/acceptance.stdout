@@ -1,0 +1,33 @@
+{
+  "concurrency_2": {
+    "aggregate_tokens_per_second": 55.529053701919956,
+    "mean_per_stream_decode_tokens_per_second": 35.747354738769744,
+    "runs": [
+      {
+        "completion_tokens": 256,
+        "decode_tokens_per_second": 35.747286475833235,
+        "finish_reason": "length",
+        "ttft_seconds": 2.0590157080441713,
+        "wall_seconds": 9.22039843769744
+      },
+      {
+        "completion_tokens": 256,
+        "decode_tokens_per_second": 35.747423001706245,
+        "finish_reason": "length",
+        "ttft_seconds": 2.0584727758541703,
+        "wall_seconds": 9.21982815489173
+      }
+    ]
+  },
+  "deterministic": "passed",
+  "multimodal": "passed",
+  "niah": {
+    "answer": "VIOLET ORBIT 9137",
+    "api_prompt_tokens": 160035,
+    "finish_reason": "stop",
+    "target_tokens": 160000,
+    "tokenized_prompt_tokens": 159983,
+    "wall_seconds": 115.23592521995306
+  },
+  "tools": "passed"
+}

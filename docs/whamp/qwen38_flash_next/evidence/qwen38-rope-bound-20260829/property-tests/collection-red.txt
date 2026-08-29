@@ -1,0 +1,27 @@
+
+==================================== ERRORS ====================================
+________ ERROR collecting tests/models/qwen4_exp/test_qsa_rope_cache.py ________
+ImportError while importing test module '/home/will/projects/vllm/.worktrees/qwen38-memory-capacity/tests/models/qwen4_exp/test_qsa_rope_cache.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/will/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/models/qwen4_exp/test_qsa_rope_cache.py:20: in <module>
+    from vllm.models.qwen4_exp.nvidia.qsa import bound_qwen4_exp_rope_cache
+E   ImportError: cannot import name 'bound_qwen4_exp_rope_cache' from 'vllm.models.qwen4_exp.nvidia.qsa' (/home/will/projects/vllm/.worktrees/qwen38-memory-capacity/vllm/models/qwen4_exp/nvidia/qsa.py)
+------------------------------- Captured stdout --------------------------------
+INFO 08-29 00:55:33 [importing.py:53] Triton is installed but 0 active driver(s) found (expected 1). Disabling Triton to prevent runtime errors.
+WARNING 08-29 00:55:33 [importing.py:65] Triton is installed, but doesn't include CPU backend. Disabling Triton.
+INFO 08-29 00:55:33 [importing.py:88] Triton not installed or not compatible; certain GPU-related functions will not be available.
+=============================== warnings summary ===============================
+../../../../.cache/uv/archive-v0/qfHzRTatYR0LHbKvvDBMV/lib/python3.12/site-packages/torch/jit/_script.py:365: 14 warnings
+  /home/will/.cache/uv/archive-v0/qfHzRTatYR0LHbKvvDBMV/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================ Hypothesis Statistics =============================
+=========================== short test summary info ============================
+ERROR tests/models/qwen4_exp/test_qsa_rope_cache.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+14 warnings, 1 error in 0.53s

@@ -57,6 +57,24 @@ from . import model
 from .indexer_qsa import QSAIndexer
 
 
+def bound_qwen4_exp_rope_cache(
+    rotary_emb: MRotaryEmbedding,
+    max_model_len: int,
+) -> None:
+    """Cap materialized Qwen4Exp RoPE rows without changing their values."""
+    if max_model_len <= 0:
+        raise ValueError(f"Qwen4Exp RoPE cache bound must be positive: {max_model_len}")
+    cache = rotary_emb.cos_sin_cache
+    cache_rows = cache.shape[0]
+    if cache_rows < max_model_len:
+        raise ValueError(
+            f"Qwen4Exp RoPE cache has {cache_rows} rows, needs {max_model_len}"
+        )
+    if cache_rows == max_model_len:
+        return
+    rotary_emb.cos_sin_cache = cache[:max_model_len].clone()
+
+
 class Qwen4ExpQSAMetadataBuilder(FlashAttentionMetadataBuilder):
     """Flash metadata supporting uniform decode and target-verify graphs."""
 
@@ -245,6 +263,7 @@ class Qwen4ExpQSAAttention(Qwen3NextAttention, AttentionLayerBase):
             max_position=config.max_position_embeddings,
             rope_parameters=config.rope_parameters,
         )
+        bound_qwen4_exp_rope_cache(self.rotary_emb, model_config.max_model_len)
         self.q_norm = GemmaRMSNorm(self.head_dim, eps=config.rms_norm_eps)
         self.k_norm = GemmaRMSNorm(self.head_dim, eps=config.rms_norm_eps)
 

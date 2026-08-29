@@ -212,6 +212,15 @@ and multimodal outputs.
 **Lose condition.** Do not implement a text-length cap that breaks legal video
 position IDs or adds runtime reallocations to graph replay.
 
+**Result: promote 262,144 rows.** A 150-example generated image/video property
+proved Qwen3.8 MRoPE positions remain token bounded and killed a shifted-position
+semantic counterfeit. Cloning the first 262,144 rows reclaimed exactly
+100,663,296 bytes per rank, increased fitted context from 156,400 to 167,600,
+and preserved exact retrieval at 160,035 prompt tokens. The exact final image
+retained 98.06% decode and 99.42% cache-busted prefill, passed vision, tools,
+concurrency two, and BenchLocal quick 26/30, and remained zero-swap. See
+[QSA-ROPE-BOUND.md](QSA-ROPE-BOUND.md).
+
 ### H4: native Q8 and Q4 QSA cache
 
 The current QSA path explicitly requires BF16 main K/V storage and does not
