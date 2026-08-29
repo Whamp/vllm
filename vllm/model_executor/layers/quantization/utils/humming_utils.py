@@ -653,18 +653,10 @@ def get_humming_moe_quant_config(
         q_dtype = _HUMMING_TO_QUANT_DTYPE.get(input_schema.a_dtype, FP8_DTYPE)
         activation_group_shape = GroupShape(row=1, col=input_scale_group_size)
 
-    weight_scale_group_size = weight_schema.weight_scale_group_size
-    weight_scale_group_size_n = weight_schema.weight_scale_group_size_n
-    weight_group_shape: tuple[int, ...] = ()
-    if weight_scale_group_size_n > 1:
-        weight_group_shape = GroupShape(
-            row=weight_scale_group_size,
-            col=weight_scale_group_size_n,
-        )
-    elif weight_scale_group_size == 0:
-        weight_group_shape = GroupShape(row=-1, col=1)
-    else:
-        weight_group_shape = GroupShape(row=weight_scale_group_size, col=1)
+    weight_group_shape = _group_shape(
+        weight_schema.weight_scale_group_size,
+        weight_schema.weight_scale_group_size_n,
+    )
 
     return make_humming_moe_quant_config(
         quant_dtype=q_dtype,

@@ -188,6 +188,31 @@ def test_moe_wna16_humming_adapter_repacks_uint8_tensors():
     assert converted["zero_point"].shape == (1, 2, 2)
 
 
+@pytest.mark.skip_global_cleanup
+def test_humming_quant_config_maps_weight_scale_axes():
+    from vllm.model_executor.layers.quantization.utils.humming_utils import (
+        get_humming_moe_quant_config,
+    )
+    from vllm.model_executor.layers.quantization.utils.quant_utils import GroupShape
+
+    input_schema = SimpleNamespace(a_dtype=None)
+    weight_schema = SimpleNamespace(
+        b_dtype="uint4",
+        weight_scale_group_size=128,
+        weight_scale_group_size_n=0,
+    )
+    layer = SimpleNamespace(
+        input_schemas={"w13": input_schema},
+        weight_schemas={"w13": weight_schema},
+        humming_configs={"w13": object(), "w2": object()},
+    )
+
+    quant_config = get_humming_moe_quant_config(layer)
+
+    assert quant_config._w1.shape == GroupShape(row=1, col=128)
+    assert quant_config._w2.shape == GroupShape(row=1, col=128)
+
+
 def test_moe_wna16_uses_humming_quant_config(monkeypatch):
     from vllm.model_executor.layers.quantization.utils import humming_utils
 
