@@ -423,6 +423,25 @@ class PleOffloadConnector:
         for layer in self._layers.values():
             layer.release_offloaded_output(stream)
 
+    def memory_diagnostics(self) -> dict[str, int]:
+        """Return persistent PLE connector storage by ownership domain."""
+        gpu_output_bytes = sum(
+            layer._gpu_output_buffer.nbytes for layer in self._layers.values()
+        )
+        gpu_semaphore_bytes = sum(
+            layer._sem.flag_tensor.nbytes for layer in self._layers.values()
+        )
+        cpu_shared_input_bytes = (
+            self._input_ids_buf.nbytes + self._query_start_loc_buf.nbytes
+        )
+        if self._ngram_context_buf is not None:
+            cpu_shared_input_bytes += self._ngram_context_buf.nbytes
+        return {
+            "ple_gpu_output_buffer_bytes": gpu_output_bytes,
+            "ple_gpu_semaphore_bytes": gpu_semaphore_bytes,
+            "ple_cpu_shared_input_bytes": cpu_shared_input_bytes,
+        }
+
     def close(self) -> None:
         """Stop request transport and release host registrations."""
         request_thread = self._request_thread

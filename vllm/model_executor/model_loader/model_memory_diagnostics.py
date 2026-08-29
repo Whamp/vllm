@@ -17,8 +17,9 @@ from torch.nn.parameter import UninitializedBuffer, UninitializedParameter
 
 import vllm.envs as envs
 
-_REPORT_SCHEMA_VERSION = 1
+_REPORT_SCHEMA_VERSION = 2
 _STAGE_SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
+_ALLOCATOR_HISTORY_DEVICES: set[str] = set()
 
 
 def collect_registered_tensor_storage_inventory(model: nn.Module) -> dict[str, Any]:
@@ -115,6 +116,8 @@ def capture_device_memory_report(
     report_dir: str | Path,
     device: torch.device | str,
     memory_counters: Mapping[str, int] | None = None,
+    named_allocations: Mapping[str, int] | None = None,
+    allocator_snapshot: Mapping[str, Any] | None = None,
 ) -> Path:
     """Write one rank-local device memory report without traversing a model."""
     report_directory = Path(report_dir)
@@ -137,6 +140,12 @@ def capture_device_memory_report(
         "device": str(selected_device),
         "memory_counters": counters,
     }
+    _add_named_memory_details(
+        report,
+        selected_device,
+        named_allocations=named_allocations,
+        allocator_snapshot=allocator_snapshot,
+    )
     _write_atomic_json(report_path, report)
     return report_path
 
@@ -146,6 +155,7 @@ def capture_device_memory_report_if_enabled(
     stage: str,
     device: torch.device | str,
     reset_peak_after_capture: bool = False,
+    named_allocations: Mapping[str, int] | None = None,
 ) -> Path | None:
     """Write a device-only report when the diagnostics directory is configured."""
     report_dir = envs.VLLM_MODEL_MEMORY_REPORT_DIR
@@ -155,6 +165,7 @@ def capture_device_memory_report_if_enabled(
         stage=stage,
         report_dir=report_dir,
         device=device,
+        named_allocations=named_allocations,
     )
     if reset_peak_after_capture:
         reset_model_memory_peak_if_enabled(device)
@@ -169,6 +180,8 @@ def capture_model_memory_report(
     device: torch.device | str | None = None,
     memory_counters: Mapping[str, int] | None = None,
     include_storage_details: bool = True,
+    named_allocations: Mapping[str, int] | None = None,
+    allocator_snapshot: Mapping[str, Any] | None = None,
 ) -> Path:
     """Write one rank-local model memory report as an atomic JSON file."""
     report_directory = Path(report_dir)
@@ -199,6 +212,12 @@ def capture_model_memory_report(
         "registered_tensors": inventory,
         "memory_counters": counters,
     }
+    _add_named_memory_details(
+        report,
+        selected_device,
+        named_allocations=named_allocations,
+        allocator_snapshot=allocator_snapshot,
+    )
     _write_atomic_json(report_path, report)
     return report_path
 
@@ -210,6 +229,7 @@ def capture_model_memory_report_if_enabled(
     device: torch.device | str | None = None,
     include_storage_details: bool = True,
     reset_peak_after_capture: bool = False,
+    named_allocations: Mapping[str, int] | None = None,
 ) -> Path | None:
     """Write a model memory report only when its report directory is configured."""
     report_dir = envs.VLLM_MODEL_MEMORY_REPORT_DIR
@@ -221,6 +241,7 @@ def capture_model_memory_report_if_enabled(
         report_dir=report_dir,
         device=device,
         include_storage_details=include_storage_details,
+        named_allocations=named_allocations,
     )
     if reset_peak_after_capture and device is not None:
         reset_model_memory_peak_if_enabled(device)
@@ -233,6 +254,134 @@ def reset_model_memory_peak_if_enabled(device: torch.device | str) -> None:
     if envs.VLLM_MODEL_MEMORY_REPORT_DIR is None or selected_device.type == "cpu":
         return
     torch.accelerator.reset_peak_memory_stats(selected_device)
+
+
+def start_allocator_memory_history_if_enabled(
+    device: torch.device | str,
+) -> None:
+    """Record live CUDA allocator stacks only during opt-in memory diagnostics."""
+    selected_device = torch.device(device)
+    device_key = str(selected_device)
+    if (
+        envs.VLLM_MODEL_MEMORY_REPORT_DIR is None
+        or selected_device.type != "cuda"
+        or device_key in _ALLOCATOR_HISTORY_DEVICES
+    ):
+        return
+    torch.cuda.memory._record_memory_history(
+        enabled="state",
+        context="all",
+        stacks="python",
+        max_entries=100_000,
+        device=selected_device,
+        clear_history=True,
+    )
+    _ALLOCATOR_HISTORY_DEVICES.add(device_key)
+
+
+def stop_allocator_memory_history_if_enabled(
+    device: torch.device | str,
+) -> None:
+    """Stop allocator stack recording after the final diagnostic report."""
+    selected_device = torch.device(device)
+    device_key = str(selected_device)
+    if device_key not in _ALLOCATOR_HISTORY_DEVICES:
+        return
+    torch.cuda.memory._record_memory_history(enabled=None, device=selected_device)
+    _ALLOCATOR_HISTORY_DEVICES.remove(device_key)
+
+
+def summarize_allocator_memory_snapshot(
+    snapshot: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Summarize CUDA allocator blocks by state, pool, and first vLLM frame."""
+    block_bytes_by_state: dict[str, int] = {}
+    segment_bytes_by_pool: dict[str, int] = {}
+    active_by_frame: dict[str, dict[str, int]] = {}
+    segment_total_bytes = 0
+    segment_allocated_bytes = 0
+    segment_active_bytes = 0
+    active_internal_fragmentation_bytes = 0
+
+    for segment in snapshot.get("segments", []):
+        total_size = int(segment["total_size"])
+        segment_total_bytes += total_size
+        segment_allocated_bytes += int(segment.get("allocated_size", 0))
+        segment_active_bytes += int(segment.get("active_size", 0))
+        pool_key = str(tuple(segment.get("segment_pool_id", ())))
+        segment_bytes_by_pool[pool_key] = (
+            segment_bytes_by_pool.get(pool_key, 0) + total_size
+        )
+        for block in segment.get("blocks", []):
+            state = str(block["state"])
+            block_size = int(block["size"])
+            requested_size = int(block.get("requested_size", block_size))
+            block_bytes_by_state[state] = (
+                block_bytes_by_state.get(state, 0) + block_size
+            )
+            if state != "active_allocated":
+                continue
+            active_internal_fragmentation_bytes += block_size - requested_size
+            frame = _select_allocator_owner_frame(block.get("frames", []))
+            owner = active_by_frame.setdefault(
+                frame,
+                {"bytes": 0, "requested_bytes": 0, "count": 0},
+            )
+            owner["bytes"] += block_size
+            owner["requested_bytes"] += requested_size
+            owner["count"] += 1
+
+    active_allocations_by_frame = [
+        {"frame": frame, **values}
+        for frame, values in sorted(
+            active_by_frame.items(),
+            key=lambda item: (-item[1]["bytes"], item[0]),
+        )
+    ]
+    return {
+        "segment_total_bytes": segment_total_bytes,
+        "segment_allocated_bytes": segment_allocated_bytes,
+        "segment_active_bytes": segment_active_bytes,
+        "segment_bytes_by_pool": dict(sorted(segment_bytes_by_pool.items())),
+        "block_bytes_by_state": dict(sorted(block_bytes_by_state.items())),
+        "active_internal_fragmentation_bytes": (active_internal_fragmentation_bytes),
+        "active_allocations_by_frame": active_allocations_by_frame,
+    }
+
+
+def _select_allocator_owner_frame(frames: list[Mapping[str, Any]]) -> str:
+    for frame in frames:
+        filename = str(frame.get("filename", ""))
+        marker = "/vllm/"
+        if marker not in filename:
+            continue
+        relative_filename = f"vllm/{filename.split(marker, 1)[1]}"
+        return (
+            f"{relative_filename}:{int(frame.get('line', 0))}:"
+            f"{frame.get('name', '<unknown>')}"
+        )
+    return "<unattributed>"
+
+
+def _add_named_memory_details(
+    report: dict[str, Any],
+    device: torch.device,
+    *,
+    named_allocations: Mapping[str, int] | None,
+    allocator_snapshot: Mapping[str, Any] | None,
+) -> None:
+    if named_allocations is not None:
+        normalized_allocations = {
+            str(name): int(value) for name, value in named_allocations.items()
+        }
+        if any(value < 0 for value in normalized_allocations.values()):
+            raise ValueError("Named memory allocations must be non-negative")
+        report["named_allocations"] = dict(sorted(normalized_allocations.items()))
+    snapshot = allocator_snapshot
+    if snapshot is None and str(device) in _ALLOCATOR_HISTORY_DEVICES:
+        snapshot = torch.cuda.memory._snapshot(device=device)
+    if snapshot is not None:
+        report["allocator_snapshot"] = summarize_allocator_memory_snapshot(snapshot)
 
 
 def _describe_registered_tensor(

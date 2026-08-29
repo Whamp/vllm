@@ -55,6 +55,8 @@ from vllm.lora.request import LoRARequest
 from vllm.model_executor.model_loader.model_memory_diagnostics import (
     capture_device_memory_report_if_enabled,
     capture_model_memory_report_if_enabled,
+    start_allocator_memory_history_if_enabled,
+    stop_allocator_memory_history_if_enabled,
 )
 from vllm.model_executor.warmup.kernel_warmup import kernel_warmup
 from vllm.multimodal.gpu_ipc_memory import reserve_mm_ipc_gpu_memory
@@ -87,7 +89,10 @@ from vllm.v1.worker.startup_plan import (
 )
 from vllm.v1.worker.utils import is_residual_scattered_for_sp
 from vllm.v1.worker.worker_base import CompilationTimes, WorkerBase
-from vllm.v1.worker.workspace import init_workspace_manager
+from vllm.v1.worker.workspace import (
+    init_workspace_manager,
+    workspace_memory_diagnostics,
+)
 
 from ...model_executor.model_loader import TensorizerLoader
 from .gpu.warmup import warmup_kernels
@@ -212,6 +217,18 @@ class Worker(WorkerBase):
             return False
         text_config = self.model_config.hf_text_config
         return bool(getattr(text_config, "ple_layer_ids", None))
+
+    def _memory_diagnostic_allocations(
+        self,
+        **additional_allocations: int,
+    ) -> dict[str, int]:
+        """Collect named persistent allocations from worker-owned modules."""
+        allocations = workspace_memory_diagnostics()
+        connector = getattr(self.model_runner, "_ple_offload_connector", None)
+        if connector is not None:
+            allocations.update(connector.memory_diagnostics())
+        allocations.update(additional_allocations)
+        return allocations
 
     def _validate_ple_offload_config(self) -> None:
         """Reject unsupported PLE offload execution modes."""
@@ -523,6 +540,7 @@ class Worker(WorkerBase):
                 device=self.device,
                 reset_peak_after_capture=True,
             )
+            start_allocator_memory_history_if_enabled(self.device)
         else:
             raise RuntimeError(f"Unsupported device type: {self.device_config.device}")
 
@@ -555,6 +573,7 @@ class Worker(WorkerBase):
             stage="model runner initialized",
             device=self.device,
             reset_peak_after_capture=True,
+            named_allocations=self._memory_diagnostic_allocations(),
         )
         if self.rank == 0:
             # If usage stat is enabled, collect relevant info.
@@ -581,6 +600,7 @@ class Worker(WorkerBase):
             device=self.device,
             include_storage_details=False,
             reset_peak_after_capture=True,
+            named_allocations=self._memory_diagnostic_allocations(),
         )
 
         # Model loading constructs the PLE placeholders whose CUDA buffers are
@@ -595,6 +615,7 @@ class Worker(WorkerBase):
                 device=self.device,
                 include_storage_details=False,
                 reset_peak_after_capture=True,
+                named_allocations=self._memory_diagnostic_allocations(),
             )
 
         if self.vllm_config.weight_transfer_config is not None:
@@ -682,6 +703,9 @@ class Worker(WorkerBase):
             device=self.device,
             include_storage_details=False,
             reset_peak_after_capture=True,
+            named_allocations=self._memory_diagnostic_allocations(
+                cudagraph_profile_estimate_bytes=cudagraph_memory_estimate,
+            ),
         )
         # Respect the opt-in flag as originally designed.
         cudagraph_memory_estimate_applied = (
@@ -837,6 +861,7 @@ class Worker(WorkerBase):
             device=self.device,
             include_storage_details=False,
             reset_peak_after_capture=True,
+            named_allocations=self._memory_diagnostic_allocations(),
         )
         if self.model_config.enable_return_routed_experts:
             self.model_runner.init_routed_experts_capturer()
@@ -881,14 +906,37 @@ class Worker(WorkerBase):
             logger.info("Compile and warming up model for size %d", size)
             self.model_runner._dummy_run(size, skip_eplb=True, remove_lora=False)
         self.model_runner.maybe_remove_all_loras(self.model_runner.lora_config)
+        capture_model_memory_report_if_enabled(
+            self.model_runner.get_model(),
+            stage="compile warmup complete",
+            device=self.device,
+            include_storage_details=False,
+            named_allocations=self._memory_diagnostic_allocations(),
+        )
 
         # Warmup and tune the kernels used during model execution before
         # cuda graph capture.
         kernel_warmup(self)
+        capture_model_memory_report_if_enabled(
+            self.model_runner.get_model(),
+            stage="kernel warmup complete",
+            device=self.device,
+            include_storage_details=False,
+            named_allocations=self._memory_diagnostic_allocations(),
+        )
 
         cuda_graph_memory_bytes = 0
         if not self.model_config.enforce_eager:
             cuda_graph_memory_bytes = self.model_runner.capture_model()
+        capture_model_memory_report_if_enabled(
+            self.model_runner.get_model(),
+            stage="cuda graph capture complete",
+            device=self.device,
+            include_storage_details=False,
+            named_allocations=self._memory_diagnostic_allocations(
+                cudagraph_actual_bytes=cuda_graph_memory_bytes,
+            ),
+        )
 
         # Compare actual vs estimated CUDA graph memory (if we did profiling)
         if (
@@ -1025,7 +1073,11 @@ class Worker(WorkerBase):
             stage="warmup complete",
             device=self.device,
             include_storage_details=False,
+            named_allocations=self._memory_diagnostic_allocations(
+                cudagraph_actual_bytes=cuda_graph_memory_bytes,
+            ),
         )
+        stop_allocator_memory_history_if_enabled(self.device)
 
         # Startup is done; steady-state serving gets no benefit from torch
         # intra-op parallelism.

@@ -181,6 +181,28 @@ def test_ple_connector_initializes_metadata_only_for_dummy_load(
     assert list(layers) == ["ple"]
 
 
+def test_ple_connector_memory_diagnostics_names_persistent_buffers() -> None:
+    connector = PleOffloadConnector.__new__(PleOffloadConnector)
+    first_layer = SimpleNamespace(
+        _gpu_output_buffer=torch.empty((4, 3), dtype=torch.float32),
+        _sem=SimpleNamespace(flag_tensor=torch.empty((1,), dtype=torch.int32)),
+    )
+    second_layer = SimpleNamespace(
+        _gpu_output_buffer=torch.empty((2, 3), dtype=torch.float16),
+        _sem=SimpleNamespace(flag_tensor=torch.empty((1,), dtype=torch.int32)),
+    )
+    connector._layers = {"first": first_layer, "second": second_layer}
+    connector._input_ids_buf = torch.empty((8,), dtype=torch.int32)
+    connector._query_start_loc_buf = torch.empty((3,), dtype=torch.int32)
+    connector._ngram_context_buf = torch.empty((2, 4), dtype=torch.int32)
+
+    assert connector.memory_diagnostics() == {
+        "ple_gpu_output_buffer_bytes": 60,
+        "ple_gpu_semaphore_bytes": 8,
+        "ple_cpu_shared_input_bytes": 76,
+    }
+
+
 def test_ple_offload_wait_only_waits_for_done(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
