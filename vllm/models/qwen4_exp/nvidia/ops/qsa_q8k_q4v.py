@@ -528,7 +528,7 @@ def qsa_sparse_paged_attention_q8k_q4v(
     if query.shape[0] == 0:
         return output
 
-    from vllm.models.qwen4_exp.nvidia.ops.qsa import _qsa_merge_splitk_kernel
+    from .qsa import _qsa_merge_splitk_kernel
 
     transformed_query = single_rht(query.float()).to(query.dtype)
     quantized_query, query_scale = per_token_quant_int8(transformed_query)
