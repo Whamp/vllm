@@ -235,7 +235,14 @@ slower than BF16 at M=256. No full-model FP8 launch was attempted. See
 CUDA-Graph, and M=1 reader gates. Its M=256 sparse reader ran 26.32 times slower
 than BF16. The generated cache-layout property also passed 100 valid HND/NHD
 cases and caught two shrunk failures under a temporary stride counterfeit. See
-[QSA-INT8-CACHE.md](QSA-INT8-CACHE.md). Q4 remains a separate experiment.
+[QSA-INT8-CACHE.md](QSA-INT8-CACHE.md).
+
+**INT4 result: reject.** Packed Q4 passed generated layout, RHT, and sparse
+attention properties, three semantic counterfeit kills, numerical bounds,
+CUDA-Graph replay, and the M=256 performance gate. Matrix RHT reduced M=1 from
+3.44 to 2.03 times BF16, but four Q4-only decode schedules remained at 2.06 to
+2.09 times BF16 against a fixed maximum of 1.25. No full-model launch was
+attempted. See [QSA-INT4-CACHE.md](QSA-INT4-CACHE.md).
 
 ## Restored service
 

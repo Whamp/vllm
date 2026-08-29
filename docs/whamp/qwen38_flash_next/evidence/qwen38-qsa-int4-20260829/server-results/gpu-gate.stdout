@@ -1,0 +1,135 @@
+[ERROR] `min_frames` is part of Qwen3VLVideoProcessorInitKwargs, but not documented. Make sure to add it to the docstring of the function in /usr/local/lib/python3.12/dist-packages/transformers/models/qwen3_vl/video_processing_qwen3_vl.py.
+[ERROR] `max_frames` is part of Qwen3VLVideoProcessorInitKwargs, but not documented. Make sure to add it to the docstring of the function in /usr/local/lib/python3.12/dist-packages/transformers/models/qwen3_vl/video_processing_qwen3_vl.py.
+{
+  "acceptance": {
+    "maximum_int4_to_bf16_reader_time_ratio": 1.25,
+    "maximum_normalized_rmse": 0.18,
+    "minimum_cosine_similarity": 0.98
+  },
+  "compute_capability": [
+    8,
+    6
+  ],
+  "cuda_graph": {
+    "bitwise_equal": true,
+    "finite": true
+  },
+  "device": "NVIDIA GeForce RTX 3090",
+  "numerical_gate_passed": true,
+  "performance": {
+    "m1": {
+      "numerical_passed": true,
+      "output": {
+        "cosine_similarity": 0.9892441630363464,
+        "maximum_absolute_error": 0.01959228515625,
+        "normalized_rmse": 0.14832305908203125
+      },
+      "reader": {
+        "bf16": {
+          "median_microseconds": 141.2608027458191,
+          "samples": [
+            143.30719709396362,
+            141.05600118637085,
+            141.2608027458191,
+            144.12800073623657,
+            141.1072015762329
+          ]
+        },
+        "int4": {
+          "median_microseconds": 485.9903812408447,
+          "samples": [
+            487.98718452453613,
+            484.3008041381836,
+            485.9903812408447,
+            486.297607421875,
+            484.14721488952637
+          ]
+        },
+        "int4_to_bf16_ratio": 3.440376748497761,
+        "passed": false
+      },
+      "rows": 1,
+      "writer": {
+        "bf16": {
+          "median_microseconds": 65.63839912414551,
+          "samples": [
+            70.34879922866821,
+            65.63839912414551,
+            66.96959733963013,
+            65.48479795455933,
+            64.66559767723083
+          ]
+        },
+        "int4": {
+          "median_microseconds": 361.21599674224854,
+          "samples": [
+            363.67039680480957,
+            361.21599674224854,
+            361.9839906692505,
+            361.16480827331543,
+            361.0624074935913
+          ]
+        },
+        "int4_to_bf16_ratio": 5.503120148604796
+      }
+    },
+    "m256": {
+      "numerical_passed": true,
+      "output": {
+        "cosine_similarity": 0.9876991510391235,
+        "maximum_absolute_error": 0.0350341796875,
+        "normalized_rmse": 0.1583799421787262
+      },
+      "reader": {
+        "bf16": {
+          "median_microseconds": 575.5392074584961,
+          "samples": [
+            575.5904197692871,
+            576.4095783233643,
+            574.8735904693604,
+            575.5392074584961,
+            574.9760150909424
+          ]
+        },
+        "int4": {
+          "median_microseconds": 531.3471794128418,
+          "samples": [
+            531.712007522583,
+            531.0431957244873,
+            531.3471794128418,
+            530.944013595581,
+            543.8464164733887
+          ]
+        },
+        "int4_to_bf16_ratio": 0.9232163031241601,
+        "passed": true
+      },
+      "rows": 256,
+      "writer": {
+        "bf16": {
+          "median_microseconds": 64.56320285797119,
+          "samples": [
+            65.12640118598938,
+            64.56320285797119,
+            64.46080207824707,
+            64.91519808769226,
+            64.46080207824707
+          ]
+        },
+        "int4": {
+          "median_microseconds": 363.16161155700684,
+          "samples": [
+            364.02881145477295,
+            364.7007942199707,
+            363.16161155700684,
+            363.0592107772827,
+            362.34240531921387
+          ]
+        },
+        "int4_to_bf16_ratio": 5.624900802333254
+      }
+    }
+  },
+  "performance_gate_passed": false,
+  "schema_version": 1
+}

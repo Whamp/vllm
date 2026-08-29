@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "semantic_counterfeits": {
+    "swapped_key_nibbles": {
+      "image_sha256": "25f01f79a0d4dc5e34619bb1aaf5c9b05e53049db344d84b6336639cdcff686b",
+      "change": "Decode high key nibble as even and low key nibble as odd"
+    },
+    "omitted_key_zero_point": {
+      "image_sha256": "fcf1c84f5b0c6139b153fd00b25fe34023836e679f605a22c6eb7b15419d1738",
+      "change": "Multiply the key zero-point correction by zero"
+    },
+    "missing_rht_normalization": {
+      "image_sha256": "ddf9d955562927b2fc1f82ca9ee3ce3b7202722e91b24de8a88468af2189e242",
+      "change": "Remove division by HEAD_DIM from transformed score scaling"
+    }
+  },
+  "decode_retile": {
+    "block32_splits32_warps4": {
+      "image_sha256": "c4fff90e26db8451dc3aac58fff88b6a321ef6093474cef0d114d7b274e6631e"
+    },
+    "block64_splits32_warps4": {
+      "image_sha256": "6812e673a5cdd7ec4ac42ae69023f5490896babd53a458f9c8d79f0b1d33e6bf"
+    },
+    "block64_splits16_warps4": {
+      "image_sha256": "7cb590b7ddea3dfdc1f3ee4dbf84dab0fe3ddfce47d7dd59be19abceab40ab01"
+    },
+    "block128_splits16_warps4": {
+      "image_sha256": "219fc2d29895768141321e338475cd5697a0b01036858ee3735be49565d84b07"
+    }
+  }
+}

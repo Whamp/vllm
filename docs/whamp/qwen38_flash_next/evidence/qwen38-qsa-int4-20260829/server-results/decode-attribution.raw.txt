@@ -1,0 +1,58 @@
+[ERROR] `min_frames` is part of Qwen3VLVideoProcessorInitKwargs, but not documented. Make sure to add it to the docstring of the function in /usr/local/lib/python3.12/dist-packages/transformers/models/qwen3_vl/video_processing_qwen3_vl.py.
+[ERROR] `max_frames` is part of Qwen3VLVideoProcessorInitKwargs, but not documented. Make sure to add it to the docstring of the function in /usr/local/lib/python3.12/dist-packages/transformers/models/qwen3_vl/video_processing_qwen3_vl.py.
+{
+  "compute_capability": [
+    8,
+    6
+  ],
+  "core_without_rht_timing_only": {
+    "median_microseconds": 258.9795112609863,
+    "samples": [
+      259.5020866394043,
+      259.0412712097168,
+      258.9795112609863,
+      258.58015060424805,
+      258.7545585632324,
+      260.05504608154297,
+      258.41663360595703
+    ]
+  },
+  "device": "NVIDIA GeForce RTX 3090",
+  "forward_rht": {
+    "median_microseconds": 137.5539207458496,
+    "samples": [
+      138.24000358581543,
+      137.57439613342285,
+      137.20576286315918,
+      137.24672317504883,
+      137.5539207458496,
+      137.91232109069824,
+      137.5436782836914
+    ]
+  },
+  "full_reader": {
+    "median_microseconds": 483.5327911376953,
+    "samples": [
+      484.6076965332031,
+      483.7376022338867,
+      482.84671783447266,
+      482.61119842529297,
+      483.26656341552734,
+      483.95263671875,
+      483.5327911376953
+    ]
+  },
+  "inverse_rht": {
+    "median_microseconds": 134.7590446472168,
+    "samples": [
+      134.6662425994873,
+      134.76863861083984,
+      134.78912353515625,
+      134.94272232055664,
+      134.7590446472168,
+      134.44095611572266,
+      134.61503982543945
+    ]
+  },
+  "schema_version": 1
+}
