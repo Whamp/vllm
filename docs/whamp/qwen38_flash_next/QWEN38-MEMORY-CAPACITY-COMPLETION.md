@@ -1,11 +1,16 @@
 # Qwen3.8 memory-capacity completion audit
 
-## Final result
+> This document records the completed BF16-cache milestone. The calibrated
+> direct-E4M3 profile later superseded it as production at the native 262,144-token
+> context. See [QSA-FP8-CACHE.md](QSA-FP8-CACHE.md) for the current decision,
+> rollback, and performance evidence.
 
-The server60 Intel AutoRound Qwen3.8 service now runs at 202,400 fitted context,
-up from 148,400 at the first healthy EP=4 baseline. The final profile keeps the
-same model, quantized CPU PLE, vision stack, BF16 QSA cache, expert parallelism,
-and CUDA-Graph mode.
+## BF16 milestone result
+
+The server60 Intel AutoRound Qwen3.8 service reached 202,400 fitted context,
+up from 148,400 at the first healthy EP=4 baseline. That profile kept the same
+model, quantized CPU PLE, vision stack, BF16 QSA cache, expert parallelism, and
+CUDA-Graph mode.
 
 Two persistent allocations were reduced:
 

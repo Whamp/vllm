@@ -1,0 +1,288 @@
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import statistics
+from pathlib import Path
+
+import torch
+
+from vllm import _custom_ops as custom_ops
+
+MAX_NRMSE = 0.05
+MIN_COSINE = 0.995
+MAX_TIME_RATIO = 1.25
+QUERY_HEADS = 6
+KV_HEADS = 1
+HEAD_DIM = 256
+PAGE_SIZE = 1024
+CACHE_BLOCKS = 4
+TOPK = 2051
+
+
+def load_module(name: str, path: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Cannot load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def output_metrics(reference: torch.Tensor, candidate: torch.Tensor) -> dict[str, float]:
+    reference = reference.float().flatten()
+    candidate = candidate.float().flatten()
+    error = candidate - reference
+    return {
+        "normalized_rmse": float(
+            torch.linalg.vector_norm(error) / torch.linalg.vector_norm(reference)
+        ),
+        "cosine_similarity": float(
+            torch.nn.functional.cosine_similarity(
+                reference.unsqueeze(0), candidate.unsqueeze(0)
+            )
+        ),
+        "maximum_absolute_error": float(error.abs().max()),
+    }
+
+
+def make_case(rows: int) -> dict[str, torch.Tensor]:
+    generator = torch.Generator(device="cuda").manual_seed(1000 + rows)
+    q = torch.randn(
+        rows,
+        QUERY_HEADS,
+        HEAD_DIM,
+        generator=generator,
+        device="cuda",
+        dtype=torch.bfloat16,
+    )
+    key = torch.randn(
+        CACHE_BLOCKS,
+        PAGE_SIZE,
+        KV_HEADS,
+        HEAD_DIM,
+        generator=generator,
+        device="cuda",
+        dtype=torch.bfloat16,
+    )
+    value = torch.randn(
+        CACHE_BLOCKS,
+        PAGE_SIZE,
+        KV_HEADS,
+        HEAD_DIM,
+        generator=generator,
+        device="cuda",
+        dtype=torch.bfloat16,
+    )
+    k_scale = (key.float().abs().max() / 448.0).clamp_min(1e-8)
+    v_scale = (value.float().abs().max() / 448.0).clamp_min(1e-8)
+    key_bytes = torch.zeros_like(key, dtype=torch.uint8)
+    value_bytes = torch.zeros_like(value, dtype=torch.uint8)
+    slots = torch.arange(
+        CACHE_BLOCKS * PAGE_SIZE, dtype=torch.long, device="cuda"
+    )
+    custom_ops.reshape_and_cache_flash(
+        key.view(-1, KV_HEADS, HEAD_DIM),
+        value.view(-1, KV_HEADS, HEAD_DIM),
+        key_bytes,
+        value_bytes,
+        slots,
+        "fp8_e4m3",
+        k_scale,
+        v_scale,
+    )
+    indices = torch.randint(
+        0,
+        CACHE_BLOCKS * PAGE_SIZE,
+        (rows, TOPK),
+        generator=generator,
+        device="cuda",
+        dtype=torch.int32,
+    )
+    if rows > 1:
+        indices[1, -7:] = -1
+    block_table = torch.arange(
+        CACHE_BLOCKS, dtype=torch.int32, device="cuda"
+    ).unsqueeze(0)
+    token_to_req = torch.zeros(rows, dtype=torch.int32, device="cuda")
+    return {
+        "q": q,
+        "key": key,
+        "value": value,
+        "key_bytes": key_bytes,
+        "value_bytes": value_bytes,
+        "k_scale": k_scale,
+        "v_scale": v_scale,
+        "indices": indices,
+        "block_table": block_table,
+        "token_to_req": token_to_req,
+    }
+
+
+def call_bf16(module, case, out=None):
+    return module.qsa_sparse_paged_attention(
+        case["q"],
+        case["key"],
+        case["value"],
+        case["indices"],
+        case["block_table"],
+        case["token_to_req"],
+        out,
+    )
+
+
+def call_fp8(module, case, out=None):
+    return module.qsa_sparse_paged_attention(
+        case["q"],
+        case["key_bytes"],
+        case["value_bytes"],
+        case["indices"],
+        case["block_table"],
+        case["token_to_req"],
+        out,
+        k_scale=case["k_scale"],
+        v_scale=case["v_scale"],
+    )
+
+
+def numerical_gate(vendor, candidate) -> dict[str, object]:
+    result = {}
+    for rows in (1, 4, 64, 512):
+        case = make_case(rows)
+        bf16 = call_bf16(vendor, case)
+        fp8 = call_fp8(candidate, case)
+        metrics = output_metrics(bf16, fp8)
+        passed = (
+            metrics["normalized_rmse"] <= MAX_NRMSE
+            and metrics["cosine_similarity"] >= MIN_COSINE
+            and bool(torch.isfinite(fp8).all())
+        )
+        result[f"m{rows}"] = {**metrics, "finite": bool(torch.isfinite(fp8).all()), "passed": passed}
+        if not passed:
+            raise RuntimeError(f"FP8 numerical gate failed at M={rows}: {metrics}")
+    return result
+
+
+def e4m3_byte_gate(candidate) -> dict[str, object]:
+    encoded = torch.arange(256, dtype=torch.uint8, device="cuda")
+    q = torch.zeros(256, QUERY_HEADS, HEAD_DIM, dtype=torch.bfloat16, device="cuda")
+    key_bytes = torch.zeros(16, 16, 1, HEAD_DIM, dtype=torch.uint8, device="cuda")
+    value_bytes = (
+        encoded[:, None, None]
+        .expand(-1, 1, HEAD_DIM)
+        .reshape_as(key_bytes)
+        .contiguous()
+    )
+    indices = torch.arange(256, dtype=torch.int32, device="cuda").unsqueeze(1)
+    block_table = torch.arange(16, dtype=torch.int32, device="cuda").unsqueeze(0)
+    token_to_req = torch.zeros(256, dtype=torch.int32, device="cuda")
+    scale = torch.ones((), dtype=torch.float32, device="cuda")
+    actual = candidate.qsa_sparse_paged_attention(
+        q,
+        key_bytes,
+        value_bytes,
+        indices,
+        block_table,
+        token_to_req,
+        k_scale=scale,
+        v_scale=scale,
+    )
+    expected = encoded.view(torch.float8_e4m3fn).to(torch.bfloat16)
+    expected = expected[:, None, None].expand_as(actual)
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0, equal_nan=True)
+    return {"patterns": 256, "bit_exact_or_nan_equal": True}
+
+
+def graph_gate(candidate, rows: int) -> dict[str, object]:
+    case = make_case(rows)
+    out = torch.empty_like(case["q"])
+    for _ in range(4):
+        call_fp8(candidate, case, out)
+    torch.cuda.synchronize()
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        call_fp8(candidate, case, out)
+    graph.replay()
+    first = out.clone()
+    graph.replay()
+    second = out.clone()
+    return {
+        "rows": rows,
+        "bitwise_equal": bool(torch.equal(first, second)),
+        "finite": bool(torch.isfinite(first).all()),
+    }
+
+
+def time_cuda(operation, iterations: int, repeats: int = 5) -> dict[str, object]:
+    for _ in range(20):
+        operation()
+    torch.cuda.synchronize()
+    samples = []
+    for _ in range(repeats):
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
+        for _ in range(iterations):
+            operation()
+        end.record()
+        end.synchronize()
+        samples.append(start.elapsed_time(end) * 1000.0 / iterations)
+    return {"median_us": statistics.median(samples), "samples_us": samples}
+
+
+def performance_gate(vendor, candidate) -> dict[str, object]:
+    result = {}
+    for rows, iterations in ((1, 200), (8, 100), (32, 50), (256, 20), (512, 10)):
+        case = make_case(rows)
+        bf16_out = torch.empty_like(case["q"])
+        fp8_out = torch.empty_like(case["q"])
+        bf16 = time_cuda(lambda: call_bf16(vendor, case, bf16_out), iterations)
+        fp8 = time_cuda(lambda: call_fp8(candidate, case, fp8_out), iterations)
+        ratio = fp8["median_us"] / bf16["median_us"]
+        result[f"m{rows}"] = {
+            "bf16": bf16,
+            "fp8": fp8,
+            "fp8_to_bf16_ratio": ratio,
+            "passed": ratio <= MAX_TIME_RATIO,
+        }
+    return result
+
+
+def main() -> None:
+    vendor = load_module(
+        "qsa_vendor",
+        "/usr/local/lib/python3.12/dist-packages/vllm/models/"
+        "qwen3_8_flash_next/nvidia/ops/qsa.py",
+    )
+    candidate = load_module("qsa_candidate", "/work_overlay/ops_qsa.py")
+    if torch.cuda.get_device_capability() != (8, 6):
+        raise RuntimeError(f"Expected SM86, got {torch.cuda.get_device_capability()}")
+    performance = performance_gate(vendor, candidate)
+    graphs = [graph_gate(candidate, rows) for rows in (1, 256)]
+    result = {
+        "schema_version": 1,
+        "device": torch.cuda.get_device_name(),
+        "compute_capability": list(torch.cuda.get_device_capability()),
+        "acceptance": {
+            "max_nrmse": MAX_NRMSE,
+            "min_cosine": MIN_COSINE,
+            "max_time_ratio": MAX_TIME_RATIO,
+        },
+        "numerical": numerical_gate(vendor, candidate),
+        "e4m3_bytes": e4m3_byte_gate(candidate),
+        "cuda_graph": graphs,
+        "performance": performance,
+        "performance_passed": all(v["passed"] for v in performance.values()),
+        "graph_passed": all(v["bitwise_equal"] and v["finite"] for v in graphs),
+    }
+    output_path = Path("/output/gpu-gate.json")
+    output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    print(json.dumps(result, indent=2, sort_keys=True))
+    if not result["performance_passed"] or not result["graph_passed"]:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

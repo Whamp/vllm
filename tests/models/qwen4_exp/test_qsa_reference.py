@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
+from vllm import _custom_ops as custom_ops
 from vllm.models.qwen4_exp.common import qsa_cache
 from vllm.models.qwen4_exp.common.qsa_cache import QSAMetadataBuilder
 from vllm.models.qwen4_exp.nvidia import indexer_qsa
@@ -736,6 +737,119 @@ def test_qsa_sparse_paged_attention_matches_test_reference(
         scale,
     )
 
+    torch.testing.assert_close(actual, expected, rtol=2e-2, atol=2e-2)
+
+
+@requires_qsa_kernels
+def test_qsa_fp8_reader_decodes_every_e4m3_byte_pattern() -> None:
+    head_dim = 256
+    num_rows = 256
+    page_size = 16
+    encoded = torch.arange(256, dtype=torch.uint8, device="cuda")
+    q = torch.zeros(num_rows, 6, head_dim, dtype=torch.bfloat16, device="cuda")
+    k_cache = torch.zeros(16, page_size, 1, head_dim, dtype=torch.uint8, device="cuda")
+    v_cache = (
+        encoded[:, None, None].expand(-1, 1, head_dim).reshape_as(k_cache).contiguous()
+    )
+    logical_indices = torch.arange(
+        num_rows, dtype=torch.int32, device="cuda"
+    ).unsqueeze(1)
+    block_table = torch.arange(16, dtype=torch.int32, device="cuda").unsqueeze(0)
+    token_to_req = torch.zeros(num_rows, dtype=torch.int32, device="cuda")
+    scale = torch.ones((), dtype=torch.float32, device="cuda")
+
+    actual = qsa_ops.qsa_sparse_paged_attention(
+        q,
+        k_cache,
+        v_cache,
+        logical_indices,
+        block_table,
+        token_to_req,
+        k_scale=scale,
+        v_scale=scale,
+    )
+    expected_values = encoded.view(torch.float8_e4m3fn).to(torch.bfloat16)
+    expected = expected_values[:, None, None].expand_as(actual)
+
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0, equal_nan=True)
+
+
+@requires_qsa_kernels
+def test_qsa_fp8_writer_and_reader_match_dequantized_reference_tp4() -> None:
+    torch.manual_seed(7)
+    num_rows = 4
+    head_dim = 256
+    page_size = 16
+    num_cache_blocks = 256
+    selection_width = 2051
+    q = torch.randn(num_rows, 6, head_dim, dtype=torch.bfloat16, device="cuda")
+    key = torch.randn(
+        num_cache_blocks * page_size,
+        1,
+        head_dim,
+        dtype=torch.bfloat16,
+        device="cuda",
+    )
+    value = torch.randn_like(key)
+    k_scale = (key.float().abs().max() / 448.0).clamp_min(1e-8)
+    v_scale = (value.float().abs().max() / 448.0).clamp_min(1e-8)
+    k_cache = torch.zeros(
+        num_cache_blocks,
+        page_size,
+        1,
+        head_dim,
+        dtype=torch.uint8,
+        device="cuda",
+    )
+    v_cache = torch.zeros_like(k_cache)
+    slots = torch.arange(key.shape[0], dtype=torch.long, device="cuda")
+    custom_ops.reshape_and_cache_flash(
+        key,
+        value,
+        k_cache,
+        v_cache,
+        slots,
+        "fp8_e4m3",
+        k_scale,
+        v_scale,
+    )
+    block_table = torch.randperm(
+        num_cache_blocks, dtype=torch.int32, device="cuda"
+    ).unsqueeze(0)
+    logical_indices = torch.randint(
+        0,
+        num_cache_blocks * page_size,
+        (num_rows, selection_width),
+        dtype=torch.int32,
+        device="cuda",
+    )
+    logical_indices[1, -7:] = -1
+    logical_indices[2].fill_(-1)
+    token_to_req = torch.zeros(num_rows, dtype=torch.int32, device="cuda")
+
+    actual = qsa_ops.qsa_sparse_paged_attention(
+        q,
+        k_cache,
+        v_cache,
+        logical_indices,
+        block_table,
+        token_to_req,
+        k_scale=k_scale,
+        v_scale=v_scale,
+    )
+    dequantized_k = k_cache.view(torch.float8_e4m3fn).to(torch.bfloat16) * k_scale
+    dequantized_v = v_cache.view(torch.float8_e4m3fn).to(torch.bfloat16) * v_scale
+    expected = _qsa_sparse_paged_attention_reference(
+        q,
+        dequantized_k,
+        dequantized_v,
+        logical_indices,
+        block_table,
+        token_to_req,
+        head_dim**-0.5,
+    )
+
+    assert torch.isfinite(actual).all()
     torch.testing.assert_close(actual, expected, rtol=2e-2, atol=2e-2)
 
 

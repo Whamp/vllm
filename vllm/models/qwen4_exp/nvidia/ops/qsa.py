@@ -16,6 +16,25 @@ _TOPK_WORKSPACE_BYTES = 1024 * 1024
 
 
 @triton.jit
+def _decode_qsa_e4m3fn(encoded):
+    """Decode raw E4M3FN bytes without requiring an SM89 FP8 type."""
+    bits = encoded.to(tl.uint32)
+    sign = bits >> 7
+    exponent = (bits >> 3) & 0xF
+    mantissa = bits & 0x7
+    normal_bits = (sign << 31) | ((exponent + 120) << 23) | (mantissa << 20)
+    normal = normal_bits.to(tl.float32, bitcast=True)
+    subnormal = mantissa.to(tl.float32) * 0.001953125
+    subnormal = tl.where(sign != 0, -subnormal, subnormal)
+    value = tl.where(exponent == 0, subnormal, normal)
+    return tl.where(
+        (exponent == 0xF) & (mantissa == 0x7),
+        float("nan"),
+        value,
+    )
+
+
+@triton.jit
 def _qsa_mqa_paged_kernel(
     q_ptr,
     k_cache_ptr,
@@ -194,6 +213,8 @@ def _qsa_sparse_paged_gqa_splitk_kernel(
     q_ptr,
     k_cache_ptr,
     v_cache_ptr,
+    k_scale_ptr,
+    v_scale_ptr,
     indices_ptr,
     block_table_ptr,
     token_to_req_ptr,
@@ -225,6 +246,7 @@ def _qsa_sparse_paged_gqa_splitk_kernel(
     NUM_TILES: tl.constexpr,
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
+    CACHE_IS_E4M3: tl.constexpr,
 ) -> None:
     row = tl.program_id(0)
     kv_head = tl.program_id(1)
@@ -249,6 +271,9 @@ def _qsa_sparse_paged_gqa_splitk_kernel(
     normalizer = tl.zeros((BLOCK_M,), dtype=tl.float32)
     accumulator = tl.zeros((BLOCK_M, HEAD_DIM), dtype=tl.float32)
     softmax_scale_log2: tl.constexpr = (HEAD_DIM**-0.5) * 1.4426950408889634
+    if CACHE_IS_E4M3:
+        k_scale = tl.load(k_scale_ptr)
+        v_scale = tl.load(v_scale_ptr)
 
     # Dynamic bounds avoid padded main-loop iterations for uneven splits.
     split_tile_start = split_id * NUM_TILES // NUM_SPLITS
@@ -297,9 +322,13 @@ def _qsa_sparse_paged_gqa_splitk_kernel(
             mask=valid[:, None],
             other=0.0,
         )
+        if CACHE_IS_E4M3:
+            keys = _decode_qsa_e4m3fn(keys).to(tl.bfloat16)
+            values = _decode_qsa_e4m3fn(values).to(tl.bfloat16)
         scores = tl.dot(query, keys)
-        # Scaling scores avoids re-quantizing a scaled query to BF16.
-        scores *= softmax_scale_log2
+        # K scale is linear with QK; fold it into score scaling instead of
+        # multiplying every decoded key element.
+        scores *= softmax_scale_log2 * (k_scale if CACHE_IS_E4M3 else 1.0)
         scores = tl.where(valid[None, :], scores, -1.0e20)
         next_max = tl.maximum(max_value, tl.max(scores, axis=1))
         alpha = tl.math.exp2(max_value - next_max)
@@ -320,6 +349,9 @@ def _qsa_sparse_paged_gqa_splitk_kernel(
         accumulator / tl.maximum(normalizer[:, None], 1.0e-20),
         0.0,
     )
+    # Attention is linear in V, so apply its scale once per output element.
+    if CACHE_IS_E4M3:
+        normalized_output *= v_scale
     output_mask = head_offsets[:, None] < GROUP_SIZE
     if NUM_SPLITS == 1:
         tl.store(
@@ -817,8 +849,11 @@ def qsa_sparse_paged_attention(
     block_table: torch.Tensor,
     token_to_req: torch.Tensor,
     out: torch.Tensor | None = None,
+    *,
+    k_scale: torch.Tensor | None = None,
+    v_scale: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """Run sparse GQA directly over paged BF16 K/V caches."""
+    """Run sparse GQA directly over paged BF16 or E4M3 K/V caches."""
 
     if not q.is_cuda or not HAS_TRITON:
         raise RuntimeError("paged QSA sparse attention requires CUDA and Triton")
@@ -836,7 +871,25 @@ def qsa_sparse_paged_attention(
         raise ValueError("QSA sparse attention requires valid grouped-query heads")
     head_dim = q.shape[2]
     assert head_dim >= 16 and (head_dim & (head_dim - 1)) == 0
-    assert q.dtype == k_cache.dtype == v_cache.dtype == torch.bfloat16
+    cache_is_e4m3 = k_cache.dtype == torch.uint8
+    if cache_is_e4m3:
+        if v_cache.dtype != torch.uint8 or q.dtype != torch.bfloat16:
+            raise ValueError("QSA E4M3 cache requires BF16 queries and byte K/V")
+        for name, scale in (("k_scale", k_scale), ("v_scale", v_scale)):
+            if (
+                scale is None
+                or scale.dtype != torch.float32
+                or scale.numel() != 1
+                or scale.device != q.device
+            ):
+                raise ValueError(f"QSA E4M3 cache requires a scalar FP32 device {name}")
+    elif q.dtype != torch.bfloat16 or k_cache.dtype != torch.bfloat16:
+        raise ValueError("QSA main cache requires BF16 or E4M3 K/V")
+    elif v_cache.dtype != torch.bfloat16:
+        raise ValueError("QSA BF16 cache requires matching K/V dtypes")
+    else:
+        k_scale = q
+        v_scale = q
     assert logical_indices.dtype == block_table.dtype == torch.int32
     assert token_to_req.dtype == torch.int32
     assert q.device == k_cache.device == v_cache.device
@@ -872,6 +925,19 @@ def qsa_sparse_paged_attention(
     else:
         block_n, target_splits, partial_warps = 64, 1, 2
 
+    num_stages = 2
+    if cache_is_e4m3:
+        # The 64-wide BF16 profiles spill badly once E4M3 decode is fused on
+        # SM86. The measured Qwen3.8 TP4 profiles keep it in registers.
+        if base_programs <= 8:
+            block_n, target_splits, partial_warps, num_stages = 16, 64, 4, 2
+        elif base_programs < 32:
+            block_n, target_splits, partial_warps, num_stages = 16, 32, 4, 2
+        elif base_programs <= 256:
+            block_n, target_splits, partial_warps, num_stages = 16, 16, 2, 1
+        else:
+            block_n, target_splits, partial_warps, num_stages = 16, 8, 2, 1
+
     num_tiles = triton.cdiv(logical_indices.shape[1], block_n)
     # Avoid empty splits when the selection width is smaller than the profile.
     max_useful_splits = 1 << (num_tiles.bit_length() - 1)
@@ -898,6 +964,8 @@ def qsa_sparse_paged_attention(
         q,
         k_cache,
         v_cache,
+        k_scale,
+        v_scale,
         logical_indices,
         block_table,
         token_to_req,
@@ -929,8 +997,9 @@ def qsa_sparse_paged_attention(
         NUM_TILES=num_tiles,
         BLOCK_M=block_m,
         BLOCK_N=block_n,
+        CACHE_IS_E4M3=cache_is_e4m3,
         num_warps=partial_warps,
-        num_stages=2,
+        num_stages=num_stages,
     )
     if num_splits == 1:
         return out

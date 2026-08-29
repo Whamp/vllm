@@ -1,123 +1,139 @@
-# Qwen3.8 QSA FP8 cache evaluation
+# Qwen3.8 QSA FP8 cache
 
 ## Decision
 
-Reject FP8 for the Qwen3.8 QSA main K/V cache on server60's RTX 3090s.
-Keep the promoted BF16 cache unchanged.
+Promote the calibrated direct-E4M3 QSA cache as server60's Qwen3.8 production default.
+Keep the BF16 profile as the rollback path.
 
-E4M3 storage passed the writer, numerical, and CUDA-Graph gates and was neutral
-for M=1 decode. Its software-decoded M=256 kernel was 28.46 times slower than
-BF16. E5M2 compiled natively on SM86 but missed the preregistered numerical
-bound. Neither format reached full-model loading because the kernel gates had
-already rejected it.
+The promoted profile stores the twelve QSA layers' main K/V cache as E4M3 bytes,
+decodes those bytes in the sparse QSA reader, and applies an exact calibrated
+scale for each layer's K and V tensors. Raw and compressed indexer caches remain
+unchanged. The profile reached the native 262,144-token model limit with 314,261
+aggregate KV tokens and 1.20x maximum concurrency.
 
-This result is specific to the pinned QSA Triton implementation, RTX 3090 SM86,
-and the measured M=1 and M=256 shapes. It does not say that FP8 KV cache is bad
-on architectures with native E4M3 conversion support.
+The earlier FP8 no-go in this file tested a generic software conversion path. It
+was valid for that implementation, which took 28.46 times BF16 reader time at
+M=256. It does not describe the promoted reader. The direct reader folds cache
+scales into score and output scaling and selects SM86 profiles by request shape.
+Its final one-GPU gate stayed within 1.25 times BF16 reader time at every tested
+shape.
 
-## Capacity model
+## Production identity
 
-The twelve QSA layers currently store 12,288 bytes of BF16 main K/V per token
-and 768 bytes of BF16 compressed-indexer side cache, for 13,056 bytes per token
-per rank.
+| Item | Value |
+| --- | --- |
+| Model | Intel `Qwen3.8-Flash-Next-W4A16-AutoRound` |
+| Model revision | `861536dda5bcb208376fc4cd879b2bf76bece9fe` |
+| Derived config SHA-256 | `932cbf4d5dc50efa395db095ea3664fd6ef7672886332b2d0307cd9aa28ac9cf` |
+| Derived index SHA-256 | `e8893bbecf33dc7f9cdc27f927adbb3886d41531756e8e46cf9cee85499a1201` |
+| Primitive PLE revision | `da8b39586016d8325ac619be28ad77d6296625ec` |
+| Accepted base image | `sha256:1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b` |
+| Production FP8 image | `sha256:61971a78222e89335d84a7f4d72b0e8842619a4a29564582a58ff328af48abb9` |
+| Scale-file SHA-256 | `554d68aa917bdcac3ec7e5c14a8ca1421182d0b899da30b6c54501b72aefdcf3` |
+| Cache dtype | `fp8_e4m3` |
+| Context | 262,144 tokens |
+| Maximum sequences | 2 |
+| Batch-token budget | 1,024 |
+| GPU-memory utilization | 0.95 |
+| CUDA graphs | `FULL_DECODE_ONLY` |
+| Endpoint | `http://server60:30002/v1` |
 
-An FP8 main cache would reduce the main K/V term to 6,144 bytes while leaving
-the side cache unchanged, for 6,912 bytes per token. That is a 47.06% reduction
-in the complete QSA cache payload. It would likely make the model's native
-262,144-token context fit, but no capacity estimate can justify a kernel that is
-28 times slower on the prefill shape.
+The production Compose file uses `restart: unless-stopped`. It pins the image by
+digest and mounts the scale file read-only. `restore-bf16.sh` stops the FP8
+Compose project before running the preserved BF16 rollback. `restore-fp8.sh`
+recreates the promoted service and verifies image identity, model identity,
+context, restart policy, health, and zero swap.
 
-## Acceptance bounds
+## Scale calibration
 
-The one-GPU RTX 3090 gate fixed these limits before the final run:
+The runtime rejects missing layers, nonpositive scales, malformed files, and
+fallback or global scales. It reads twelve layer-specific K/V entries from
+`qsa-fp8-scales.json`.
 
-- normalized RMSE at most 0.05 versus BF16 attention output;
-- cosine similarity at least 0.995;
-- bitwise-deterministic, finite CUDA-Graph replay;
-- FP8 kernel time at most 1.25 times BF16 at M=1 and M=256.
+Calibration used the Intel checkpoint and the live Primitive PLE path. The live
+workload included text and two real image prompts. Every rank reported every
+QSA layer. The merge took the maximum K and V absolute value across TP ranks,
+applied a 1.125 safety margin, and divided by E4M3's maximum finite magnitude of
+448.
 
-The gate used TP=4 QSA geometry with six local query heads, one local KV head,
-head dimension 256, and a 2,051-token sparse selection for timing.
+The merged scale file and four rank reports are under
+[`evidence/qwen38-qsa-fp8-e4m3-20260829`](evidence/qwen38-qsa-fp8-e4m3-20260829/README.md).
 
-## Format results
+## Kernel gates
 
-### Typed E4M3
+The RTX 3090 gate used six local query heads, one local KV head, head dimension
+256, and 2,051 selected tokens. It passed:
 
-The installed Triton compiler rejected E4M3FN on SM86:
+- all 256 E4M3 byte patterns, including signed zero, subnormals, infinities, and
+  NaNs under the declared reference semantics;
+- finite numerical comparison against BF16 at M=1, 4, 64, and 512;
+- bitwise-equal CUDA Graph replay at M=1 and M=256;
+- the 1.25x BF16 reader-time limit at M=1, 8, 32, 256, and 512.
 
-```text
-ValueError: type fp8e4nv not supported in this architecture.
-The supported fp8 dtypes are ('fp8e4b15', 'fp8e5')
-```
-
-This is a compiler and architecture-format gate, not a timing result.
-
-### Typed E5M2
-
-E5M2 compiled, but its BF16-relative output error was:
-
-| Metric | Result | Bound |
-| --- | ---: | ---: |
-| Normalized RMSE | 0.059410 | <= 0.05 |
-| Cosine similarity | 0.998239 | >= 0.995 |
-| Maximum absolute error | 0.011963 | recorded only |
-
-The NRMSE gate rejected E5M2. The bound was not relaxed.
-
-### Software-decoded E4M3
-
-The E4M3 reader loaded raw bytes and reconstructed FP32 values from sign,
-exponent, and mantissa bits inside Triton. This preserved the better E4M3
-mantissa without using the unsupported typed conversion.
-
-Two pipeline stages required 102,400 bytes of shared memory at M=256, exceeding
-RTX 3090's 101,376-byte launch limit by 1,024 bytes. Reducing only the FP8 path
-to one pipeline stage cleared that architecture gate.
-
-The final E4M3 result was:
-
-| Metric | Result | Bound |
-| --- | ---: | ---: |
-| Writer bytes | exact E4M3 match | exact |
-| Normalized RMSE | 0.031408 | <= 0.05 |
-| Cosine similarity | 0.999507 | >= 0.995 |
-| Maximum absolute error | 0.007324 | recorded only |
-| CUDA-Graph replay | bitwise equal, finite | required |
-
-Performance rejected it:
-
-| Shape | BF16 | E4M3 | FP8/BF16 time |
+| Shape | Cosine | NRMSE | FP8/BF16 reader time |
 | --- | ---: | ---: | ---: |
-| M=1 | 139.55 us | 140.34 us | 1.006x |
-| M=256 | 588.54 us | 16,750.52 us | 28.461x |
+| M=1 | 0.999277 | 0.038033 | 1.043x |
+| M=8 | not separately scored | not separately scored | 1.043x |
+| M=32 | not separately scored | not separately scored | 1.051x |
+| M=64 | 0.999281 | 0.037910 | not timed in the final table |
+| M=256 | graph replay passed | graph replay passed | 1.174x |
+| M=512 | 0.999276 | 0.038064 | 1.218x |
 
-The M=256 result is stable across five samples. FP8 samples ranged from
-16,744.27 to 16,757.86 microseconds; BF16 ranged from 588.34 to 588.75.
+These are reader microbenchmarks. They do not explain the model's decode gap.
 
-## Why it loses
+## Serving gates
 
-SM86 can store E4M3 bytes, but the selected Triton path cannot convert E4M3FN
-values directly. The software reader performs sign, exponent, mantissa, bitcast,
-scale, and BF16 conversion work for every selected K and V element. At M=1 the
-kernel remains latency dominated and the added work is hidden. At M=256 the
-conversion multiplies across every row and selected token, overwhelming the
-bytes saved.
+At `gpu_memory_utilization=0.95`, the service reported 2.08 GiB available for
+KV and allocated 314,261 tokens. It passed:
 
-E5M2 avoids that software conversion but gives up enough mantissa precision to
-miss the numerical gate.
+- deterministic text generation;
+- automatic tool selection and post-tool continuation;
+- multimodal inference;
+- two simultaneous short generations;
+- exact retrieval of `VIOLET ORBIT 9137` from a 261,544-token API prompt;
+- zero serving-process swap;
+- the fixed 230 W server60 power policy.
 
-## Delivery state
+A matched internal benchmark measured 43.77 decode tokens/s and 1,529.25
+cache-busted prefill tokens/s. The preceding BF16 run measured 43.98 and
+1,531.33. The differences were minus 0.47% and minus 0.14%.
 
-All FP8 source changes were experimental and are reverted after this report.
-The production service remains on:
+## llama-benchy interpretation
 
-- image `sha256:0aea30240f3e3d9ffae8526643950e170eb5fa07fc427016a9dd90892afa2aa3`;
-- BF16 QSA cache;
-- 156,400-token fitted context;
-- `max_num_batched_tokens=1024`;
-- zero serving-process swap and zero restarts.
+Will's llama-benchy files are preserved byte-for-byte in the evidence directory.
+The cached runs are the usable decode-scaling evidence:
 
-The full evidence and rejected source patch are under
-[evidence/qwen38-qsa-fp8-20260829/](evidence/qwen38-qsa-fp8-20260829/).
-The next cache-format experiment is Q4, with a separate numerical and
-performance design rather than a renamed FP8 path.
+| Workload | Aggregate decode | Mean per request |
+| --- | ---: | ---: |
+| Cached c=1 | 48.21 tokens/s | 48.21 tokens/s |
+| Cached c=2 | 65.68 tokens/s | 36.12 tokens/s |
+
+Cached c=2 gives 1.36x aggregate speedup and 68.1% parallel efficiency.
+
+The cold c=2 `tg_throughput` value of 11.39 tokens/s is not steady concurrent
+decode. llama-benchy computes batch generation throughput over the interval from
+the earliest first token to the latest last token. In this run one request was
+decoding while the other was still prefilling. Per-request decode alternated
+between about 40.7 and 5.9 tokens/s, while time to first response alternated
+between about 21 and 40 seconds. Treat this as a mixed concurrent-prefill and
+decode interference workload.
+
+## Open performance work
+
+Two targets remain separate:
+
+1. Mixed concurrent-prefill starvation or serialization in the cold c=2 run.
+2. Cached steady decode scaling and the single-stream gap to Alesha's reported
+   63 to 68 tokens/s.
+
+The local cached c=1 result costs 20.744 ms/token. Alesha's 64.31-token/s
+near-maximum result costs 15.550 ms/token. The unexplained budget is 5.194
+ms/token. `max_num_seqs`, GPU-memory utilization, and benchmark prompt method do
+not explain that matched single-stream interval. Before changing code, capture
+matched c=1 and c=2 timelines and attribute scheduler phase admission, 1,024-token
+chunking, expert-parallel all-to-all and imbalance, PLE, QSA, GDN,
+hyperconnection, shared-expert, and routed-MoE work.
+
+The next implementation must name one measured critical segment and shorten it.
+Checkpoint changes and Alesha's thin-v2 FP8 companion projections remain a
+separate one-variable comparison rather than an assumed cause.

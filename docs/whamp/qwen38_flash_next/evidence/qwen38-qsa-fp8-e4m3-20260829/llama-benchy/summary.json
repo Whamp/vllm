@@ -1,0 +1,43 @@
+{
+  "cached_decode_scaling": {
+    "aggregate_speedup": 1.3625272717703418,
+    "c1_aggregate_tokens_per_second": 48.20658654770122,
+    "c2_aggregate_tokens_per_second": 65.68278885020021,
+    "c2_mean_per_request_tokens_per_second": 36.115654057155446,
+    "parallel_efficiency": 0.6812636358851709
+  },
+  "cold_c2_mixed_prefill_decode": {
+    "aggregate_tokens_per_second": 11.394647970202605,
+    "interpretation": "Mixed concurrent-prefill and decode interval; not steady decode scaling",
+    "per_request_tokens_per_second": [
+      5.586089223586027,
+      40.748770060019076,
+      6.014556757633224,
+      40.838595961879264,
+      40.60801616512727,
+      5.977480830286236
+    ],
+    "time_to_first_response_ms": [
+      21050.023182993755,
+      41292.67995618284,
+      20962.02120790258,
+      39579.61652916856,
+      38907.079759053886,
+      20176.02893500589
+    ]
+  },
+  "decode_causal_budget": {
+    "alesha_ms_per_token": 15.549681231534754,
+    "alesha_tokens_per_second": 64.31,
+    "gap_ms_per_token": 5.194372052770769,
+    "local_ms_per_token": 20.744053284305522,
+    "local_tokens_per_second": 48.20658654770122
+  },
+  "llama_benchy_version": "0.3.8.dev2+gff162bcfc",
+  "model": "qwen3.8-flash-next-intel-autoround-w4a16",
+  "schema_version": 1,
+  "sources": {
+    "c1": "qwen-flash-next-quick-vllm-w4a16-c1.json",
+    "c2": "qwen-flash-next-quick-vllm-w4a16-c2.json"
+  }
+}
