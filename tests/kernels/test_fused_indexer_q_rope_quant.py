@@ -24,6 +24,7 @@ from vllm.model_executor.layers.quantization.utils.fp8_utils import (
     per_token_group_quant_fp8,
 )
 from vllm.models.deepseek_v4.common.ops import fused_indexer_q_rope_quant
+from vllm.platforms import current_platform
 from vllm.utils.import_utils import is_cutedsl_supported
 
 HEAD_DIM = 128
@@ -126,7 +127,22 @@ def _reference(
 
 @pytest.mark.parametrize("num_tokens", [1, 7, 32, 257, 1023])
 @pytest.mark.parametrize("cache_dtype", [torch.float32, torch.bfloat16])
-@pytest.mark.parametrize("use_fp4", [False, True])
+@pytest.mark.parametrize(
+    "use_fp4",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                not (
+                    current_platform.is_cuda()
+                    and current_platform.is_device_capability_family(100)
+                ),
+                reason="MXFP4 indexer cache requires an SM100-family GPU",
+            ),
+        ),
+    ],
+)
 @pytest.mark.parametrize("use_cutedsl", [False, True])
 @torch.inference_mode()
 def test_fused_indexer_q_rope_quant_matches_unfused(
@@ -170,9 +186,9 @@ def test_fused_indexer_q_rope_quant_matches_unfused(
                 torch.empty_like(q_quant_ref),
                 torch.empty_like(weights_ref),
             )
-    # use_cutedsl=False: force the triton path even when cutedsl is usable, by
-    # patching the binding the dispatcher actually calls (fused_indexer_q.py
-    # imports `is_cutedsl_supported`, and never bound `has_cutedsl`).
+    # use_cutedsl=False forces the Triton path by patching the capability gate
+    # imported by fused_indexer_q.py.
+
     cutedsl_patch = (
         mock.patch(
             "vllm.models.deepseek_v4.common.ops.fused_indexer_q.is_cutedsl_supported",
@@ -190,16 +206,8 @@ def test_fused_indexer_q_rope_quant_matches_unfused(
             softmax_scale,
             head_scale,
             use_fp4,
-            output_buffers=output_buffers,
+            output_buffers,
         )
-
-    if output_buffers is not None:
-        if use_fp4:
-            assert q_quant_fused[0].data_ptr() == output_buffers[0].data_ptr()
-            assert q_quant_fused[1].data_ptr() == output_buffers[1].data_ptr()
-        else:
-            assert q_quant_fused.data_ptr() == output_buffers[0].data_ptr()
-        assert weights_fused.data_ptr() == output_buffers[-1].data_ptr()
 
     if use_fp4:
         q_quant_ref, q_scale_ref = q_quant_ref

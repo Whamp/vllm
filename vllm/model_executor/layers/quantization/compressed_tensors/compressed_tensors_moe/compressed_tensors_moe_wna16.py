@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+import math
+from fractions import Fraction
 from typing import Any
 
 import torch
@@ -73,8 +75,8 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
         # reads the projection-specific schemas for mixed WNA16 checkpoints.
         self.symmetric = weight_quant.symmetric
         self.num_bits = weight_quant.num_bits
-        self.w13_packed_factor = 32 // self.w13_weight_quant.num_bits
-        self.w2_packed_factor = 32 // self.w2_weight_quant.num_bits
+        self.w13_packed_factor = Fraction(32, self.w13_weight_quant.num_bits)
+        self.w2_packed_factor = Fraction(32, self.w2_weight_quant.num_bits)
         self.packed_factor = self.w13_packed_factor
         self.strategy = weight_quant.strategy
         self.w13_group_size = self.w13_weight_quant.group_size
@@ -95,7 +97,6 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             else:
                 scale = kInt4StaticGroupScale
         elif self.num_bits == 8:
-            assert self.group_size == -1
             scale = kInt8StaticGroupScale
         else:
             scale = ScaleDesc(
@@ -162,10 +163,12 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
             # grouped actorder isn't supported by this kernel
             assert weight_quant.actorder != "group"
 
-            assert self.symmetric, "Only symmetric quantization is supported for MoE"
-
             # Non-Marlin WNA16 always uses bf16/fp16 inputs
             self.input_dtype = torch.bfloat16
+
+    @staticmethod
+    def _packed_dim(dim: int, num_bits: int) -> int:
+        return math.ceil(dim * num_bits / 32)
 
     def get_weight_shape(
         self,
@@ -191,18 +194,16 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                 "num_groups_w2 must be provided for weight scales/zero_points"
             )
         w13_num_shards = 2 if self.moe.is_act_and_mul else 1
-        w13_packed_factor = self.w13_packed_factor
-        w2_packed_factor = self.w2_packed_factor
-        shape_map = {
+        shape_map: dict[str, dict[str, tuple[int, int | None, int | None]]] = {
             "w13_weight": {
                 "Flashinfer": (
                     num_experts,
                     w13_num_shards * intermediate_size_per_partition,
-                    hidden_size // w13_packed_factor,
+                    self._packed_dim(hidden_size, self.w13_weight_quant.num_bits),
                 ),
                 "Marlin": (
                     num_experts,
-                    hidden_size // w13_packed_factor,
+                    self._packed_dim(hidden_size, self.w13_weight_quant.num_bits),
                     w13_num_shards * intermediate_size_per_partition,
                 ),
             },
@@ -222,20 +223,27 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                 "Marlin": (
                     num_experts,
                     num_groups_w13,
-                    w13_num_shards
-                    * intermediate_size_per_partition
-                    // w13_packed_factor,
+                    self._packed_dim(
+                        w13_num_shards * intermediate_size_per_partition,
+                        self.w13_weight_quant.num_bits,
+                    ),
                 ),
             },
             "w2_weight": {
                 "Flashinfer": (
                     num_experts,
                     hidden_size,
-                    intermediate_size_per_partition // w2_packed_factor,
+                    self._packed_dim(
+                        intermediate_size_per_partition,
+                        self.w2_weight_quant.num_bits,
+                    ),
                 ),
                 "Marlin": (
                     num_experts,
-                    intermediate_size_per_partition // w2_packed_factor,
+                    self._packed_dim(
+                        intermediate_size_per_partition,
+                        self.w2_weight_quant.num_bits,
+                    ),
                     hidden_size,
                 ),
             },
@@ -247,12 +255,14 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                 "Marlin": (
                     num_experts,
                     num_groups_w2,
-                    hidden_size // w2_packed_factor,
+                    self._packed_dim(hidden_size, self.w2_weight_quant.num_bits),
                 ),
             },
         }
         backend_key = "Marlin" if self.is_transposed else "Flashinfer"
-        return shape_map[weight_name][backend_key]
+        shape = shape_map[weight_name][backend_key]
+        assert shape[1] is not None and shape[2] is not None
+        return shape[0], shape[1], shape[2]
 
     @staticmethod
     def _w2_scale_sharding(
@@ -357,6 +367,27 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                 )
             num_groups_w2 = w2_scales_size // self.w2_group_size
             num_groups_w13 = hidden_size // self.w13_group_size
+
+        if not self.symmetric:
+            # For asymmetric int4 quantization, packed_factor (=8) int4 ZPs are
+            # stored per int32. Each TP shard must contain a whole number of
+            # int32 elements so the packed ZP can be sliced without straddling
+            # an int32 boundary.
+            w13_n = 2 * intermediate_size_per_partition  # gate+up output channels
+            if w13_n % self.packed_factor != 0:
+                raise ValueError(
+                    f"CompressedTensors WNA16 MoE: gate+up output channels per "
+                    f"TP rank (2 * intermediate_size_per_partition = {w13_n}) "
+                    f"must be divisible by packed_factor ({self.packed_factor}). "
+                    f"Use a TP size where 2 * intermediate_size is divisible by "
+                    f"{self.packed_factor}."
+                )
+            if hidden_size % self.packed_factor != 0:
+                raise ValueError(
+                    f"CompressedTensors WNA16 MoE: hidden_size ({hidden_size}) "
+                    f"must be divisible by packed_factor ({self.packed_factor}) "
+                    f"for correct ZP unpacking."
+                )
 
         layer.num_groups_w13 = num_groups_w13
         layer.num_groups_w2 = num_groups_w2
@@ -558,8 +589,11 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
         replace_parameter(layer, "w13_weight_scale", w13_scales)
         replace_parameter(layer, "w2_weight_scale", w2_scales)
 
-        # CPU fused_experts_cpu requires zero points even for symmetric quant
-        if not self.symmetric or self.wna16_backend == WNA16MoEBackend.CPU:
+        # CPU fused_experts_cpu requires zero points even for symmetric quant.
+        # EMULATION bakes ZP into the dequantized bf16 weights — ZP is None.
+        if (
+            not self.symmetric or self.wna16_backend == WNA16MoEBackend.CPU
+        ) and self.wna16_backend != WNA16MoEBackend.EMULATION:
             assert w13_qzeros is not None and w2_qzeros is not None
             replace_parameter(layer, "w13_weight_zero_point", w13_qzeros)
             replace_parameter(layer, "w2_weight_zero_point", w2_qzeros)
@@ -615,7 +649,12 @@ class CompressedTensorsWNA16MoEMethod(CompressedTensorsMoEMethod):
                 get_humming_moe_quant_config,
             )
 
-            return get_humming_moe_quant_config(layer)
+            return get_humming_moe_quant_config(
+                layer,
+                gemm1_alpha=getattr(layer, "swiglu_alpha", None),
+                gemm1_beta=getattr(layer, "swiglu_beta", None),
+                gemm1_clamp_limit=getattr(layer, "swiglu_limit", None),
+            )
         return make_wna16_moe_quant_config(
             w1_scale=layer.w13_weight_scale,
             w2_scale=layer.w2_weight_scale,

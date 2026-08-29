@@ -81,25 +81,6 @@ class CompressorBackend(AttentionBackend):
     def get_builder_cls() -> type["CompressorMetadataBuilder"]:
         return CompressorMetadataBuilder
 
-    @staticmethod
-    def get_kv_cache_shape(
-        num_blocks: int,
-        block_size: int,
-        num_kv_heads: int,
-        head_size: int,
-        cache_dtype_str: str = "auto",
-    ) -> tuple[int, ...]:
-        assert num_kv_heads == 1
-        return (num_blocks, block_size, head_size)
-
-    @staticmethod
-    def get_kv_cache_stride_order(
-        include_num_layers_dimension: bool = False,
-    ) -> tuple[int, ...]:
-        if include_num_layers_dimension:
-            return (0, 1, 2, 3)
-        return (0, 1, 2)
-
 
 @dataclass
 class CompressorMetadata:
@@ -190,6 +171,10 @@ class CompressorStateCache(torch.nn.Module, AttentionLayerBase):
             self.block_size = 8
         else:
             raise ValueError(f"Invalid compress ratio: {compress_ratio}")
+
+    def bind_kv_cache(self, kv_cache: torch.Tensor) -> None:
+        # [B, H=1, N, C] -> [B, N, C]
+        self.kv_cache = kv_cache.squeeze(1)
 
     def get_kv_cache_spec(self, vllm_config: VllmConfig) -> KVCacheSpec:
         cache_dtype = vllm_config.cache_config.cache_dtype
@@ -447,10 +432,6 @@ class DeepseekCompressor(nn.Module):
                 store_full_fp8=store_full_fp8,
                 fp8_scale=fp8_scale,
             )
-            if not self.overlap and self.eager_scratch_pool is not None:
-                extra_kwargs["compress_scratch"] = (
-                    self.eager_scratch_pool.compressor_scratch(num_actual)
-                )
         elif self._use_two_stage_fused_compressor:
             # head=512 cr>=128 (no overlap): two-pass split compressor on the
             # prefill suffix, single-pass on the decode prefix.

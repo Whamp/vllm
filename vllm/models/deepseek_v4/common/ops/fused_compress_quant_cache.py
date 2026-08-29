@@ -28,6 +28,11 @@ from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
 from vllm.v1.attention.ops.fp8_sm80 import _encode_e4m3fn_u8
 
+if current_platform.is_rocm():
+    from vllm.platforms.rocm import _ON_GFX950
+else:
+    _ON_GFX950 = False
+
 from .fused_indexer_q import _fp32x2_to_fp4x2, _fp32x2_to_fp4x2_software
 
 
@@ -42,6 +47,7 @@ def _store_sparse_ds_mla_nope(
     QUANT_BLOCK: tl.constexpr,
     FP8_MAX: tl.constexpr,
     USE_FP4_CACHE: tl.constexpr,
+    SANITIZE_CACHE_NANS: tl.constexpr,
 ):
     """Store the quantized NoPE section and its segregated UE8M0 scales."""
     NOPE_HEAD_DIM: tl.constexpr = HEAD_SIZE - ROPE_HEAD_DIM
@@ -86,7 +92,8 @@ def _store_sparse_ds_mla_nope(
         )
 
     scale_idx = tl.arange(0, N_QUANT_BLOCKS)
-    encoded = tl.maximum(tl.minimum(exponents + 127.0, 255.0), 0.0).to(tl.uint8)
+    max_encoded: tl.constexpr = 254.0 if SANITIZE_CACHE_NANS else 255.0
+    encoded = tl.maximum(tl.minimum(exponents + 127.0, max_encoded), 0.0).to(tl.uint8)
     tl.store(
         scale_ptr + scale_idx,
         tl.where(scale_idx < N_NOPE_BLOCKS, encoded, 0),
@@ -134,12 +141,15 @@ def compress_norm_rope_store_triton(
     if head_dim == 512:
         kernel = _fused_kv_compress_norm_rope_insert_sparse_attn
         num_warps = _sparse_attn_num_warps(compress_ratio, overlap)
+        kernel_kwargs = {"SANITIZE_CACHE_NANS": _ON_GFX950}
     elif use_fp4_cache:
         kernel = _fused_kv_compress_norm_rope_insert_indexer_mxfp4_attn
         num_warps = 1
+        kernel_kwargs = {}
     else:
         kernel = _fused_kv_compress_norm_rope_insert_indexer_attn
         num_warps = 1
+        kernel_kwargs = {}
 
     kernel[(num_actual,)](
         # state cache
@@ -182,6 +192,7 @@ def compress_norm_rope_store_triton(
             else {}
         ),
         num_warps=num_warps,
+        **kernel_kwargs,
         **pdl_kwargs,
     )
 
@@ -225,6 +236,7 @@ def _fused_kv_compress_norm_rope_insert_sparse_attn(
     SCALE_DIM: tl.constexpr,  # 8 for DeepseekV4 (7 real + 1 pad)
     KV_BLOCK_STRIDE: tl.constexpr,
     USE_FP4_CACHE: tl.constexpr,
+    SANITIZE_CACHE_NANS: tl.constexpr,
 ):
     """Fused compress → RMSNorm → quantized NoPE + BF16 RoPE store.
 
@@ -325,6 +337,7 @@ def _fused_kv_compress_norm_rope_insert_sparse_attn(
         QUANT_BLOCK=QUANT_BLOCK,
         FP8_MAX=FP8_MAX,
         USE_FP4_CACHE=USE_FP4_CACHE,
+        SANITIZE_CACHE_NANS=SANITIZE_CACHE_NANS,
     )
 
     # Register-based GPT-J RoPE in fp32.
@@ -347,6 +360,8 @@ def _fused_kv_compress_norm_rope_insert_sparse_attn(
     new_even = even * cos_v - odd * sin_v
     new_odd = odd * cos_v + even * sin_v
     result = tl.interleave(new_even, new_odd)  # [TRITON_BLOCK_SIZE] fp32
+    if SANITIZE_CACHE_NANS:
+        result = tl.where(result == result, result, 0.0)
 
     # Store rotated RoPE after the packed NoPE section.
     NOPE_DATA_BYTES: tl.constexpr = (
@@ -479,6 +494,7 @@ def _finalize_norm_rope_quant_store_sparse_attn(
     SCALE_DIM: tl.constexpr,
     KV_BLOCK_STRIDE: tl.constexpr,
     USE_FP4_CACHE: tl.constexpr,
+    SANITIZE_CACHE_NANS: tl.constexpr,
 ):
     """Stage 2: read compressed_kv[512], then norm, RoPE, and cache store."""
     token_idx = tl.program_id(0)
@@ -525,6 +541,7 @@ def _finalize_norm_rope_quant_store_sparse_attn(
         QUANT_BLOCK=QUANT_BLOCK,
         FP8_MAX=FP8_MAX,
         USE_FP4_CACHE=USE_FP4_CACHE,
+        SANITIZE_CACHE_NANS=SANITIZE_CACHE_NANS,
     )
 
     NUM_PAIRS: tl.constexpr = TRITON_BLOCK_SIZE // 2
@@ -541,6 +558,8 @@ def _finalize_norm_rope_quant_store_sparse_attn(
     new_even = even * cos_v - odd * sin_v
     new_odd = odd * cos_v + even * sin_v
     result = tl.interleave(new_even, new_odd)
+    if SANITIZE_CACHE_NANS:
+        result = tl.where(result == result, result, 0.0)
     NOPE_DATA_BYTES: tl.constexpr = (
         NOPE_HEAD_DIM // 2 if USE_FP4_CACHE else NOPE_HEAD_DIM
     )
@@ -616,6 +635,7 @@ def _launch_two_stage_sparse_attn_compressor(
         SCALE_DIM=scale_dim,
         KV_BLOCK_STRIDE=kv_cache.stride(0),
         USE_FP4_CACHE=use_fp4_cache,
+        SANITIZE_CACHE_NANS=_ON_GFX950,
     )
 
 

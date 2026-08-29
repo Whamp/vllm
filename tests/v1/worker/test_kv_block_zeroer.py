@@ -6,9 +6,11 @@ from types import SimpleNamespace
 import pytest
 import torch
 
+from tests.v1.attention.utils import dense_kv_cache_views
 from vllm.v1.kv_cache_interface import (
     ChunkedLocalAttentionSpec,
     FullAttentionSpec,
+    KVCacheLayout,
     SlidingWindowSpec,
 )
 from vllm.v1.worker.utils import (
@@ -16,12 +18,6 @@ from vllm.v1.worker.utils import (
     KVBlockZeroer,
     _zero_kv_blocks_kernel,
 )
-
-
-class _BlockFirstBackend:
-    @staticmethod
-    def get_kv_cache_block_dim(*args, **kwargs):
-        return 0
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
@@ -51,11 +47,8 @@ def test_attention_blocks_are_zeroed(spec):
     layer_name = "draft.self_attn"
     zeroer = KVBlockZeroer(
         device,
-        attn_groups_iter=[
-            AttentionGroup(_BlockFirstBackend, [layer_name], spec, 0)  # type: ignore[arg-type]
-        ],
+        attn_groups_iter=[AttentionGroup(None, [layer_name], spec, 0)],
         kernel_block_sizes=[2],
-        cache_dtype="fp8",
         static_forward_context={
             layer_name: SimpleNamespace(kv_cache=storage),
         },
@@ -302,6 +295,7 @@ def test_pages_with_no_large_common_divisor_are_fully_zeroed():
         assert torch.all(storage[1] == 0), f"page {ps} not fully zeroed"
 
 
+@pytest.mark.skip_global_cleanup
 def test_every_launched_program_has_work():
     """No program may be launched only to exit empty.
 
@@ -386,12 +380,12 @@ def _zeroer_init_for(groups):
         torch.device("cpu"),
         attn_groups_iter=fake_groups,
         kernel_block_sizes=[16, 16],
-        cache_dtype="auto",
         static_forward_context=static_ctx,
     )
     return zeroer
 
 
+@pytest.mark.skip_global_cleanup
 def test_sliding_window_group_gets_its_own_segment_table():
     """The coverage gate widened from FullAttentionSpec to AttentionSpec.
 
@@ -423,6 +417,7 @@ def test_sliding_window_group_gets_its_own_segment_table():
     assert set(zeroer._group_meta) == {0, 1}
 
 
+@pytest.mark.skip_global_cleanup
 def test_non_attention_spec_is_skipped():
     page = 16 * 2 * 8
     full = FullAttentionSpec(
@@ -441,6 +436,7 @@ def test_non_attention_spec_is_skipped():
     assert set(zeroer._group_meta) == {0}
 
 
+@pytest.mark.skip_global_cleanup
 def test_same_data_ptr_in_two_groups_keeps_both_segments():
     """Per-group dedup: the packed DeepseekV4 slab layout can surface the
     same base address to more than one group; a global pointer dedup silently
@@ -517,7 +513,6 @@ def test_packed_slab_zeroes_only_the_owning_groups_bytes():
         device,
         attn_groups_iter=groups,
         kernel_block_sizes=[16, 16],
-        cache_dtype="auto",
         static_forward_context=static_ctx,
     )
     zeroer.zero_block_ids([[], [1]])
@@ -525,3 +520,46 @@ def test_packed_slab_zeroes_only_the_owning_groups_bytes():
     assert torch.all(slab[:3, :] == 1), "untouched blocks must survive"
     assert torch.all(slab[1, :page] == 1), "group 0's payload must survive"
     assert torch.all(slab[1, page:] == 0), "group 1's payload must be zeroed"
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
+@pytest.mark.parametrize("layout", list(KVCacheLayout))
+def test_zeroes_exactly_one_block_per_layer(layout: KVCacheLayout):
+    """The zeroer must zero every byte of the target block in every layer and nothing
+    outside it — per head-group region under LHBNC, and never past the target block's
+    tile under block-major layouts (no out-of-bounds writes, no clobbering)."""
+    device = torch.device("cuda")
+    num_blocks, num_layers = 4, 2
+    spec = FullAttentionSpec(
+        block_size=4, num_kv_heads=2, head_size=8, dtype=torch.float32
+    )
+    raw = torch.empty(
+        num_blocks * num_layers * spec.page_size_bytes,
+        dtype=torch.int8,
+        device=device,
+    ).fill_(1)
+    views = dense_kv_cache_views(raw, spec, num_blocks, num_layers, layout)
+    groups = [
+        AttentionGroup(
+            backend=None,
+            layer_names=[f"layer.{i}" for i in range(num_layers)],
+            kv_cache_spec=spec,
+            kv_cache_group_id=0,
+        )
+    ]
+    ctx = {f"layer.{i}": SimpleNamespace(kv_cache=views[i]) for i in range(num_layers)}
+    zeroer = KVBlockZeroer(
+        device,
+        attn_groups_iter=iter(groups),
+        kernel_block_sizes=[spec.block_size],
+        static_forward_context=ctx,
+    )
+    zeroer.zero_block_ids([2])
+    torch.accelerator.synchronize()
+
+    for view in views:
+        assert (view[2] == 0).all(), layout
+        for b in (0, 1, 3):
+            assert (view[b].view(torch.int8) == 1).all(), layout
+    zero_bytes = int((raw == 0).sum().item())
+    assert zero_bytes == num_layers * spec.page_size_bytes, layout

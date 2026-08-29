@@ -454,6 +454,7 @@ class TestMissingToolStart:
 # ── Orphan invoke name validation ────────────────────────────────────
 
 
+@pytest.mark.skip_global_cleanup
 class TestOrphanInvokeNameValidation:
     """Recovered (orphan) invokes must carry a plausible tool name.
 

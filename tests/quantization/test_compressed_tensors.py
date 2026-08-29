@@ -21,6 +21,9 @@ from tests.models.utils import check_logprobs_close
 from vllm.model_executor.kernels.linear import (
     Fp8BlockScaledMMLinearKernel,
 )
+from vllm.model_executor.kernels.linear.scaled_mm import (
+    MarlinFP8ScaledMMLinearKernel,
+)
 from vllm.model_executor.layers.fused_moe import UnquantizedFusedMoEMethod
 from vllm.model_executor.layers.fused_moe.oracle.fp8 import Fp8MoeBackend
 from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors import (  # noqa: E501
@@ -50,6 +53,7 @@ from vllm.model_executor.layers.quantization.utils.quant_utils import (
 )
 from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead
 from vllm.platforms import current_platform
+from vllm.scalar_type import scalar_types
 from vllm.v1.attention.backends.fa_utils import get_flash_attn_version
 
 # AITER only supports per-channel-per-channel INT8 gemm
@@ -526,9 +530,14 @@ def test_compressed_tensors_transforms_perplexity(
         assert perplexity <= exp_perplexity
 
 
-def test_compressed_tensors_fp8_block_enabled(vllm_runner):
+@pytest.mark.parametrize(
+    "linear_backend", ["auto", "marlin"] if current_platform.is_cuda() else ["auto"]
+)
+def test_compressed_tensors_fp8_block_enabled(vllm_runner, linear_backend):
     model_path = "RedHatAI/Qwen3-0.6B-FP8-BLOCK"
-    with vllm_runner(model_path, enforce_eager=True) as llm:
+    with vllm_runner(
+        model_path, enforce_eager=True, linear_backend=linear_backend
+    ) as llm:
         fp8_dtype = current_platform.fp8_dtype()
 
         def check_model(model):
@@ -537,20 +546,29 @@ def test_compressed_tensors_fp8_block_enabled(vllm_runner):
             qkv_proj = layer.self_attn.qkv_proj
             assert isinstance(qkv_proj.quant_method, CompressedTensorsLinearMethod)
             assert isinstance(qkv_proj.scheme, CompressedTensorsW8A8Fp8)
-            assert isinstance(qkv_proj.scheme.fp8_linear, Fp8BlockScaledMMLinearKernel)
-
-            assert qkv_proj.weight.dtype is fp8_dtype
-            assert qkv_proj.weight_scale.dtype is torch.float32
+            if linear_backend == "marlin":
+                assert isinstance(
+                    qkv_proj.scheme.fp8_linear, MarlinFP8ScaledMMLinearKernel
+                )
+                assert qkv_proj.weight.dtype is torch.int32
+                assert qkv_proj.weight_scale.dtype is qkv_proj.orig_dtype
+            else:
+                assert isinstance(
+                    qkv_proj.scheme.fp8_linear, Fp8BlockScaledMMLinearKernel
+                )
+                assert qkv_proj.weight.dtype is fp8_dtype
+                assert qkv_proj.weight_scale.dtype is torch.float32
             assert len(qkv_proj.weight.shape) == 2
             assert len(qkv_proj.weight_scale.shape) == 2
 
-            input_quant_op = qkv_proj.scheme.fp8_linear.quant_fp8
-            assert isinstance(input_quant_op, QuantFP8)
-            assert input_quant_op._forward_method in (
-                input_quant_op.forward_cuda,
-                input_quant_op.forward_hip,
-                input_quant_op.forward_xpu,
-            )
+            if linear_backend == "auto":
+                input_quant_op = qkv_proj.scheme.fp8_linear.quant_fp8
+                assert isinstance(input_quant_op, QuantFP8)
+                assert input_quant_op._forward_method in (
+                    input_quant_op.forward_cuda,
+                    input_quant_op.forward_hip,
+                    input_quant_op.forward_xpu,
+                )
 
         llm.apply_model(check_model)
 
@@ -947,6 +965,7 @@ def test_compressed_tensors_mxfp8_moe_setup(vllm_runner):
         assert output
 
 
+@pytest.mark.skip_global_cleanup
 def test_compressed_tensors_moe_accepts_separate_w13_w2_wna16_schemes(
     monkeypatch,
 ):
@@ -1051,6 +1070,7 @@ def test_compressed_tensors_moe_accepts_separate_w13_w2_wna16_schemes(
         (None, 32, 64, 128, (False, 64, True)),
     ],
 )
+@pytest.mark.skip_global_cleanup
 def test_wna16_moe_w2_scale_sharding(actorder, group_size, part, full, expected):
     from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe.compressed_tensors_moe_wna16 import (  # noqa: E501
         CompressedTensorsWNA16MoEMethod,
@@ -1062,6 +1082,7 @@ def test_wna16_moe_w2_scale_sharding(actorder, group_size, part, full, expected)
     assert result == expected
 
 
+@pytest.mark.skip_global_cleanup
 def test_compressed_tensors_moe_allocates_separate_w13_w2_bit_widths(monkeypatch):
     from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
     from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
@@ -1096,6 +1117,7 @@ def test_compressed_tensors_moe_allocates_separate_w13_w2_bit_widths(monkeypatch
     assert method.get_weight_shape("w2_weight", 1, 128, 128) == (1, 128, 16)
 
 
+@pytest.mark.skip_global_cleanup
 def test_compressed_tensors_moe_allocates_projection_group_scales(monkeypatch):
     from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
     from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
@@ -1146,6 +1168,7 @@ def test_compressed_tensors_moe_allocates_projection_group_scales(monkeypatch):
         (4, 128, "MARLIN", "requires the Humming backend"),
     ],
 )
+@pytest.mark.skip_global_cleanup
 def test_compressed_tensors_mixed_moe_rejects_incompatible_layout(
     monkeypatch, w2_bits, w2_group_size, backend, error_match
 ):
@@ -1180,7 +1203,8 @@ def test_compressed_tensors_mixed_moe_rejects_incompatible_layout(
 
 
 @pytest.mark.parametrize("num_bits", range(2, 9))
-def test_humming_supports_compressed_tensors_wna16_moe(num_bits):
+@pytest.mark.skip_global_cleanup
+def test_humming_supports_compressed_tensors_wna16_quant_key(num_bits):
     from vllm.model_executor.layers.fused_moe.experts.fused_humming_moe import (
         HummingExpertsBase,
     )
@@ -1202,6 +1226,7 @@ def test_humming_supports_compressed_tensors_wna16_moe(num_bits):
 
 
 @pytest.mark.parametrize("num_bits", range(2, 9))
+@pytest.mark.skip_global_cleanup
 def test_humming_wna16_moe_schema_accepts_compressed_tensors(num_bits):
     from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import (
         _humming_wna16_weight_schema,
@@ -1228,6 +1253,7 @@ def test_humming_wna16_moe_schema_accepts_compressed_tensors(num_bits):
 
 
 @pytest.mark.parametrize("num_bits", [2, 3, 5, 6, 7])
+@pytest.mark.skip_global_cleanup
 def test_compressed_tensors_wna16_moe_selects_humming_only_bits(monkeypatch, num_bits):
     from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
     from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
@@ -1271,7 +1297,7 @@ def test_compressed_tensors_wna16_moe_selects_humming_only_bits(monkeypatch, num
 
 
 @pytest.mark.skip_global_cleanup
-def test_compressed_tensors_wna16_setup_forwards_humming_layer(monkeypatch):
+def test_compressed_tensors_wna16_setup_forwards_routing_tables(monkeypatch):
     from vllm.model_executor.layers.fused_moe.oracle.int_wna16 import WNA16MoEBackend
     from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors_moe import (  # noqa: E501
         compressed_tensors_moe_wna16 as wna16_module,
@@ -1285,7 +1311,8 @@ def test_compressed_tensors_wna16_setup_forwards_humming_layer(monkeypatch):
     quant_config = object()
     method.get_fused_moe_quant_config = lambda layer: quant_config
     layer = Mock()
-    layer._expert_routing_tables.return_value = (None, None, None)
+    routing_tables = (None, None, None)
+    layer._expert_routing_tables.return_value = routing_tables
     captured = {}
     kernel = object()
 
@@ -1303,7 +1330,24 @@ def test_compressed_tensors_wna16_setup_forwards_humming_layer(monkeypatch):
 
     assert method.moe_kernel is kernel
     assert captured["backend"] == WNA16MoEBackend.HUMMING
-    assert captured["layer"] is layer
+    assert captured["routing_tables"] == routing_tables
+
+
+@pytest.mark.skip_global_cleanup
+def test_quant_key_str_supports_scalar_type_dtypes():
+    quant_key = QuantKey(
+        dtype=scalar_types.uint2b2,
+        scale=ScaleDesc(
+            dtype=torch.float16,
+            static=True,
+            group_shape=GroupShape(row=1, col=128),
+        ),
+        symmetric=True,
+    )
+
+    assert str(quant_key) == (
+        "QuantKey(uint2b2,scale(f16,static,GroupShape(row=1, col=128)),symmetric)"
+    )
 
 
 @pytest.mark.skipif(

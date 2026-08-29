@@ -178,6 +178,17 @@ class StreamingParserEngine:
         self.suppress_tool_calls = False
         self.reset(initial_state=initial_state)
 
+    @property
+    def reasoning_token_count(self) -> int:
+        return self._reasoning_token_count
+
+    def _record_reasoning_tokens(self, events: Sequence[SemanticEvent]) -> None:
+        self._reasoning_token_count += sum(
+            event.token_count
+            for event in events
+            if event.type == EventType.REASONING_CHUNK
+        )
+
     def _reset_args_state(self) -> None:
         self._args_buffer: str = ""
         self._args_safe_end: int = 0
@@ -197,6 +208,7 @@ class StreamingParserEngine:
         )
         self.tool_index = -1
         self._ever_had_token_ids = False
+        self._reasoning_token_count = 0
         # DO NOT reset skip_tool_parsing here — callers set it before
         # calling methods that trigger reset() (e.g. extract_reasoning),
         # and clearing it silently breaks non-streaming tool-call-as-
@@ -204,14 +216,17 @@ class StreamingParserEngine:
         self._scanner.reset()
         self._lexer.reset()
         self._message_header_buffer = ""
+        self._message_header_token_count = 0
         self._in_skipped_tool_span = False
         self._reset_args_state()
         self._recovered_tool_call = False
         self._pending_between_text = ""
+        self._pending_between_token_count = 0
         self._hold_active = False
         self._held_events: list[SemanticEvent] = []
         self._held_raw: list[str] = []
         self._held_name: list[str] = []
+        self._held_token_count = 0
         self._held_prior_state: ParserState = self.state
         self._held_prior_tool_index: int = -1
 
@@ -237,18 +252,30 @@ class StreamingParserEngine:
                     has_special = True
                     break
             if not has_special:
-                return self._emit_for_state(delta_text)
+                events = self._emit_for_state(
+                    delta_text, token_count=len(delta_token_ids)
+                )
+                self._record_reasoning_tokens(events)
+                return events
 
         scanner_items = self._scanner.scan(delta_text, delta_token_ids)
 
         if len(scanner_items) == 1 and isinstance(scanner_items[0], TextChunk):
-            lex_tokens = self._lexer.feed(scanner_items[0].text)
+            item = scanner_items[0]
+            lex_tokens = self._lexer.feed(item.text, item.token_texts, item.token_count)
             if len(lex_tokens) == 1 and lex_tokens[0].terminal == CONTENT_TERMINAL:
-                text = lex_tokens[0].value
-                return self._emit_for_state(text)
-            return self._process_lex_tokens(lex_tokens)
+                events = self._emit_for_state(
+                    lex_tokens[0].value,
+                    token_count=lex_tokens[0].token_count,
+                )
+            else:
+                events = self._process_lex_tokens(lex_tokens)
+            self._record_reasoning_tokens(events)
+            return events
 
-        return self._process_scanner_items(scanner_items)
+        events = self._process_scanner_items(scanner_items)
+        self._record_reasoning_tokens(events)
+        return events
 
     def _process_scanner_items(
         self, items: Sequence[LexerInput]
@@ -259,7 +286,18 @@ class StreamingParserEngine:
                 events.extend(self._process_lex_tokens(self._lexer.flush()))
                 events.extend(self._on_terminal(item.terminal, item.text))
             elif isinstance(item, TextChunk):
-                events.extend(self._process_lex_tokens(self._lexer.feed(item.text)))
+                if not item.text and item.token_count:
+                    events.extend(
+                        self._emit_for_state("", token_count=item.token_count)
+                    )
+                else:
+                    events.extend(
+                        self._process_lex_tokens(
+                            self._lexer.feed(
+                                item.text, item.token_texts, item.token_count
+                            )
+                        )
+                    )
         return events
 
     def finish(self) -> list[SemanticEvent]:
@@ -271,7 +309,9 @@ class StreamingParserEngine:
             # Stream ended before the recovered tool name completed:
             # the held events never validated, so flush the raw text
             # as content in the pre-recovery state.
-            events.extend(self._abort_hold("".join(self._held_raw)))
+            events.extend(
+                self._abort_hold("".join(self._held_raw), self._held_token_count)
+            )
 
         if self._args_buffer:
             events.append(
@@ -310,11 +350,14 @@ class StreamingParserEngine:
                         EventType.TEXT_CHUNK,
                         value=self._message_header_buffer,
                         tool_index=self.tool_index,
+                        token_count=self._message_header_token_count,
                     )
                 )
                 self._message_header_buffer = ""
+                self._message_header_token_count = 0
             self.state = ParserState.CONTENT
 
+        self._record_reasoning_tokens(events)
         return events
 
     def parse_complete(self, text: str) -> list[SemanticEvent]:
@@ -328,9 +371,11 @@ class StreamingParserEngine:
         strict = self._token_id_terminal_names if self._ever_had_token_ids else None
         for tok in tokens:
             if tok.terminal == CONTENT_TERMINAL or (strict and tok.terminal in strict):
-                events.extend(self._on_content(tok.value))
+                events.extend(self._on_content(tok.value, tok.token_count))
             else:
-                events.extend(self._on_terminal(tok.terminal, tok.value))
+                events.extend(
+                    self._on_terminal(tok.terminal, tok.value, tok.token_count)
+                )
         return events
 
     _TOOL_STATES = frozenset(
@@ -342,7 +387,9 @@ class StreamingParserEngine:
         }
     )
 
-    def _on_terminal(self, terminal: str, value: str) -> list[SemanticEvent]:
+    def _on_terminal(
+        self, terminal: str, value: str, token_count: int = 0
+    ) -> list[SemanticEvent]:
         key = (self.state, terminal)
         transition = self.config.transitions.get(key)
 
@@ -353,15 +400,14 @@ class StreamingParserEngine:
             if self.skip_tool_parsing and terminal in self._tool_exit_terminals:
                 self._in_skipped_tool_span = False
             if self._hold_active and self.state == ParserState.TOOL_NAME:
-                # A terminal with no meaning inside a held tool name,
-                # for example a real tool call start token, ends the
-                # hold: replay the held text as content, then handle
-                # the terminal again in the restored state so it keeps
-                # its normal meaning.
-                events = self._abort_hold("".join(self._held_raw))
-                events.extend(self._on_terminal(terminal, value))
+                # A terminal with no meaning inside a held tool name ends the
+                # hold. Replay held text, then process the terminal normally.
+                events = self._abort_hold(
+                    "".join(self._held_raw), self._held_token_count
+                )
+                events.extend(self._on_terminal(terminal, value, token_count))
                 return events
-            return self._emit_for_state(value)
+            return self._emit_for_state(value, token_count)
 
         if self.skip_tool_parsing and terminal in self._tool_terminals:
             # Inkling reuses one terminal for tool, text, and reasoning exits.
@@ -379,6 +425,7 @@ class StreamingParserEngine:
                 leaving_message_header = self.state == ParserState.MESSAGE_HEADER
                 if leaving_message_header:
                     self._message_header_buffer = ""
+                    self._message_header_token_count = 0
                 # A tool terminal that implicitly ends reasoning must report
                 # that even from the header state, or the reasoning pass never
                 # hands the block to the tool pass.
@@ -415,30 +462,34 @@ class StreamingParserEngine:
                 return []
 
         if transition.skip_in_token_id_mode and self._ever_had_token_ids:
-            return self._emit_for_state(value)
+            return self._emit_for_state(value, token_count)
 
-        return self._apply_transition(transition, value)
+        return self._apply_transition(transition, value, token_count)
 
-    def _emit_for_state(self, text: str) -> list[SemanticEvent]:
+    def _emit_for_state(self, text: str, token_count: int = 0) -> list[SemanticEvent]:
         if self._hold_active and self.state == ParserState.TOOL_NAME:
             candidate = "".join(self._held_name) + text
             if not self._can_grow_into_declared_name(candidate):
-                # The held text can no longer become a declared tool
-                # name, so holding longer would only stall streaming.
-                # Release everything consumed so far as content.
-                return self._abort_hold("".join(self._held_raw) + text)
+                # The held text can no longer become a declared tool name.
+                return self._abort_hold(
+                    "".join(self._held_raw) + text,
+                    self._held_token_count + token_count,
+                )
             self._held_raw.append(text)
             self._held_name.append(text)
+            self._held_token_count += token_count
             self._held_events.append(
                 SemanticEvent(
                     EventType.TOOL_NAME,
                     value=text,
                     tool_index=self.tool_index,
+                    token_count=token_count,
                 )
             )
             return []
         if self.state == ParserState.MESSAGE_HEADER:
             self._message_header_buffer += text
+            self._message_header_token_count += token_count
             return []
         if self.state == ParserState.TOOL_ARGS:
             if self.config.tool_args_json:
@@ -448,56 +499,66 @@ class StreamingParserEngine:
                     EventType.ARG_VALUE_CHUNK,
                     value=text,
                     tool_index=self.tool_index,
+                    token_count=token_count,
                 )
             ]
         content_type = self.config.content_events.get(self.state)
         if content_type is not None:
-            return [SemanticEvent(content_type, value=text, tool_index=self.tool_index)]
+            return [
+                SemanticEvent(
+                    content_type,
+                    value=text,
+                    tool_index=self.tool_index,
+                    token_count=token_count,
+                )
+            ]
         if self._recovered_tool_call and self.state == ParserState.TOOL_BETWEEN:
-            # A response that lost its opening wrapper usually loses the
-            # closing one too, so text after a recovered invoke is often
-            # the rest of the answer rather than padding before the next
-            # invoke.  Whitespace is held back because that is what
-            # padding looks like; as soon as anything else shows up the
-            # whole run is real output and goes out as content.
+            # A response that lost its opening wrapper usually loses its closer.
+            # Hold whitespace padding; release it once real output follows.
             self._pending_between_text += text
+            self._pending_between_token_count += token_count
             if self._pending_between_text.strip():
                 held = self._pending_between_text
+                held_token_count = self._pending_between_token_count
                 self._pending_between_text = ""
+                self._pending_between_token_count = 0
                 return [
                     SemanticEvent(
                         EventType.TEXT_CHUNK,
                         value=held,
                         tool_index=self.tool_index,
+                        token_count=held_token_count,
                     )
                 ]
         return []
 
-    def _on_content(self, text: str) -> list[SemanticEvent]:
+    def _on_content(self, text: str, token_count: int = 0) -> list[SemanticEvent]:
         if not text:
             return []
-        return self._emit_for_state(text)
+        return self._emit_for_state(text, token_count)
 
     def _apply_transition(
         self,
         transition: Transition,
         value: str,
+        token_count: int = 0,
     ) -> list[SemanticEvent]:
         if self._hold_active:
-            return self._resolve_hold(transition, value)
+            return self._resolve_hold(transition, value, token_count)
         if transition.validate_tool_name:
             if self.suppress_tool_calls or self.allowed_tool_names is None:
                 # Recovery could never be accepted for this request, so
                 # the trigger text stays plain content and nothing is
                 # buffered.
-                return self._emit_for_state(value)
-            return self._begin_hold(transition, value)
-        return self._run_transition(transition, value)
+                return self._emit_for_state(value, token_count)
+            return self._begin_hold(transition, value, token_count)
+        return self._run_transition(transition, value, token_count)
 
     def _begin_hold(
         self,
         transition: Transition,
         value: str,
+        token_count: int,
     ) -> list[SemanticEvent]:
         """Apply a ``validate_tool_name`` transition but hold its events.
 
@@ -507,9 +568,10 @@ class StreamingParserEngine:
         """
         prior_state = self.state
         prior_tool_index = self.tool_index
-        self._held_events = self._run_transition(transition, value)
+        self._held_events = self._run_transition(transition, value, token_count)
         self._held_raw = [value]
         self._held_name = []
+        self._held_token_count = token_count
         self._held_prior_state = prior_state
         self._held_prior_tool_index = prior_tool_index
         self._hold_active = True
@@ -520,6 +582,7 @@ class StreamingParserEngine:
         self,
         transition: Transition,
         value: str,
+        token_count: int,
     ) -> list[SemanticEvent]:
         """End the hold window at the name-completing transition."""
         name = "".join(self._held_name)
@@ -527,23 +590,27 @@ class StreamingParserEngine:
         if allowed is not None and name in allowed:
             events = self._held_events
             self._clear_hold()
-            events.extend(self._run_transition(transition, value))
+            events.extend(self._run_transition(transition, value, token_count))
             return events
-        return self._abort_hold("".join(self._held_raw) + value)
+        return self._abort_hold(
+            "".join(self._held_raw) + value,
+            self._held_token_count + token_count,
+        )
 
-    def _abort_hold(self, raw: str) -> list[SemanticEvent]:
+    def _abort_hold(self, raw: str, token_count: int) -> list[SemanticEvent]:
         """Discard held events and re-emit the raw text as content."""
         self.state = self._held_prior_state
         self.tool_index = self._held_prior_tool_index
         self._recovered_tool_call = self._held_prior_state in self._TOOL_STATES
         self._clear_hold()
-        return self._emit_for_state(raw)
+        return self._emit_for_state(raw, token_count)
 
     def _clear_hold(self) -> None:
         self._hold_active = False
         self._held_events = []
         self._held_raw = []
         self._held_name = []
+        self._held_token_count = 0
 
     def _can_grow_into_declared_name(self, candidate: str) -> bool:
         """Return True when *candidate* is a prefix of a declared tool name.
@@ -563,10 +630,12 @@ class StreamingParserEngine:
         self,
         transition: Transition,
         value: str,
+        token_count: int,
     ) -> list[SemanticEvent]:
         events: list[SemanticEvent] = []
         previous_state = self.state
         message_header = ""
+        message_header_token_count = 0
 
         if (
             self.state == ParserState.TOOL_ARGS
@@ -585,10 +654,13 @@ class StreamingParserEngine:
         # Whatever is still held between invokes is whitespace padding,
         # which the wrapped path drops too.
         self._pending_between_text = ""
+        self._pending_between_token_count = 0
 
         if previous_state == ParserState.MESSAGE_HEADER:
             message_header = self._message_header_buffer
+            message_header_token_count = self._message_header_token_count
             self._message_header_buffer = ""
+            self._message_header_token_count = 0
 
         if transition.next_state not in self._TOOL_STATES:
             self._recovered_tool_call = False
@@ -611,6 +683,12 @@ class StreamingParserEngine:
                     event_type,
                     value=event_value,
                     tool_index=self.tool_index,
+                    token_count=(
+                        message_header_token_count
+                        if previous_state == ParserState.MESSAGE_HEADER
+                        and event_type == EventType.TEXT_CHUNK
+                        else token_count
+                    ),
                 )
             )
 
