@@ -152,6 +152,21 @@ small collectives at latency-sensitive hyperconnection boundaries. Do not pay
 that coordination cost without a design that reuses or fuses existing
 collectives.
 
+**Result: reject the generic block-FP8 Marlin path.** The real 128x128 block-FP8
+layout would use 776,079,360 bytes per rank and reclaim 528,762,880 bytes, or
+0.492449 GiB, after exact Marlin padding, scale, and workspace accounting. A
+97-group real-weight screen measured aggregate normalized RMSE 0.026313 and
+cosine 0.999630. The exact-shape RTX 3090 gate selected
+`MarlinFP8ScaledMMLinearKernel`, passed numerical and deterministic CUDA-Graph
+checks, but ran 2.9 to 5.7 times slower than BF16 across M=1, M=2, and M=256.
+The full model was not launched with this method. The experimental source was
+reverted. See
+[evidence/qwen38-hyperconnection-fp8-20260829/README.md](evidence/qwen38-hyperconnection-fp8-20260829/README.md).
+
+This result rejects vLLM's existing generic Marlin path for these skinny shapes.
+A purpose-built compressed hyperconnection kernel remains possible, but it must
+beat the BF16 exact-shape baseline before any serving experiment.
+
 ### H2: lower the QSA top-k batch allocation
 
 **Observed cost.** Twelve QSA layers each register an INT32 buffer shaped from
@@ -216,6 +231,8 @@ was restored on the exact base image. Fresh checks showed:
 
 The rollback script's PLE-log predicate timed out after the service had become
 healthy because the expected registration line was absent from the fresh log.
-The remaining restore timer was cancelled to prevent an unnecessary second
-restart. The service result, not that stale log predicate, is the final health
-evidence for this capture.
+The predicate was replaced with direct health, process, image, model, swap,
+host-policy, and deterministic-output checks. The block-FP8 gate used this
+repaired rollback after each bounded attempt. Fresh final checks again found the
+original image healthy with zero restarts and zero serving-process swap. The
+remaining restore timer was cancelled to prevent an unnecessary second restart.
