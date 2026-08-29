@@ -1,0 +1,55 @@
+{
+  "control": {
+    "decode_tokens_per_second_mean": 44.06974034938114,
+    "max_model_len": 148400,
+    "prefill_prompt_tokens": 17825,
+    "prefill_tokens_per_second_mean": 1636.6211603203697
+  },
+  "experiment": "qsa-topk-buffer-mbt-1024",
+  "files": {
+    "benchmark_sha256": "abbd6f8abcaadef7fa5639be0677e25e8e6d4eba7305f6d6266613fc04fb5f54",
+    "candidate_compose_sha256": "e8d5a8aef999666ec6ea6cdb661f5a379061331e40bd41f1420dd594c3d53d9a",
+    "control_benchmark_sha256": "ea1081121b4f8f1de986ea619cea705165e635c039a228eeb5e333644b01c625",
+    "restore_sha256": "06becc3debbedd21145693274aa7bb011e5155af43e042e3c46c1cc877f91e3b"
+  },
+  "fixed": {
+    "base_image": "sha256:0aea30240f3e3d9ffae8526643950e170eb5fa07fc427016a9dd90892afa2aa3",
+    "diagnostic_image": "sha256:59e1df5a8023f7a9c8ee331321826efd6c68ea1bb165740e9a7f48d4e13200ec",
+    "expert_parallel": true,
+    "gpu_memory_utilization": 0.95,
+    "graphics_clock_range_mhz": [
+      210,
+      1650
+    ],
+    "max_model_len": "auto",
+    "max_num_seqs": 2,
+    "model_config_sha256": "932cbf4d5dc50efa395db095ea3664fd6ef7672886332b2d0307cd9aa28ac9cf",
+    "model_index_sha256": "e8893bbecf33dc7f9cdc27f927adbb3886d41531756e8e46cf9cee85499a1201",
+    "model_revision": "861536dda5bcb208376fc4cd879b2bf76bece9fe",
+    "ple_revision": "da8b39586016d8325ac619be28ad77d6296625ec",
+    "power_limit_watts": 230,
+    "swap": "disabled",
+    "tensor_parallel_size": 4
+  },
+  "gates": {
+    "minimum_context_gain_tokens": 5000,
+    "minimum_decode_fraction_of_control": 0.95,
+    "minimum_prefill_fraction_of_control": 0.9,
+    "minimum_registered_storage_reclaim_bytes": 94371840,
+    "required_restart_count": 0,
+    "required_serving_process_swap_kib": 0
+  },
+  "one_variable": {
+    "max_num_batched_tokens": {
+      "candidate": 1024,
+      "control": 2048
+    }
+  },
+  "rollback": {
+    "image": "sha256:0aea30240f3e3d9ffae8526643950e170eb5fa07fc427016a9dd90892afa2aa3",
+    "model": "qwen3.8-flash-next-intel-autoround-w4a16",
+    "port": 30001,
+    "service": "qwen38-flash-next-intel-autoround-vllm"
+  },
+  "schema_version": 1
+}

@@ -1,0 +1,19 @@
+service=active
+overcommit=0
+swap_lines=1
+pid=3144763 swap_kib=0
+pid=3145692 swap_kib=0
+pid=3145693 swap_kib=0
+pid=3145886 swap_kib=0
+pid=3146001 swap_kib=0
+pid=3146158 swap_kib=0
+pid=3146326 swap_kib=0
+pid=3146765 swap_kib=0
+pid=3148014 swap_kib=0
+pid=3148019 swap_kib=0
+pid=3148030 swap_kib=0
+pid=3148169 swap_kib=0
+0, 230.00 W, 210 MHz, 1696 MiB
+1, 230.00 W, 210 MHz, 1720 MiB
+2, 230.00 W, 210 MHz, 1720 MiB
+3, 230.00 W, 210 MHz, 1720 MiB

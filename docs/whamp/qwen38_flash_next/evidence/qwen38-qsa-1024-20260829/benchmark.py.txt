@@ -1,0 +1,203 @@
+# SPDX-License-Identifier: Apache-2.0
+
+import argparse
+import json
+import statistics
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+
+def request_ok(url, timeout=60):
+    with urllib.request.urlopen(url, timeout=timeout) as response:
+        if response.status != 200:
+            raise RuntimeError(f"Unexpected HTTP status {response.status} for {url}")
+
+
+def request_json(url, payload=None, timeout=1800):
+    data = None if payload is None else json.dumps(payload).encode()
+    request = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.load(response)
+
+
+def streamed_decode(endpoint, model, run_id, output_tokens):
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": (
+                    f"Benchmark nonce {run_id}. Write a detailed uninterrupted "
+                    "technical essay about designing a resilient distributed "
+                    "storage engine. Continue until the token limit."
+                ),
+            }
+        ],
+        "temperature": 0.6,
+        "top_p": 0.95,
+        "top_k": 20,
+        "max_tokens": output_tokens,
+        "min_tokens": output_tokens,
+        "ignore_eos": True,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+    request = urllib.request.Request(
+        endpoint + "/v1/chat/completions",
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    start = time.perf_counter()
+    first_delta = None
+    usage = None
+    finish_reason = None
+    with urllib.request.urlopen(request, timeout=1800) as response:
+        for raw_line in response:
+            line = raw_line.decode().strip()
+            if not line.startswith("data: "):
+                continue
+            content = line[6:]
+            if content == "[DONE]":
+                break
+            event = json.loads(content)
+            if event.get("usage"):
+                usage = event["usage"]
+            for choice in event.get("choices", []):
+                delta = choice.get("delta", {})
+                if first_delta is None and (
+                    delta.get("content")
+                    or delta.get("reasoning")
+                    or delta.get("reasoning_content")
+                ):
+                    first_delta = time.perf_counter()
+                if choice.get("finish_reason") is not None:
+                    finish_reason = choice["finish_reason"]
+    end = time.perf_counter()
+    if first_delta is None or usage is None:
+        raise RuntimeError("Streaming response omitted first delta or usage")
+    completion_tokens = usage["completion_tokens"]
+    decode_seconds = end - first_delta
+    return {
+        "wall_seconds": end - start,
+        "ttft_seconds": first_delta - start,
+        "decode_seconds": decode_seconds,
+        "prompt_tokens": usage["prompt_tokens"],
+        "completion_tokens": completion_tokens,
+        "decode_tokens_per_second": completion_tokens / decode_seconds,
+        "finish_reason": finish_reason,
+    }
+
+
+def prefill_prompt(run_id, line_count=850):
+    lines = [
+        f"PREFILL-NONCE-{run_id} appears first so this request cannot reuse a prefix."
+    ]
+    lines.extend(
+        (
+            f"Record {i}: distributed systems need explicit invariants, "
+            "measured limits, and deterministic recovery."
+        )
+        for i in range(line_count)
+    )
+    lines.append("Reply with one word naming the main topic.")
+    return "\n".join(lines)
+
+
+def prefill_probe(endpoint, model, run_id):
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prefill_prompt(run_id)}],
+        "temperature": 0,
+        "max_tokens": 1,
+    }
+    start = time.perf_counter()
+    response = request_json(endpoint + "/v1/chat/completions", payload)
+    end = time.perf_counter()
+    usage = response["usage"]
+    return {
+        "wall_seconds": end - start,
+        "prompt_tokens": usage["prompt_tokens"],
+        "completion_tokens": usage["completion_tokens"],
+        "prompt_tokens_per_second": usage["prompt_tokens"] / (end - start),
+        "finish_reason": response["choices"][0]["finish_reason"],
+    }
+
+
+def summarize(values):
+    return {
+        "mean": statistics.mean(values),
+        "median": statistics.median(values),
+        "minimum": min(values),
+        "maximum": max(values),
+        "population_cv_percent": (
+            statistics.pstdev(values) / statistics.mean(values) * 100
+        ),
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--endpoint", required=True)
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--label", required=True)
+    args = parser.parse_args()
+
+    endpoint = args.endpoint.rstrip("/")
+    request_ok(endpoint + "/health")
+    models = request_json(endpoint + "/v1/models")
+    if [model["id"] for model in models["data"]] != [args.model]:
+        raise RuntimeError(f"Unexpected model identity: {models}")
+
+    decode_warmups = [
+        streamed_decode(endpoint, args.model, f"decode-warmup-{i}", 256)
+        for i in range(3)
+    ]
+    decode_measured = [
+        streamed_decode(endpoint, args.model, f"decode-measured-{i}", 256)
+        for i in range(5)
+    ]
+    prefill_warmups = [
+        prefill_probe(endpoint, args.model, f"prefill-warmup-{i}") for i in range(1)
+    ]
+    prefill_measured = [
+        prefill_probe(endpoint, args.model, f"prefill-measured-{i}") for i in range(3)
+    ]
+
+    result = {
+        "schema_version": 1,
+        "label": args.label,
+        "endpoint": endpoint,
+        "model": args.model,
+        "model_record": models["data"][0],
+        "decode": {
+            "warmups": decode_warmups,
+            "measured": decode_measured,
+            "tokens_per_second": summarize(
+                [run["decode_tokens_per_second"] for run in decode_measured]
+            ),
+            "ttft_seconds": summarize([run["ttft_seconds"] for run in decode_measured]),
+        },
+        "prefill": {
+            "warmups": prefill_warmups,
+            "measured": prefill_measured,
+            "tokens_per_second": summarize(
+                [run["prompt_tokens_per_second"] for run in prefill_measured]
+            ),
+        },
+    }
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = args.output.with_suffix(args.output.suffix + ".tmp")
+    temporary.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    temporary.replace(args.output)
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

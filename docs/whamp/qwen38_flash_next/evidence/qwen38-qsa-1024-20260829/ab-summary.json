@@ -1,0 +1,12 @@
+{
+  "candidate_context": 156400,
+  "candidate_decode_tps": 45.92072370112541,
+  "candidate_prefill_tps": 1551.279016855502,
+  "context_gain": 8000,
+  "control_context": 148400,
+  "control_decode_tps": 44.06974034938114,
+  "control_prefill_tps": 1636.6211603203697,
+  "decode_fraction": 1.0420012311638287,
+  "passed": true,
+  "prefill_fraction": 0.9478546742923929
+}

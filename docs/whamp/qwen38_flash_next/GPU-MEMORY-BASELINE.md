@@ -185,6 +185,15 @@ memory must all be measured on the same artifact and image.
 the fitted-context gain. The current 2,048-token budget may be serving real
 chunked-prefill work rather than accidental slack.
 
+**Result: promote 1,024 tokens.** The registered QSA top-k allocation fell by
+exactly 100,810,752 bytes per rank, with no other registered-storage change.
+Auto-fit context rose from 148,400 to 156,400 tokens. On the final production
+image, decode retained 99.71% of control and cache-busted prefill retained
+94.70%. Exact 145,041-token retrieval, deterministic text, streaming, tools,
+post-tool continuation, vision, concurrency two, and BenchLocal quick 26/30 all
+passed with zero swap. See
+[QSA-TOPK-BUFFER-1024.md](QSA-TOPK-BUFFER-1024.md).
+
 ### H3: bound RoPE materialization
 
 **Observed cost.** The shared BF16 RoPE storage is 134,217,728 bytes per rank,
