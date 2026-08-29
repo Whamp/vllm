@@ -268,6 +268,12 @@ CUDA-Graph replay, and the M=256 performance gate. Matrix RHT reduced M=1 from
 2.09 times BF16 against a fixed maximum of 1.25. No full-model launch was
 attempted. See [QSA-INT4-CACHE.md](QSA-INT4-CACHE.md).
 
+The replacement is preregistered in
+[QSA-INT4-DIRECT-DESIGN.md](QSA-INT4-DIRECT-DESIGN.md). It retains the packed
+writer and BF16 fallback but replaces float unpack-and-dot with INT8-query by
+packed-INT4-key scores and INT8 weighted-probability by packed-INT4-value
+accumulation. No implementation or performance evidence exists yet.
+
 ### H5: executor budget ceiling
 
 **Result: promote 0.968.** The bounded-RoPE service still had 1.8 GiB physical
