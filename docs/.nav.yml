@@ -46,6 +46,7 @@ nav:
     - CI: contributing/ci
     - Design Documents:
       - DeepSeek V4 native GGUF research: whamp/deepseek_v4_gguf_tp/README.md
+      - Qwen3.8 INT4 MoE TP/EP research: whamp/qwen38_flash_next/INT4-MOE-TP-EP.md
       - Plugins:
         - design/*plugin*.md
       - design/*
