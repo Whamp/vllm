@@ -21,6 +21,7 @@ from vllm.model_executor.layers.ple_offload_layer import (
     CpuGpuSemaphore,
     PleOffloadLayer,
 )
+from vllm.v1.ple_offload.cuda_ipc import export_ple_cuda_ipc_tensor
 from vllm.v1.ple_offload.protocol import (
     PleOffloadRegistration,
     PleOffloadRequest,
@@ -208,17 +209,20 @@ class PleOffloadConnector:
             tp_rank=self.tp_rank,
             dp_rank=self.dp_rank,
             gpu_output_buffers={
-                name: layer._gpu_output_buffer for name, layer in self._layers.items()
+                name: export_ple_cuda_ipc_tensor(layer._gpu_output_buffer)
+                for name, layer in self._layers.items()
             },
             sem_flag_tensors={
-                name: layer._sem.flag_tensor for name, layer in self._layers.items()
+                name: export_ple_cuda_ipc_tensor(layer._sem.flag_tensor)
+                for name, layer in self._layers.items()
             },
             input_ids_buf=self._input_ids_buf,
             query_start_loc_buf=self._query_start_loc_buf,
             ngram_context_buf=self._ngram_context_buf,
         )
 
-        # ForkingPickler transmits tensors through shared-memory and CUDA IPC.
+        # ForkingPickler now transmits only POSIX shared-memory CPU tensors;
+        # CUDA allocations are represented by raw handle metadata above.
         import torch.multiprocessing as torch_mp
 
         original_strategy = torch_mp.get_sharing_strategy()

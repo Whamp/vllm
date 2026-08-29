@@ -57,6 +57,7 @@ from vllm.model_executor.model_loader.utils import (
 from vllm.model_executor.model_loader.weight_utils import initialize_dummy_weights
 from vllm.utils.system_utils import decorate_logs, get_mp_context
 from vllm.utils.torch_utils import set_default_torch_dtype
+from vllm.v1.ple_offload.cuda_ipc import PleCudaIpcMapping
 from vllm.v1.ple_offload.protocol import (
     _PLE_OFFLOAD_REQUEST_DECODER,
     PleOffloadRegistration,
@@ -71,9 +72,15 @@ class PleOffloadOutputTarget:
     """GPU output destination and semaphore for one TP worker."""
 
     tp_rank: int
-    gpu_output_buffer: torch.Tensor  # IPC-mapped GPU buffer for this TP worker
-    sem: CpuGpuSemaphore  # semaphore paired with gpu_output_buffer
+    output_mapping: PleCudaIpcMapping
+    semaphore_mapping: PleCudaIpcMapping
     copy_stream: torch.cuda.Stream
+
+    def close(self) -> None:
+        """Synchronize and close both imported CUDA allocations."""
+        self.copy_stream.synchronize()
+        self.semaphore_mapping.close()
+        self.output_mapping.close()
 
 
 @dataclass
@@ -269,6 +276,7 @@ class PleOffloadWorker:
 
         zmq_context: zmq.Context | None = None
         pull_socket: zmq.Socket | None = None
+        runner: PleOffloadRunner | None = None
         try:
             # The flag lets PleOffloadLayer subclasses execute their complete
             # constructors instead of becoming empty GPU-worker placeholders.
@@ -312,6 +320,8 @@ class PleOffloadWorker:
                     ready_writer.send({"status": "FAILURE", "error": repr(error)})
             raise
         finally:
+            if runner is not None:
+                runner.close()
             if pull_socket is not None:
                 pull_socket.close(linger=0)
             if zmq_context is not None:
@@ -520,22 +530,62 @@ class PleOffloadRunner:
                     f"got {tp_ranks}"
                 )
 
+        config = self.vllm_config.model_config.hf_text_config
+        max_tokens = self.vllm_config.scheduler_config.max_num_batched_tokens
         for registration in registrations:
-            if set(registration.gpu_output_buffers) != set(self.layer_names):
+            registered_layers = set(registration.gpu_output_buffers)
+            if (
+                registered_layers != set(self.layer_names)
+                or set(registration.sem_flag_tensors) != registered_layers
+            ):
                 raise RuntimeError(
                     "Registered PLE layers do not match CPU layers: "
-                    f"registered={sorted(registration.gpu_output_buffers)}, "
+                    f"registered={sorted(registered_layers)}, "
                     f"cpu={sorted(self.layer_names)}"
                 )
             targets_for_dp = self._worker_targets.setdefault(registration.dp_rank, {})
-            for layer_name, gpu_buffer in registration.gpu_output_buffers.items():
+            for (
+                layer_name,
+                output_descriptor,
+            ) in registration.gpu_output_buffers.items():
+                layer = self._layers[layer_name]
+                output_dim = layer.get_offload_output_dim(int(config.ple_embed_dim))
+                output_dtype = layer.get_offload_output_dtype(
+                    self.vllm_config.model_config.dtype
+                )
+                expected_shape = (max_tokens, output_dim)
+                if (
+                    output_descriptor.shape != expected_shape
+                    or output_descriptor.dtype != str(output_dtype)
+                ):
+                    raise RuntimeError(
+                        f"PLE output registration mismatch for {layer_name}: "
+                        f"expected {expected_shape} {output_dtype}, got "
+                        f"{output_descriptor.shape} {output_descriptor.dtype}"
+                    )
+                semaphore_descriptor = registration.sem_flag_tensors[layer_name]
+                if (
+                    semaphore_descriptor.device_index != output_descriptor.device_index
+                    or semaphore_descriptor.shape != (1,)
+                    or semaphore_descriptor.dtype != "torch.int32"
+                    or semaphore_descriptor.tensor_nbytes != 4
+                ):
+                    raise RuntimeError(
+                        f"PLE semaphore registration mismatch for {layer_name}"
+                    )
+                output_mapping = PleCudaIpcMapping.open(output_descriptor)
+                try:
+                    semaphore_mapping = PleCudaIpcMapping.open(semaphore_descriptor)
+                except Exception:
+                    output_mapping.close()
+                    raise
                 target = PleOffloadOutputTarget(
                     tp_rank=registration.tp_rank,
-                    gpu_output_buffer=gpu_buffer,
-                    sem=CpuGpuSemaphore.from_ipc_tensor(
-                        registration.sem_flag_tensors[layer_name]
+                    output_mapping=output_mapping,
+                    semaphore_mapping=semaphore_mapping,
+                    copy_stream=torch.cuda.Stream(
+                        device=output_descriptor.device_index
                     ),
-                    copy_stream=torch.cuda.Stream(device=gpu_buffer.device),
                 )
                 targets_for_dp.setdefault(layer_name, []).append(target)
             # All TP ranks in one DP group receive the same input, so buffers
@@ -553,8 +603,6 @@ class PleOffloadRunner:
                 f"rank: expected={set(range(dp_size))}, got={set(self._input_bufs)}"
             )
 
-        config = self.vllm_config.model_config.hf_text_config
-        max_tokens = self.vllm_config.scheduler_config.max_num_batched_tokens
         for dp_rank, layer_targets in self._worker_targets.items():
             self._pinned_bufs[dp_rank] = {}
             for layer_name, targets in layer_targets.items():
@@ -646,7 +694,10 @@ class PleOffloadRunner:
                 # flag after the complete model forward.
                 for target in targets:
                     target.copy_stream.synchronize()
-                    target.sem.wait_reset(target.copy_stream)
+                    target.semaphore_mapping.wait_value32(
+                        CpuGpuSemaphore.RESET_VALUE,
+                        target.copy_stream,
+                    )
 
                 input_bufs = self._input_bufs[dp_rank]
                 ngram_context = (
@@ -664,10 +715,18 @@ class PleOffloadRunner:
 
                 # The result is identical on every TP rank in this DP group.
                 # Each copy stream signals only after its DMA completes.
-                slices = tuple(slice(0, size) for size in result.shape)
                 for target in targets:
-                    with torch.cuda.stream(target.copy_stream):
-                        target.gpu_output_buffer[slices].copy_(
-                            result[slices], non_blocking=True
-                        )
-                        target.sem.signal(target.copy_stream)
+                    target.output_mapping.copy_from_host(result, target.copy_stream)
+                    target.semaphore_mapping.write_value32(
+                        CpuGpuSemaphore.DONE_VALUE,
+                        target.copy_stream,
+                    )
+
+    def close(self) -> None:
+        """Close all imported CUDA mappings owned by this worker."""
+        for layer_targets in self._worker_targets.values():
+            for targets in layer_targets.values():
+                for target in targets:
+                    with contextlib.suppress(Exception):
+                        target.close()
+        self._worker_targets.clear()

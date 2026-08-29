@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-from contextlib import nullcontext
 from types import SimpleNamespace
 
 import msgspec
@@ -16,6 +15,7 @@ from vllm.model_executor.layers.ple_offload_layer import PleOffloadLayer
 from vllm.model_executor.models.utils import AutoWeightsLoader, WeightsMapper
 from vllm.v1.ple_offload import worker as ple_offload_worker
 from vllm.v1.ple_offload.connector import PleOffloadConnector
+from vllm.v1.ple_offload.cuda_ipc import PleCudaIpcMapping, PleCudaIpcTensor
 from vllm.v1.worker.gpu_worker import Worker
 
 
@@ -506,6 +506,18 @@ def test_ple_offload_runner_groups_registrations_by_dp_rank(
     runner._pinned_bufs = {}
     runner._input_bufs = {}
 
+    def descriptor(shape: tuple[int, ...], dtype: torch.dtype) -> PleCudaIpcTensor:
+        return PleCudaIpcTensor(
+            device_index=0,
+            allocation_handle=b"h" * 64,
+            allocation_size=1024,
+            tensor_offset=0,
+            tensor_nbytes=torch.empty(shape, dtype=dtype).nbytes,
+            shape=shape,
+            dtype=str(dtype),
+            element_size=torch.empty((), dtype=dtype).element_size(),
+        )
+
     registrations = []
     for dp_rank in range(2):
         for tp_rank in range(2):
@@ -514,8 +526,8 @@ def test_ple_offload_runner_groups_registrations_by_dp_rank(
                     worker_id=dp_rank * 2 + tp_rank,
                     dp_rank=dp_rank,
                     tp_rank=tp_rank,
-                    gpu_output_buffers={"ple": torch.empty(8, 2)},
-                    sem_flag_tensors={"ple": torch.zeros(1, dtype=torch.int32)},
+                    gpu_output_buffers={"ple": descriptor((8, 3), torch.float32)},
+                    sem_flag_tensors={"ple": descriptor((1,), torch.int32)},
                     input_ids_buf=torch.full((8,), dp_rank, dtype=torch.int32),
                     query_start_loc_buf=torch.zeros(4, dtype=torch.int32),
                     ngram_context_buf=None,
@@ -536,9 +548,12 @@ def test_ple_offload_runner_groups_registrations_by_dp_rank(
         lambda **_: FakeStream(),
     )
     monkeypatch.setattr(
-        ple_offload_worker.CpuGpuSemaphore,
-        "from_ipc_tensor",
-        lambda _: SimpleNamespace(),
+        PleCudaIpcMapping,
+        "open",
+        lambda descriptor: SimpleNamespace(
+            descriptor=descriptor,
+            close=lambda: None,
+        ),
     )
 
     runner.accept_registrations(FakeSocket(registrations), len(registrations))
@@ -581,18 +596,32 @@ def test_ple_offload_runner_routes_requests_layer_first(
         def synchronize(self) -> None:
             pass
 
-    class FakeSemaphore:
-        def wait_reset(self, stream) -> None:
-            del stream
+    class FakeOutputMapping:
+        def __init__(self) -> None:
+            self.buffer = torch.empty(4, 2, dtype=torch.int32)
 
-        def signal(self, stream) -> None:
+        def copy_from_host(self, source, stream) -> None:
             del stream
+            self.buffer[: source.shape[0]].copy_(source)
+
+        def close(self) -> None:
+            pass
+
+    class FakeSemaphoreMapping:
+        def wait_value32(self, value, stream) -> None:
+            del value, stream
+
+        def write_value32(self, value, stream) -> None:
+            del value, stream
+
+        def close(self) -> None:
+            pass
 
     def target():
         return ple_offload_worker.PleOffloadOutputTarget(
             tp_rank=0,
-            gpu_output_buffer=torch.empty(4, 2, dtype=torch.int32),
-            sem=FakeSemaphore(),
+            output_mapping=FakeOutputMapping(),  # type: ignore[arg-type]
+            semaphore_mapping=FakeSemaphoreMapping(),  # type: ignore[arg-type]
             copy_stream=FakeStream(),  # type: ignore[arg-type]
         )
 
@@ -624,12 +653,6 @@ def test_ple_offload_runner_routes_requests_layer_first(
         }
         for dp_rank in range(2)
     }
-    monkeypatch.setattr(
-        ple_offload_worker.torch.cuda,
-        "stream",
-        lambda _: nullcontext(),
-    )
-
     runner._handle_requests(
         [
             ple_offload_worker.PleOffloadRequest(
@@ -652,11 +675,11 @@ def test_ple_offload_runner_routes_requests_layer_first(
         ("ple1", 20),
     ]
     torch.testing.assert_close(
-        runner._worker_targets[0]["ple1"][0].gpu_output_buffer[:2],
+        runner._worker_targets[0]["ple1"][0].output_mapping.buffer[:2],
         torch.tensor([[0, 0], [11, 11]], dtype=torch.int32),
     )
     torch.testing.assert_close(
-        runner._worker_targets[1]["ple1"][0].gpu_output_buffer[:1],
+        runner._worker_targets[1]["ple1"][0].output_mapping.buffer[:1],
         torch.tensor([[20, 20]], dtype=torch.int32),
     )
 

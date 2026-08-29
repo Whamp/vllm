@@ -7,6 +7,8 @@ from dataclasses import dataclass
 import msgspec
 import torch
 
+from vllm.v1.ple_offload.cuda_ipc import PleCudaIpcTensor
+
 # ---------------------------------------------------------------------------
 # IPC message dataclasses
 # ---------------------------------------------------------------------------
@@ -19,9 +21,9 @@ class PleOffloadRegistration:
     worker_id: int
     tp_rank: int
     dp_rank: int
-    # CUDA tensors are serialized through PyTorch CUDA IPC.
-    gpu_output_buffers: dict[str, torch.Tensor]
-    sem_flag_tensors: dict[str, torch.Tensor]
+    # Raw CUDA IPC metadata avoids PyTorch storage-refcounter file descriptors.
+    gpu_output_buffers: dict[str, PleCudaIpcTensor]
+    sem_flag_tensors: dict[str, PleCudaIpcTensor]
     # CPU tensors are allocated in shared memory and registered once.
     input_ids_buf: torch.Tensor
     query_start_loc_buf: torch.Tensor
