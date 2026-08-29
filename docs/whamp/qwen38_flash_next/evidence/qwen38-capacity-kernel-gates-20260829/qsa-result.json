@@ -1,0 +1,84 @@
+{
+  "acceptance": {
+    "maximum_normalized_rmse": 0.17,
+    "maximum_reader_ratio": 1.25,
+    "minimum_cosine_similarity": 0.985
+  },
+  "compute_capability": [
+    8,
+    6
+  ],
+  "device": "NVIDIA GeForce RTX 3090",
+  "graph_passed": true,
+  "numerical_passed": true,
+  "performance_passed": false,
+  "reader": {
+    "1": {
+      "bf16_timing": {
+        "median_microseconds": 133.67263793945312,
+        "samples": [
+          133.93919944763184,
+          133.67263793945312,
+          133.34527969360352,
+          133.21215629577637,
+          133.6729621887207
+        ]
+      },
+      "cosine_similarity": 0.9934523105621338,
+      "cuda_graph": {
+        "bitwise_equal": true,
+        "finite": true
+      },
+      "maximum_absolute_error": 0.0152587890625,
+      "mixed_timing": {
+        "median_microseconds": 562.2675323486328,
+        "samples": [
+          563.5788726806641,
+          562.5027084350586,
+          562.1247863769531,
+          561.9609451293945,
+          562.2675323486328
+        ]
+      },
+      "normalized_rmse": 0.11618776619434357,
+      "reader_ratio": 4.206302359375232
+    },
+    "256": {
+      "bf16_timing": {
+        "median_microseconds": 604.9280166625977,
+        "samples": [
+          604.9280166625977,
+          604.3136119842529,
+          605.4912090301514,
+          605.0303936004639,
+          604.1600227355957
+        ]
+      },
+      "cosine_similarity": 0.9935299158096313,
+      "maximum_absolute_error": 0.0205078125,
+      "mixed_timing": {
+        "median_microseconds": 1038.535976409912,
+        "samples": [
+          1006.0799598693848,
+          1021.6447830200195,
+          1038.535976409912,
+          1038.7968063354492,
+          1039.457607269287
+        ]
+      },
+      "normalized_rmse": 0.11511470377445221,
+      "reader_ratio": 1.7167926559916005
+    }
+  },
+  "schema_version": 1,
+  "writer": {
+    "median_microseconds": 371.50719165802,
+    "samples": [
+      374.2208003997803,
+      374.2719888687134,
+      371.50719165802,
+      370.4832077026367,
+      370.2239990234375
+    ]
+  }
+}

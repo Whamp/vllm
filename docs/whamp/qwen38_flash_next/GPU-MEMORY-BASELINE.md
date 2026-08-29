@@ -174,13 +174,22 @@ RMSE and 0.9999 cosine bounds. See
 [evidence/qwen38-hyperconnection-int8-20260829/README.md](evidence/qwen38-hyperconnection-int8-20260829/README.md).
 
 The two generic compressed-linear paths are now closed. An all-weight screen
-selects K-group-128 scales for down and injection plus per-row scales for up as
-the custom-kernel input contract. It has 0.010262 aggregate weight-reconstruction
-NRMSE, 0.999912 cosine, 0.016962 worst-tensor NRMSE, and projects 603.31 MiB of
-registered storage savings per rank. It still needs a purpose-built kernel for
-the `[336, 10240]` and `[10240, 320]` shapes, grouped-activation output oracles,
-and exact-shape speed evidence. The projected saving leaves about 67 MiB of the
-670 MiB capacity target to recover elsewhere.
+selected K-group-128 scales for down and injection plus per-row scales for up as
+a custom-kernel input contract. It measured 0.010262 aggregate
+weight-reconstruction NRMSE, 0.999912 cosine, 0.016962 worst-tensor NRMSE, and
+projected 603.31 MiB of registered storage savings per rank.
+
+**Result: reject the first purpose-built Triton INT8 path.** Its real layer-0
+`[336, 10240]` and `[10240, 320]` gates passed the 0.02 NRMSE, 0.9999 cosine,
+and deterministic CUDA-Graph requirements. The decode path nevertheless took
+111–114 microseconds versus 23–28 microseconds for BF16, while M=256 took
+85–91 versus 35–49 microseconds. This is a 2.0–5.0-times slowdown and fails the
+fixed 0.90 speed-ratio gate. No full-model launch was attempted. See
+[CAPACITY-KERNEL-GATES.md](CAPACITY-KERNEL-GATES.md).
+
+A later hyperconnection candidate is justified only if it changes the mechanism,
+such as one SM86 CUDA launch that folds activation quantization into the skinny
+DP4A projection. Retiling the rejected Triton implementation is not sufficient.
 
 ### H2: lower the QSA top-k batch allocation
 
@@ -268,14 +277,24 @@ CUDA-Graph replay, and the M=256 performance gate. Matrix RHT reduced M=1 from
 2.09 times BF16 against a fixed maximum of 1.25. No full-model launch was
 attempted. See [QSA-INT4-CACHE.md](QSA-INT4-CACHE.md).
 
-The replacement is preregistered in
+The replacement was preregistered in
 [QSA-INT4-DIRECT-DESIGN.md](QSA-INT4-DIRECT-DESIGN.md). A 20-seed CPU
-arithmetic screen rejected uniform Q4 K/V under the fixed numerical bound and
-selected symmetric Q8 K plus asymmetric Q4 V. The mixed format passed at 0.11904
-maximum NRMSE and 0.99294 minimum cosine, and uses 5,472 complete QSA cache
-bytes per token and rank. It retains BF16 fallback and uses INT8-query by
-INT8-key scores plus INT8 weighted-probability by packed-INT4-value
-accumulation. No GPU implementation or performance evidence exists yet.
+arithmetic screen rejected uniform Q4 K/V and selected symmetric Q8 K plus
+asymmetric Q4 V. The mixed format uses 5,472 complete QSA cache bytes per token
+and rank.
+
+**Direct Q8-K/Q4-V result: reject the Triton implementation.** The RTX 3090
+reader passed the unchanged numerical and deterministic CUDA-Graph gates at
+M=1 and M=256. It ran 4.206 times BF16 at M=1 and 1.717 times BF16 at M=256,
+against the fixed maximum of 1.25. The M=256 candidate used the same 64-token
+tile and eight-split schedule class as BF16, so the gap is not a decode-only
+split-count artifact. No full-model launch was attempted. See
+[CAPACITY-KERNEL-GATES.md](CAPACITY-KERNEL-GATES.md).
+
+A second QSA attempt requires direct attribution and a different mechanism that
+removes separate query RHT, query quantization, split merge, inverse RHT, and
+copy work while making the integer core materially faster. Thresholds remain
+unchanged.
 
 ### H5: executor budget ceiling
 

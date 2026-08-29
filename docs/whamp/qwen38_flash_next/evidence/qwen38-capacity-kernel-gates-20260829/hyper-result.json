@@ -1,0 +1,212 @@
+{
+  "acceptance": {
+    "maximum_normalized_rmse": 0.02,
+    "minimum_cosine_similarity": 0.9999,
+    "minimum_speed_ratio": 0.9
+  },
+  "compute_capability": [
+    8,
+    6
+  ],
+  "device": "NVIDIA GeForce RTX 3090",
+  "graph_passed": true,
+  "matrices": {
+    "merged_down": {
+      "bf16_bytes": 6881280,
+      "group_size": 128,
+      "shape": [
+        336,
+        10240
+      ],
+      "storage_bytes": 3494400,
+      "token_counts": {
+        "1": {
+          "bf16_timing": {
+            "median_microseconds": 27.7073917388916,
+            "samples": [
+              27.863040924072266,
+              27.78223991394043,
+              27.670528411865234,
+              27.620288848876953,
+              27.7073917388916
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 111.46854400634766,
+            "samples": [
+              111.45728302001953,
+              112.15974426269531,
+              111.22278594970703,
+              111.6016616821289,
+              111.46854400634766
+            ]
+          },
+          "cosine_similarity": 0.9999356865882874,
+          "cuda_graph": {
+            "bitwise_equal": true,
+            "finite": true
+          },
+          "maximum_absolute_error": 0.125,
+          "normalized_rmse": 0.011362887918949127,
+          "speed_ratio": 0.24856691173174186
+        },
+        "2": {
+          "bf16_timing": {
+            "median_microseconds": 28.017663955688477,
+            "samples": [
+              28.398591995239258,
+              28.017663955688477,
+              28.002304077148438,
+              28.073984146118164,
+              27.839487075805664
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 112.07270050048828,
+            "samples": [
+              111.83821105957031,
+              112.82022094726562,
+              112.07270050048828,
+              111.75936126708984,
+              112.43929290771484
+            ]
+          },
+          "cosine_similarity": 0.9999438524246216,
+          "cuda_graph": {
+            "bitwise_equal": true,
+            "finite": true
+          },
+          "maximum_absolute_error": 0.140625,
+          "normalized_rmse": 0.01061205379664898,
+          "speed_ratio": 0.24999543894783197
+        },
+        "256": {
+          "bf16_timing": {
+            "median_microseconds": 49.13248062133789,
+            "samples": [
+              49.1315221786499,
+              49.16224002838135,
+              49.1212797164917,
+              49.14144039154053,
+              49.13248062133789
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 91.00288391113281,
+            "samples": [
+              91.00288391113281,
+              90.93119621276855,
+              91.18720054626465,
+              90.91072082519531,
+              91.36128425598145
+            ]
+          },
+          "cosine_similarity": 0.9999480247497559,
+          "maximum_absolute_error": 0.359375,
+          "normalized_rmse": 0.010193091817200184,
+          "speed_ratio": 0.5399002593073567
+        }
+      }
+    },
+    "up": {
+      "bf16_bytes": 6553600,
+      "group_size": 320,
+      "shape": [
+        10240,
+        320
+      ],
+      "storage_bytes": 3297280,
+      "token_counts": {
+        "1": {
+          "bf16_timing": {
+            "median_microseconds": 23.05023956298828,
+            "samples": [
+              23.649280548095703,
+              23.172096252441406,
+              23.05023956298828,
+              23.033855438232422,
+              23.004127502441406
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 113.26771545410156,
+            "samples": [
+              114.67670440673828,
+              113.1673583984375,
+              113.35475158691406,
+              113.2380142211914,
+              113.26771545410156
+            ]
+          },
+          "cosine_similarity": 0.9999216198921204,
+          "cuda_graph": {
+            "bitwise_equal": true,
+            "finite": true
+          },
+          "maximum_absolute_error": 0.328125,
+          "normalized_rmse": 0.01264278031885624,
+          "speed_ratio": 0.20350229075052476
+        },
+        "2": {
+          "bf16_timing": {
+            "median_microseconds": 22.765567779541016,
+            "samples": [
+              23.11577606201172,
+              22.85875129699707,
+              22.765567779541016,
+              22.75014305114746,
+              22.632448196411133
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 113.99372863769531,
+            "samples": [
+              113.05888366699219,
+              113.99372863769531,
+              113.33222198486328,
+              124.56041717529297,
+              124.7663345336914
+            ]
+          },
+          "cosine_similarity": 0.999914288520813,
+          "cuda_graph": {
+            "bitwise_equal": true,
+            "finite": true
+          },
+          "maximum_absolute_error": 0.296875,
+          "normalized_rmse": 0.013098977506160736,
+          "speed_ratio": 0.19970894935717476
+        },
+        "256": {
+          "bf16_timing": {
+            "median_microseconds": 34.61119890213013,
+            "samples": [
+              34.6726393699646,
+              34.62048053741455,
+              34.549760818481445,
+              34.61119890213013,
+              34.568960666656494
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 85.23776054382324,
+            "samples": [
+              85.14559745788574,
+              85.0432014465332,
+              86.85440063476562,
+              86.86592102050781,
+              85.23776054382324
+            ]
+          },
+          "cosine_similarity": 0.999925971031189,
+          "maximum_absolute_error": 0.59375,
+          "normalized_rmse": 0.01216564979404211,
+          "speed_ratio": 0.4060547658843699
+        }
+      }
+    }
+  },
+  "numerical_passed": true,
+  "performance_passed": false,
+  "schema_version": 1
+}
