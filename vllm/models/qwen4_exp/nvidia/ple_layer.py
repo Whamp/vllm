@@ -56,6 +56,7 @@ from vllm.v1.attention.backends.short_conv_attn import (
 from vllm.v1.attention.backends.utils import NULL_BLOCK_ID
 
 from ..common.ple import copy_ple_embedding_shard_
+from ..common.ple_sidecar import NvFp4PleSidecar
 
 logger = init_logger(__name__)
 
@@ -376,6 +377,7 @@ def _get_shared_nvfp4_outer_scale(
 
 class Qwen4ExpNGramEmbedding(PleOffloadLayer):
     _offload_quant_method: QuantizeMethodBase | None = None
+    _nvfp4_sidecar: NvFp4PleSidecar | None = None
 
     def __init__(
         self,
@@ -387,6 +389,8 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
         prefix: str,
         quant_config: QuantizationConfig | None = None,
         params_dtype: torch.dtype | None = None,
+        nvfp4_sidecar_dir: str | None = None,
+        nvfp4_sidecar_manifest_sha256: str | None = None,
     ) -> None:
         super().__init__()
         self.embedding_dim = embedding_dim
@@ -445,16 +449,38 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
         )
         divisor = int(config.make_ngram_vocab_size_divisible_by)
         padded_vocab_size = ((offset + divisor - 1) // divisor) * divisor
-        self.ngram_embedding = VocabParallelEmbedding(
-            padded_vocab_size,
-            self.head_dim,
-            params_dtype=params_dtype,
-            padding_size=divisor,
-            prefix=f"{prefix}.ngram_embedding",
-            quant_method=_get_ple_embedding_quant_method(
-                quant_config, f"{prefix}.ngram_embedding"
-            ),
-        )
+        self._nvfp4_sidecar: NvFp4PleSidecar | None = None
+        self._nvfp4_sidecar_output_dtype = params_dtype or torch.get_default_dtype()
+        if self._nvfp4_sidecar_output_dtype not in (
+            torch.bfloat16,
+            torch.float16,
+            torch.float32,
+        ):
+            raise ValueError("NVFP4 PLE sidecar output requires a floating dtype")
+        if nvfp4_sidecar_dir is not None:
+            if not is_offload_process():
+                raise RuntimeError(
+                    "NVFP4 PLE sidecars may only own storage in the CPU offload process"
+                )
+            if not nvfp4_sidecar_manifest_sha256:
+                raise ValueError("NVFP4 PLE sidecar requires a META.json SHA-256")
+            self._nvfp4_sidecar = NvFp4PleSidecar.open(
+                nvfp4_sidecar_dir,
+                expected_rows=padded_vocab_size,
+                expected_width=self.head_dim,
+                expected_manifest_sha256=nvfp4_sidecar_manifest_sha256,
+            )
+        else:
+            self.ngram_embedding = VocabParallelEmbedding(
+                padded_vocab_size,
+                self.head_dim,
+                params_dtype=params_dtype,
+                padding_size=divisor,
+                prefix=f"{prefix}.ngram_embedding",
+                quant_method=_get_ple_embedding_quant_method(
+                    quant_config, f"{prefix}.ngram_embedding"
+                ),
+            )
         self.register_buffer(
             "positions_buffer",
             torch.arange(max_total_tokens, dtype=torch.int64),
@@ -592,6 +618,21 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
             ids = torch.remainder(mixed.unsqueeze(-1), sizes) + offsets
             id_blocks.append(ids[request_indices, adjusted_columns])
         ngram_ids = torch.cat(id_blocks, dim=-1)
+        sidecar = self._nvfp4_sidecar
+        if sidecar is not None:
+            if output_buffer is None:
+                output = torch.empty(
+                    (num_tokens, self.embedding_dim),
+                    dtype=self._nvfp4_sidecar_output_dtype,
+                    device=ngram_ids.device,
+                )
+            else:
+                output = output_buffer[:num_tokens, : self.embedding_dim]
+            sidecar.gather_dequantized_rows(
+                ngram_ids.reshape(-1),
+                output.reshape(-1, self.head_dim),
+            )
+            return output
         if output_buffer is not None:
             quant_method = getattr(self.ngram_embedding, "quant_method", None)
             if isinstance(quant_method, Qwen4ExpPLENVFp4EmbeddingMethod):
@@ -615,6 +656,8 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
         weight = getattr(embedding, "weight", None)
         if weight is not None:
             return weight.dtype
+        if self._nvfp4_sidecar is not None:
+            return self._nvfp4_sidecar_output_dtype
         if isinstance(self._offload_quant_method, Qwen4ExpPLENVFp4EmbeddingMethod):
             return torch.uint8
         if isinstance(self._offload_quant_method, Qwen4ExpPLEFp8EmbeddingMethod):
@@ -723,7 +766,12 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
         loaded: set[str] = set()
         regular_weights: list[tuple[str, torch.Tensor]] = []
         shard_prefix = "ngram_embedding.shard_"
-        quant_method = getattr(self.ngram_embedding, "quant_method", None)
+        sidecar_runtime = self._nvfp4_sidecar is not None
+        quant_method = (
+            None
+            if sidecar_runtime
+            else getattr(self.ngram_embedding, "quant_method", None)
+        )
         nvfp4_runtime = isinstance(quant_method, Qwen4ExpPLENVFp4EmbeddingMethod)
         fp8_runtime = isinstance(quant_method, Qwen4ExpPLEFp8EmbeddingMethod)
         packed_codes: dict[int, torch.Tensor] = {}
@@ -743,6 +791,9 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
                     )
                 buffer.copy_(loaded_weight.to(device=buffer.device, dtype=buffer.dtype))
                 loaded.add(name)
+                continue
+
+            if sidecar_runtime and name.startswith("ngram_embedding."):
                 continue
 
             if nvfp4_runtime and name.startswith(shard_prefix):
@@ -912,6 +963,14 @@ class Qwen4ExpPLELayer(nn.Module, MambaBase):
         self.conv_state_len = (self.conv_kernel_size - 1) * self.short_conv_dilation
         self.num_spec_tokens = vllm_config.num_speculative_tokens
         self.activation = "silu"
+        sidecar_dir = envs.VLLM_PLE_NVFP4_SIDECAR_DIR
+        sidecar_manifest_sha256 = envs.VLLM_PLE_NVFP4_SIDECAR_META_SHA256
+        if bool(sidecar_dir) != bool(sidecar_manifest_sha256):
+            raise ValueError(
+                "NVFP4 PLE sidecar directory and META.json SHA-256 must be set together"
+            )
+        if sidecar_dir is not None and not envs.VLLM_PLE_CPU_OFFLOAD:
+            raise ValueError("NVFP4 PLE sidecars require VLLM_PLE_CPU_OFFLOAD")
         # The offload process builds the surrounding model on meta while
         # this subtree must own real CPU storage. GPU workers skip the
         # subclass constructor and retain only an empty IPC placeholder.
@@ -925,8 +984,16 @@ class Qwen4ExpPLELayer(nn.Module, MambaBase):
                 f"{prefix}.ple_embedding",
                 quant_config=quant_config,
                 params_dtype=model_config.dtype,
+                nvfp4_sidecar_dir=(sidecar_dir if is_offload_process() else None),
+                nvfp4_sidecar_manifest_sha256=(
+                    sidecar_manifest_sha256 if is_offload_process() else None
+                ),
             )
-        if envs.VLLM_PLE_CPU_OFFLOAD and not is_offload_process():
+        if (
+            envs.VLLM_PLE_CPU_OFFLOAD
+            and not is_offload_process()
+            and sidecar_dir is None
+        ):
             ple_embedding._offload_quant_method = _get_ple_embedding_quant_method(
                 quant_config,
                 f"{prefix}.ple_embedding.ngram_embedding",

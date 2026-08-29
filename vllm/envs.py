@@ -292,6 +292,8 @@ if TYPE_CHECKING:
     VLLM_USE_V2_MODEL_RUNNER: bool | None = None
     VLLM_PLE_CPU_OFFLOAD: bool = False
     VLLM_PLE_OFFLOAD_READY_TIMEOUT: float = 600.0
+    VLLM_PLE_NVFP4_SIDECAR_DIR: str | None = None
+    VLLM_PLE_NVFP4_SIDECAR_META_SHA256: str | None = None
     VLLM_LOG_MODEL_INSPECTION: bool = False
     VLLM_MODEL_MEMORY_REPORT_DIR: str | None = None
     VLLM_DEBUG_MFU_METRICS: bool = False
@@ -2040,6 +2042,12 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Timeout for PLE weight loading and TP worker registration.
     "VLLM_PLE_OFFLOAD_READY_TIMEOUT": lambda: float(
         os.getenv("VLLM_PLE_OFFLOAD_READY_TIMEOUT", "600")
+    ),
+    # Immutable NVFP4 PLE sidecar directory used by the CPU offload worker.
+    "VLLM_PLE_NVFP4_SIDECAR_DIR": lambda: os.getenv("VLLM_PLE_NVFP4_SIDECAR_DIR"),
+    # Required SHA-256 of the sidecar META.json when a sidecar is configured.
+    "VLLM_PLE_NVFP4_SIDECAR_META_SHA256": lambda: os.getenv(
+        "VLLM_PLE_NVFP4_SIDECAR_META_SHA256"
     ),
     # Log model inspection after loading.
     # If enabled, logs a transformers-style hierarchical view of the model
