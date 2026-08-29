@@ -253,6 +253,17 @@ CUDA-Graph replay, and the M=256 performance gate. Matrix RHT reduced M=1 from
 2.09 times BF16 against a fixed maximum of 1.25. No full-model launch was
 attempted. See [QSA-INT4-CACHE.md](QSA-INT4-CACHE.md).
 
+### H5: executor budget ceiling
+
+**Result: promote 0.968.** The bounded-RoPE service still had 1.8 GiB physical
+headroom at `gpu_memory_utilization=0.95`. A preregistered 0.97 arm fit 206,400
+tokens and passed correctness and performance, but failed the 1 GiB post-NIAH
+margin by 4–8 MiB and rolled back. The 0.968 arm fit 202,400 tokens, passed exact
+190,047-token retrieval, retained 101.04% decode and 100.13% cache-busted prefill
+on the final production identity, scored BenchLocal quick 26/30, and retained at
+least 1,098 MiB free with zero swap. See
+[GPU-MEMORY-UTILIZATION-0968.md](GPU-MEMORY-UTILIZATION-0968.md).
+
 ## Restored service
 
 After capture, the diagnostic container was removed and the original service

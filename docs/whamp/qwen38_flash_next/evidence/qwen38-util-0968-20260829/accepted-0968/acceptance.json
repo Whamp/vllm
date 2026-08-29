@@ -1,0 +1,212 @@
+{
+  "concurrency_2": {
+    "aggregate_tokens_per_second": 55.92034355917431,
+    "mean_per_stream_decode_tokens_per_second": 36.81237692957116,
+    "runs": [
+      {
+        "completion_tokens": 256,
+        "decode_tokens_per_second": 36.81228838534173,
+        "finish_reason": "length",
+        "ttft_seconds": 2.201681233011186,
+        "wall_seconds": 9.15588080137968
+      },
+      {
+        "completion_tokens": 256,
+        "decode_tokens_per_second": 36.812465473800586,
+        "finish_reason": "length",
+        "ttft_seconds": 2.201324983034283,
+        "wall_seconds": 9.155491097830236
+      }
+    ]
+  },
+  "deterministic": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "logprobs": null,
+        "message": {
+          "annotations": null,
+          "audio": null,
+          "content": "\n\nPARIS",
+          "function_call": null,
+          "reasoning": "We need to respond to user: \"Reply with exactly PARIS\". Need final exactly PARIS. Ensure no extra.\n",
+          "refusal": null,
+          "role": "assistant"
+        },
+        "routed_experts": null,
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "created": 1787995915,
+    "ec_transfer_params": null,
+    "id": "chatcmpl-a75db4449686724e",
+    "kv_transfer_params": null,
+    "metrics": null,
+    "model": "qwen3.8-flash-next-intel-util-0968",
+    "object": "chat.completion",
+    "prompt_logprobs": null,
+    "prompt_text": null,
+    "prompt_token_ids": null,
+    "service_tier": null,
+    "system_fingerprint": "vllm-0.1.dev20073+g8e685d198-tp4-ep-cf371a98",
+    "usage": {
+      "completion_tokens": 28,
+      "completion_tokens_details": {
+        "reasoning_tokens": 23
+      },
+      "prompt_tokens": 56,
+      "prompt_tokens_details": null,
+      "total_tokens": 84
+    }
+  },
+  "model": "qwen3.8-flash-next-intel-util-0968",
+  "multimodal": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "logprobs": null,
+        "message": {
+          "annotations": null,
+          "audio": null,
+          "content": "\n\nA solid, uniform red square with no text, shapes, or other details.",
+          "function_call": null,
+          "reasoning": "The user wants a brief description. The image is a single solid color\u2014pure red, no text, shapes, gradients, or texture. I need to keep it concise and accurate. No need for elaborate analysis; just state what's visible. I'll mention it's a uniform red square/rectangle with no other elements.\n",
+          "refusal": null,
+          "role": "assistant"
+        },
+        "routed_experts": null,
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "created": 1787995922,
+    "ec_transfer_params": null,
+    "id": "chatcmpl-86adde0246e346e5",
+    "kv_transfer_params": null,
+    "metrics": null,
+    "model": "qwen3.8-flash-next-intel-util-0968",
+    "object": "chat.completion",
+    "prompt_logprobs": null,
+    "prompt_text": null,
+    "prompt_token_ids": null,
+    "service_tier": null,
+    "system_fingerprint": "vllm-0.1.dev20073+g8e685d198-tp4-ep-cf371a98",
+    "usage": {
+      "completion_tokens": 85,
+      "completion_tokens_details": {
+        "reasoning_tokens": 66
+      },
+      "prompt_tokens": 123,
+      "prompt_tokens_details": null,
+      "total_tokens": 208
+    }
+  },
+  "niah": {
+    "answer": "VIOLET ORBIT 9137",
+    "api_prompt_tokens": 190047,
+    "finish_reason": "stop",
+    "target_tokens": 190000,
+    "tokenized_prompt_tokens": 189995,
+    "wall_seconds": 137.56578235002235
+  },
+  "schema_version": 1,
+  "tools": {
+    "post_tool": {
+      "choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "annotations": null,
+            "audio": null,
+            "content": "\n\nThe current temperature in Paris is **72\u00b0F**.",
+            "function_call": null,
+            "reasoning": "The user asked to use the tool and not answer from memory. The tool returned 72\u00b0F. I should report that.\n",
+            "refusal": null,
+            "role": "assistant"
+          },
+          "routed_experts": null,
+          "stop_reason": null,
+          "token_ids": null
+        }
+      ],
+      "created": 1787995921,
+      "ec_transfer_params": null,
+      "id": "chatcmpl-baa9c33bff787e1f",
+      "kv_transfer_params": null,
+      "metrics": null,
+      "model": "qwen3.8-flash-next-intel-util-0968",
+      "object": "chat.completion",
+      "prompt_logprobs": null,
+      "prompt_text": null,
+      "prompt_token_ids": null,
+      "service_tier": null,
+      "system_fingerprint": "vllm-0.1.dev20073+g8e685d198-tp4-ep-cf371a98",
+      "usage": {
+        "completion_tokens": 41,
+        "completion_tokens_details": {
+          "reasoning_tokens": 27
+        },
+        "prompt_tokens": 376,
+        "prompt_tokens_details": null,
+        "total_tokens": 417
+      }
+    },
+    "tool_call": {
+      "choices": [
+        {
+          "finish_reason": "tool_calls",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "annotations": null,
+            "audio": null,
+            "content": null,
+            "function_call": null,
+            "reasoning": "We need to respond to user: \"Use lookup_temperature for Paris. Do not answer from memory.\" Need call tool lookup_temperature with city Paris. Then final answer likely temperature. Need ensure no final before tool.\n",
+            "refusal": null,
+            "role": "assistant",
+            "tool_calls": [
+              {
+                "function": {
+                  "arguments": "{\"city\": \"Paris\"}",
+                  "name": "lookup_temperature"
+                },
+                "id": "chatcmpl-tool-a85cb9febb4b3eea",
+                "type": "function"
+              }
+            ]
+          },
+          "routed_experts": null,
+          "stop_reason": null,
+          "token_ids": null
+        }
+      ],
+      "created": 1787995918,
+      "ec_transfer_params": null,
+      "id": "chatcmpl-98e45a4035ba944d",
+      "kv_transfer_params": null,
+      "metrics": null,
+      "model": "qwen3.8-flash-next-intel-util-0968",
+      "object": "chat.completion",
+      "prompt_logprobs": null,
+      "prompt_text": null,
+      "prompt_token_ids": null,
+      "service_tier": null,
+      "system_fingerprint": "vllm-0.1.dev20073+g8e685d198-tp4-ep-cf371a98",
+      "usage": {
+        "completion_tokens": 72,
+        "completion_tokens_details": {
+          "reasoning_tokens": 43
+        },
+        "prompt_tokens": 324,
+        "prompt_tokens_details": null,
+        "total_tokens": 396
+      }
+    }
+  }
+}

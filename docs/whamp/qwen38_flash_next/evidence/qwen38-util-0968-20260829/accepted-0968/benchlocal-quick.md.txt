@@ -1,0 +1,75 @@
+## Quality bench, thinking mixed(pack-defaults), benchlocal-cli v0.9.10, repeat = 1
+
+Pack | Pass / Total | Score | Std | CV | p50 latency | p95 latency | Status
+---|---:|---:|---:|---:|---:|---:|---
+toolcall-15 (v1.0.1) | 12 / 15 | 80% | — | — | 1.78s | 4.50s | ok
+instructfollow-15 (v1.0.0) | 14 / 15 | 93% | — | — | 6.49s | 41.10s | ok
+
+TOTAL | 26 / 30 | 87% |  |  |  |  |
+
+Equivalent to: 130/150
+
+<details>
+<summary>Raw data</summary>
+
+```
+=== benchlocal-cli --quick  (endpoint: http://127.0.0.1:30002, model: qwen3.8-flash-next-intel-util-0968, thinking=mixed(pack-defaults), 2026-08-29T09:35:00.994796Z) ===
+
+  [1/15] TC-01 ✓ passed pass@1 (3.1s)
+  [2/15] TC-02 ✓ passed pass@1 (1.0s)
+  [3/15] TC-03 ✗ wrong_answer fail (4.5s)
+  [4/15] TC-04 ✓ passed pass@1 (2.2s)
+  [5/15] TC-05 ✗ verifier_fail fail (1.8s)
+  [6/15] TC-06 ✗ verifier_fail fail (1.4s)
+  [7/15] TC-07 ✓ passed pass@1 (2.1s)
+  [8/15] TC-08 ✓ passed pass@1 (1.0s)
+  [9/15] TC-09 ✓ passed pass@1 (2.0s)
+  [10/15] TC-10 ✓ passed pass@1 (2.0s)
+  [11/15] TC-11 ✓ passed pass@1 (0.5s)
+  [12/15] TC-12 ✓ passed pass@1 (5.8s)
+  [13/15] TC-13 ✓ passed pass@1 (1.2s)
+  [14/15] TC-14 ✓ passed pass@1 (1.0s)
+  [15/15] TC-15 ✓ passed pass@1 (1.1s)
+toolcall-15 (v1.0.1) | 12 / 15 | 80% | 1.78s | ok
+  [1/15] IF-01 ✗ verifier_fail fail (29.9s)
+  [2/15] IF-02 ✓ passed pass@1 (4.1s)
+  [3/15] IF-03 ✓ passed pass@1 (6.1s)
+  [4/15] IF-04 ✓ passed pass@1 (4.3s)
+  [5/15] IF-05 ✓ passed pass@1 (7.2s)
+  [6/15] IF-06 ✓ passed pass@1 (4.4s)
+  [7/15] IF-07 ✓ passed pass@1 (12.2s)
+  [8/15] IF-08 ✓ passed pass@1 (4.2s)
+  [9/15] IF-09 ✓ passed pass@1 (14.8s)
+  [10/15] IF-10 ✓ passed pass@1 (66.7s)
+  [11/15] IF-11 ✓ passed pass@1 (41.1s)
+  [12/15] IF-12 ✓ passed pass@1 (11.9s)
+  [13/15] IF-13 ✓ passed pass@1 (1.9s)
+  [14/15] IF-14 ✓ passed pass@1 (4.8s)
+  [15/15] IF-15 ✓ passed pass@1 (6.5s)
+instructfollow-15 (v1.0.0) | 14 / 15 | 93% | 6.49s | ok
+
+Pack | Pass / Total | Score | p50 latency | p95 latency | Status
+---|---:|---:|---:|---:|---
+toolcall-15 (v1.0.1) | 12 / 15 | 80% | 1.78s | 4.50s | ok
+instructfollow-15 (v1.0.0) | 14 / 15 | 93% | 6.49s | 41.10s | ok
+
+TOTAL | 26 / 30 | 87% |  |  |
+
+Completion and extraction diagnostics:
+
+Pack | finish_reason=length | extraction_method | extraction_issue | response_field_used
+---|---:|---|---|---
+toolcall-15 | 0 / 15 (0.0%) | — | — | message.content=8
+instructfollow-15 | 0 / 15 (0.0%) | — | — | message.content=15
+
+Failure breakdown:
+- toolcall-15 TC-03: wrong_answer [fail] (response did not include tool_calls)
+- toolcall-15 TC-05: verifier_fail [fail] (expected first tool create_calendar_event, got ['calculator'])
+- toolcall-15 TC-06: verifier_fail [fail] (expected tool order ['translate_text', 'translate_text'], got ['translate_text'])
+- instructfollow-15 IF-01: verifier_fail [fail] (format regex did not match)
+
+Warnings:
+- timeout scaling active: measured_decode_tps=42.9, reference_tps=100.0, scale=2.33, token-budget-multiplier=16384/1024=16.00
+```
+
+</details>

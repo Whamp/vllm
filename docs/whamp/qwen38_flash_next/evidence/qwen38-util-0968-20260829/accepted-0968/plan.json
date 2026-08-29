@@ -1,0 +1,25 @@
+{
+  "candidate_compose_sha256": "85aa1ce086dd96f43733f9d4bd2c6bf281cf6d7cd5c639094ccdd255d785fb2c",
+  "change": {
+    "gpu_memory_utilization": {
+      "candidate": 0.968,
+      "control": 0.95
+    }
+  },
+  "constants": {
+    "image_sha256": "1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b",
+    "max_num_batched_tokens": 1024,
+    "max_num_seqs": 2,
+    "qsa_cache": "bf16",
+    "rope_cache_rows": 262144
+  },
+  "gates": {
+    "minimum_context_gain_tokens": 30000,
+    "minimum_decode_retention": 0.95,
+    "minimum_post_niah_free_vram_mib": 1024,
+    "minimum_prefill_retention": 0.9,
+    "required_zero_swap": true
+  },
+  "rollback_sha256": "bf53f30598b5d0c6f3f31b9a72db39bfb117dafeb5ef6f3fd625b6da718cd570",
+  "schema_version": 1
+}

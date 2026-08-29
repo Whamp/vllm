@@ -1,0 +1,23 @@
+image=sha256:1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b
+health=healthy
+restarts=0
+model={"object":"list","data":[{"id":"qwen3.8-flash-next-intel-autoround-w4a16","object":"model","created":1787997331,"owned_by":"vllm","root":"/model","parent":null,"max_model_len":202400,"permission":[{"id":"modelperm-a020b48c3da9008c","object":"model_permission","created":1787997331,"allow_create_engine":false,"allow_sampling":true,"allow_logprobs":true,"allow_search_indices":false,"allow_view":true,"allow_fine_tuning":false,"organization":"*","group":null,"is_blocking":false}]}]}
+host_swap_lines=1
+pid=3351967 swap_kib=0
+pid=3352964 swap_kib=0
+pid=3352965 swap_kib=0
+pid=3353175 swap_kib=0
+pid=3353281 swap_kib=0
+pid=3353464 swap_kib=0
+pid=3353619 swap_kib=0
+pid=3354099 swap_kib=0
+pid=3355459 swap_kib=0
+pid=3355462 swap_kib=0
+pid=3355488 swap_kib=0
+pid=3355619 swap_kib=0
+safety=active
+timer=inactive
+0, 1214 MiB, 230.00 W, 210 MHz
+1, 1098 MiB, 230.00 W, 210 MHz
+2, 1098 MiB, 230.00 W, 210 MHz
+3, 1098 MiB, 230.00 W, 210 MHz
