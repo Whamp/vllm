@@ -1,0 +1,26 @@
+.                                                                        [100%]
+=============================== warnings summary ===============================
+../../../../.cache/uv/archive-v0/qfHzRTatYR0LHbKvvDBMV/lib/python3.12/site-packages/torch/jit/_script.py:365: 14 warnings
+  /home/will/.cache/uv/archive-v0/qfHzRTatYR0LHbKvvDBMV/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================ Hypothesis Statistics =============================
+tests/models/qwen4_exp/test_qsa_quantized_cache_properties.py::test_qsa_int8_inline_scale_views_follow_declared_cache_layout:
+
+  - during generate phase (0.10 seconds):
+    - Typical runtimes: ~ 0-1 ms, of which < 1ms in data generation
+    - 100 passing, 0 failing, and 0 invalid test cases
+    - Events:
+      * 51.00%, layout=HND
+      * 49.00%, layout=NHD
+      * 28.00%, head_size=128
+      * 26.00%, head_size=16
+      * 20.00%, head_size=32
+      * 19.00%, head_size=64
+      * 7.00%, head_size=256
+
+  - Stopped because settings.max_examples=100
+
+
+1 passed, 14 warnings in 1.08s

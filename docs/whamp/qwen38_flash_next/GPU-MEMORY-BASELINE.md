@@ -229,7 +229,13 @@ headroom for kernel bring-up.
 Triton. Typed E5M2 missed the numerical bound at 0.059410 normalized RMSE.
 Integer-decoded E4M3 passed numerical and M=1 timing gates but ran 28.46 times
 slower than BF16 at M=256. No full-model FP8 launch was attempted. See
-[QSA-FP8-CACHE.md](QSA-FP8-CACHE.md). Q4 remains a separate experiment.
+[QSA-FP8-CACHE.md](QSA-FP8-CACHE.md).
+
+**INT8 result: reject.** Per-token-head INT8 passed its writer, numerical,
+CUDA-Graph, and M=1 reader gates. Its M=256 sparse reader ran 26.32 times slower
+than BF16. The generated cache-layout property also passed 100 valid HND/NHD
+cases and caught two shrunk failures under a temporary stride counterfeit. See
+[QSA-INT8-CACHE.md](QSA-INT8-CACHE.md). Q4 remains a separate experiment.
 
 ## Restored service
 

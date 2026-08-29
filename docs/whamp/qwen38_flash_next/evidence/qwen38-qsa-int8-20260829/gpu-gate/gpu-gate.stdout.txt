@@ -1,0 +1,141 @@
+[ERROR] `min_frames` is part of Qwen3VLVideoProcessorInitKwargs, but not documented. Make sure to add it to the docstring of the function in /usr/local/lib/python3.12/dist-packages/transformers/models/qwen3_vl/video_processing_qwen3_vl.py.
+[ERROR] `max_frames` is part of Qwen3VLVideoProcessorInitKwargs, but not documented. Make sure to add it to the docstring of the function in /usr/local/lib/python3.12/dist-packages/transformers/models/qwen3_vl/video_processing_qwen3_vl.py.
+{
+  "acceptance": {
+    "maximum_int8_to_bf16_reader_time_ratio": 1.25,
+    "maximum_normalized_rmse": 0.02,
+    "minimum_cosine_similarity": 0.999
+  },
+  "compute_capability": [
+    8,
+    6
+  ],
+  "cuda_graph": {
+    "bitwise_equal": true,
+    "finite": true
+  },
+  "device": "NVIDIA GeForce RTX 3090",
+  "numerical": {
+    "output": {
+      "cosine_similarity": 0.9999463558197021,
+      "maximum_absolute_error": 0.00910186767578125,
+      "normalized_rmse": 0.010372092947363853
+    },
+    "writer_codes_match": true,
+    "writer_scales_match": true
+  },
+  "performance": {
+    "m1": {
+      "output": {
+        "cosine_similarity": 0.9999473094940186,
+        "maximum_absolute_error": 0.00146484375,
+        "normalized_rmse": 0.010347279720008373
+      },
+      "reader": {
+        "bf16": {
+          "median_microseconds": 141.0048007965088,
+          "samples": [
+            142.67733891805014,
+            140.7317320505778,
+            140.9023920694987,
+            141.5210723876953,
+            141.0048007965088
+          ]
+        },
+        "int8": {
+          "median_microseconds": 144.69119707743326,
+          "samples": [
+            144.96426582336426,
+            144.69119707743326,
+            144.86187299092612,
+            144.58880424499512,
+            144.00854110717773
+          ]
+        },
+        "int8_to_bf16_ratio": 1.026143764326468,
+        "passed": true
+      },
+      "rows": 1,
+      "writer": {
+        "bf16": {
+          "median_microseconds": 62.46080001195272,
+          "samples": [
+            72.19200134277344,
+            72.43093649546306,
+            62.46080001195272,
+            61.37066682179769,
+            61.40586535135905
+          ]
+        },
+        "int8": {
+          "median_microseconds": 83.01226298014323,
+          "samples": [
+            84.10453001658122,
+            83.11466375986735,
+            82.94400374094646,
+            82.67093499501546,
+            83.01226298014323
+          ]
+        },
+        "int8_to_bf16_ratio": 1.3290297749029425
+      }
+    },
+    "m256": {
+      "output": {
+        "cosine_similarity": 0.9999409914016724,
+        "maximum_absolute_error": 0.0029296875,
+        "normalized_rmse": 0.010867152363061905
+      },
+      "reader": {
+        "bf16": {
+          "median_microseconds": 572.8597640991211,
+          "samples": [
+            573.0645497639974,
+            572.8597640991211,
+            572.1386591593424,
+            573.473040262858,
+            572.8256225585938
+          ]
+        },
+        "int8": {
+          "median_microseconds": 15080.242919921875,
+          "samples": [
+            15059.864298502604,
+            15080.242919921875,
+            15105.467732747396,
+            15081.263224283854,
+            15077.887980143229
+          ]
+        },
+        "int8_to_bf16_ratio": 26.32449312204193,
+        "passed": false
+      },
+      "rows": 256,
+      "writer": {
+        "bf16": {
+          "median_microseconds": 60.65280040105184,
+          "samples": [
+            61.307732264200844,
+            60.99626620610555,
+            60.65280040105184,
+            60.58666706085205,
+            60.54826577504476
+          ]
+        },
+        "int8": {
+          "median_microseconds": 83.3194653193156,
+          "samples": [
+            84.10453001658122,
+            83.86879762013753,
+            82.77333577473958,
+            83.3194653193156,
+            82.80853430430095
+          ]
+        },
+        "int8_to_bf16_ratio": 1.3737117621673849
+      }
+    }
+  },
+  "performance_gate_passed": false,
+  "schema_version": 1
+}
