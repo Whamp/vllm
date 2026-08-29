@@ -1,0 +1,206 @@
+{
+  "acceptance": {
+    "maximum_normalized_rmse": 0.02,
+    "minimum_cosine_similarity": 0.9999,
+    "minimum_int8_to_bf16_speed_ratio": 0.9
+  },
+  "compute_capability": [
+    8,
+    6
+  ],
+  "device_name": "NVIDIA GeForce RTX 3090",
+  "graph_gate_passed": true,
+  "matrices": {
+    "merged_down": {
+      "bf16_weight_bytes": 6881280,
+      "cuda_graph": {
+        "bitwise_equal": true,
+        "finite": true
+      },
+      "kernel": "CutlassInt8ScaledMMLinearKernel",
+      "logical_shape": [
+        336,
+        10240
+      ],
+      "scale_bytes": 1344,
+      "shapes": {
+        "1": {
+          "bf16_timing": {
+            "median_microseconds": 27.374591827392578,
+            "samples": [
+              27.492351531982422,
+              27.48406410217285,
+              27.374591827392578,
+              27.33363151550293,
+              27.36025619506836
+            ]
+          },
+          "cosine_similarity": 0.9995748996734619,
+          "int8_timing": {
+            "median_microseconds": 87.01542663574219,
+            "samples": [
+              89.80070495605469,
+              89.491455078125,
+              86.99801635742188,
+              87.01542663574219,
+              86.866943359375
+            ]
+          },
+          "maximum_absolute_error": 0.5625,
+          "normalized_rmse": 0.02918383479118347,
+          "speed_ratio": 0.31459469758145475
+        },
+        "2": {
+          "bf16_timing": {
+            "median_microseconds": 27.53638458251953,
+            "samples": [
+              28.14463996887207,
+              27.71353530883789,
+              27.52614402770996,
+              27.513856887817383,
+              27.53638458251953
+            ]
+          },
+          "cosine_similarity": 0.9996872544288635,
+          "int8_timing": {
+            "median_microseconds": 89.01837158203125,
+            "samples": [
+              89.28358459472656,
+              89.43718719482422,
+              89.01837158203125,
+              88.95897674560547,
+              88.85964965820312
+            ]
+          },
+          "maximum_absolute_error": 0.525390625,
+          "normalized_rmse": 0.025038374587893486,
+          "speed_ratio": 0.3093337262089152
+        },
+        "256": {
+          "bf16_timing": {
+            "median_microseconds": 48.68095874786377,
+            "samples": [
+              48.689918518066406,
+              48.67072105407715,
+              48.68095874786377,
+              48.689918518066406,
+              48.68095874786377
+            ]
+          },
+          "cosine_similarity": 0.9996663331985474,
+          "int8_timing": {
+            "median_microseconds": 123.46367835998535,
+            "samples": [
+              123.46367835998535,
+              123.45279693603516,
+              123.46367835998535,
+              123.4227180480957,
+              123.4943962097168
+            ]
+          },
+          "maximum_absolute_error": 0.9375,
+          "normalized_rmse": 0.025841958820819855,
+          "speed_ratio": 0.3942937663490293
+        }
+      },
+      "weight_bytes": 3440640
+    },
+    "up": {
+      "bf16_weight_bytes": 6553600,
+      "cuda_graph": {
+        "bitwise_equal": true,
+        "finite": true
+      },
+      "kernel": "CutlassInt8ScaledMMLinearKernel",
+      "logical_shape": [
+        10240,
+        320
+      ],
+      "scale_bytes": 40960,
+      "shapes": {
+        "1": {
+          "bf16_timing": {
+            "median_microseconds": 23.013376235961914,
+            "samples": [
+              23.013376235961914,
+              22.979583740234375,
+              23.020544052124023,
+              22.92736053466797,
+              23.05638313293457
+            ]
+          },
+          "cosine_similarity": 0.9999189972877502,
+          "int8_timing": {
+            "median_microseconds": 87.38406372070312,
+            "samples": [
+              87.53446197509766,
+              87.38406372070312,
+              87.552001953125,
+              87.36041259765625,
+              87.36460876464844
+            ]
+          },
+          "maximum_absolute_error": 0.328125,
+          "normalized_rmse": 0.012744046747684479,
+          "speed_ratio": 0.2633589610746102
+        },
+        "2": {
+          "bf16_timing": {
+            "median_microseconds": 22.788095474243164,
+            "samples": [
+              22.788095474243164,
+              22.747135162353516,
+              23.009279251098633,
+              22.877216339111328,
+              22.776927947998047
+            ]
+          },
+          "cosine_similarity": 0.9999001026153564,
+          "int8_timing": {
+            "median_microseconds": 88.09164428710938,
+            "samples": [
+              88.07936096191406,
+              88.09164428710938,
+              88.14908599853516,
+              88.69273376464844,
+              87.99539184570312
+            ]
+          },
+          "maximum_absolute_error": 0.375,
+          "normalized_rmse": 0.01417357474565506,
+          "speed_ratio": 0.2586862313521124
+        },
+        "256": {
+          "bf16_timing": {
+            "median_microseconds": 34.447360038757324,
+            "samples": [
+              34.50752019882202,
+              34.47808027267456,
+              34.447360038757324,
+              34.43711996078491,
+              34.43583965301514
+            ]
+          },
+          "cosine_similarity": 0.9999067187309265,
+          "int8_timing": {
+            "median_microseconds": 89.62047576904297,
+            "samples": [
+              89.62047576904297,
+              90.0102424621582,
+              89.80480194091797,
+              89.5689582824707,
+              89.4371223449707
+            ]
+          },
+          "maximum_absolute_error": 0.55078125,
+          "normalized_rmse": 0.013659765012562275,
+          "speed_ratio": 0.3843693055985344
+        }
+      },
+      "weight_bytes": 3276800
+    }
+  },
+  "numerical_gate_passed": false,
+  "performance_gate_passed": false,
+  "schema_version": 1
+}

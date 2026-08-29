@@ -164,8 +164,19 @@ reverted. See
 [evidence/qwen38-hyperconnection-fp8-20260829/README.md](evidence/qwen38-hyperconnection-fp8-20260829/README.md).
 
 This result rejects vLLM's existing generic Marlin path for these skinny shapes.
-A purpose-built compressed hyperconnection kernel remains possible, but it must
-beat the BF16 exact-shape baseline before any serving experiment.
+
+**Result: reject the generic Cutlass W8A8 path.** A real-weight layer-0 screen
+used per-output-channel INT8 weights and dynamic per-token INT8 activations. It
+cut the two tested matrices' weight-and-scale storage by 49.7% and passed
+bitwise-equal finite CUDA Graph replay, but ran 2.5 to 3.8 times slower than
+BF16. The merged down-and-injection projection also missed the 0.02 normalized
+RMSE and 0.9999 cosine bounds. See
+[evidence/qwen38-hyperconnection-int8-20260829/README.md](evidence/qwen38-hyperconnection-int8-20260829/README.md).
+
+The two generic compressed-linear paths are now closed. A purpose-built path
+must use separate component or K-block scales and specialize the `[336, 10240]`
+and `[10240, 320]` shapes. It must beat BF16 in the exact-shape gate before any
+full-model experiment.
 
 ### H2: lower the QSA top-k batch allocation
 
