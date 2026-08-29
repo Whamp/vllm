@@ -187,9 +187,14 @@ and deterministic CUDA-Graph requirements. The decode path nevertheless took
 fixed 0.90 speed-ratio gate. No full-model launch was attempted. See
 [CAPACITY-KERNEL-GATES.md](CAPACITY-KERNEL-GATES.md).
 
-A later hyperconnection candidate is justified only if it changes the mechanism,
-such as one SM86 CUDA launch that folds activation quantization into the skinny
-DP4A projection. Retiling the rejected Triton implementation is not sufficient.
+**Native result: close H1.** A one-launch DP4A arm still ran 1.3–3.0 times
+slower than BF16 on decode and 1.3–1.6 times slower at M=256. The final SM86
+IMMA arm beat BF16 by about 6% for the per-row up projection at M=1/2, but the
+quality-required group-128 merged-down projection was about 9.5 times slower;
+M=256 was 7.3–11.5 times slower. The 80 separately scaled merged-down groups
+prevent accumulation across the complete K dimension, and per-group scaling
+erases the integer Tensor Core advantage. H1 is closed without a full-model
+launch. See [CAPACITY-KERNEL-GATES.md](CAPACITY-KERNEL-GATES.md).
 
 ### H2: lower the QSA top-k batch allocation
 

@@ -33,7 +33,13 @@ The representation used K-group-128 FP16 scales for the merged down/injection pr
 
 The tested matrices saved 3,386,880 and 3,256,320 bytes respectively relative to BF16 storage. The mechanism is therefore capacity-effective but execution-inefficient. The two-launch Triton decode path and per-prefill dequantization are rejected.
 
-A later candidate is justified only if it changes the mechanism, such as one SM86 CUDA kernel that folds activation quantization into the skinny DP4A projection. Retiling the rejected Triton path is not sufficient evidence for another attempt.
+Two native SM86 mechanism changes were then tested and rejected.
+
+The one-launch DP4A arm quantized each activation group in registers while computing one output row. It reduced the candidate time but still measured 80–81 microseconds for merged-down M=1/2, 30 microseconds for up M=1/2, and 55–64 microseconds at M=256. BF16 took 23–49 microseconds. Its 50-case generated oracle also reached 0.5 maximum absolute error against a fixed 0.25 bound, although the real-weight normalized error and cosine gates passed.
+
+The final IMMA arm quantized every token/group once and used `mma.sync.m16n8k32` tiles. Per-row up decode reached 21.3 microseconds and beat BF16 by about 6%, but the quality-required group-128 merged-down path took 257 microseconds versus 27 microseconds for BF16. M=256 took 256–561 microseconds versus 35–49 microseconds. The 80 separately scaled merged-down groups prevent useful integer accumulation across the complete K dimension, while the launch and per-group scaling overhead erase the storage-format advantage.
+
+The hyperconnection compression seam is therefore closed under the current quality and performance contracts. Generic Marlin, generic Cutlass W8A8, Triton group-scaled INT8, native DP4A, and native IMMA have all failed. No compressed hyperconnection implementation was integrated or used in a full-model launch.
 
 ## Direct Q8-K/Q4-V QSA result
 

@@ -1,0 +1,207 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+
+#include <cuda_bf16.h>
+#include <cuda_fp16.h>
+#include <cuda_runtime.h>
+
+#include <cstdint>
+
+#include "hyperconnection_int8_mma_sm86.cuh"
+
+namespace vllm::qwen4_exp {
+namespace {
+
+constexpr int kTokenTile = 8;
+constexpr int kOutputTile = 16;
+constexpr int kMmaK = 32;
+constexpr int kMmaThreads = 32;
+constexpr int kQuantThreads = 256;
+
+__device__ __forceinline__ int8_t quantize_int8(float value, float scale) {
+  const int rounded = __float2int_rn(value / scale);
+  return static_cast<int8_t>(max(-127, min(127, rounded)));
+}
+
+__global__ void quantize_hyperconnection_activation_kernel(
+    const __nv_bfloat16* __restrict__ input, int8_t* __restrict__ output_codes,
+    __half* __restrict__ output_scales, int input_columns, int group_size,
+    int group_count) {
+  __shared__ float reductions[kQuantThreads];
+  const int token_group = blockIdx.x;
+  const int token = token_group / group_count;
+  const int group = token_group % group_count;
+  const int group_start = group * group_size;
+  float maximum = 0.0f;
+  for (int element = threadIdx.x; element < group_size; element += blockDim.x) {
+    maximum = fmaxf(maximum,
+                    fabsf(__bfloat162float(
+                        input[token * input_columns + group_start + element])));
+  }
+  reductions[threadIdx.x] = maximum;
+  __syncthreads();
+  for (int width = blockDim.x / 2; width > 0; width >>= 1) {
+    if (threadIdx.x < width) {
+      reductions[threadIdx.x] =
+          fmaxf(reductions[threadIdx.x], reductions[threadIdx.x + width]);
+    }
+    __syncthreads();
+  }
+  const float scale = reductions[0] == 0.0f ? 1.0f : reductions[0] / 127.0f;
+  if (threadIdx.x == 0) {
+    output_scales[token_group] = __float2half_rn(scale);
+  }
+  for (int element = threadIdx.x; element < group_size; element += blockDim.x) {
+    const int offset = token * input_columns + group_start + element;
+    output_codes[offset] =
+        quantize_int8(__bfloat162float(input[offset]), scale);
+  }
+}
+
+struct HyperconnectionMmaSharedStorage {
+  alignas(16) int8_t activation_codes[kTokenTile * kMmaK];
+  int weight_fragments[kOutputTile * 8];
+  float activation_scales[kTokenTile];
+  float weight_scales[kOutputTile];
+};
+
+__device__ void load_mma_subgroup(const int8_t* __restrict__ activation_codes,
+                                  const int8_t* __restrict__ weight,
+                                  int token_tile_start, int output_tile_start,
+                                  int token_count, int output_rows,
+                                  int input_columns, int subgroup_start,
+                                  HyperconnectionMmaSharedStorage& shared) {
+  const int lane = threadIdx.x;
+  for (int index = lane; index < kTokenTile * kMmaK; index += kMmaThreads) {
+    const int token_in_tile = index / kMmaK;
+    const int element = index % kMmaK;
+    const int token = token_tile_start + token_in_tile;
+    shared.activation_codes[index] =
+        token < token_count
+            ? activation_codes[token * input_columns + subgroup_start + element]
+            : 0;
+  }
+  if (lane < kOutputTile) {
+    const int output_row = output_tile_start + lane;
+#pragma unroll
+    for (int pack = 0; pack < 8; ++pack) {
+      shared.weight_fragments[lane * 8 + pack] =
+          output_row < output_rows ? *reinterpret_cast<const int*>(
+                                         weight + output_row * input_columns +
+                                         subgroup_start + pack * 4)
+                                   : 0;
+    }
+  }
+  __syncwarp();
+}
+
+__device__ void run_mma_subgroup(HyperconnectionMmaSharedStorage& shared,
+                                 int (&accumulator)[4]) {
+  const int lane = threadIdx.x;
+  const int row0 = lane / 4;
+  const int row1 = row0 + 8;
+  const int chunk = lane & 3;
+  const int weight_fragment[4] = {
+      shared.weight_fragments[row0 * 8 + chunk],
+      shared.weight_fragments[row1 * 8 + chunk],
+      shared.weight_fragments[row0 * 8 + chunk + 4],
+      shared.weight_fragments[row1 * 8 + chunk + 4],
+  };
+  hyperconnection_mma_int8_m16n8k32(weight_fragment, shared.activation_codes,
+                                    lane, accumulator);
+  __syncwarp();
+}
+
+__global__ void hyperconnection_int8_mma_kernel(
+    const __half* __restrict__ activation_scales,
+    const int8_t* __restrict__ activation_codes,
+    const int8_t* __restrict__ weight, const __half* __restrict__ weight_scale,
+    __nv_bfloat16* __restrict__ output, int token_count, int output_rows,
+    int input_columns, int group_size, int group_count) {
+  const int token_tile_start = blockIdx.y * kTokenTile;
+  const int output_tile_start = blockIdx.x * kOutputTile;
+  const int lane = threadIdx.x;
+  __shared__ HyperconnectionMmaSharedStorage shared;
+  float sums[4] = {};
+
+  for (int group = 0; group < group_count; ++group) {
+    int integer_accumulator[4] = {};
+    for (int subgroup = 0; subgroup < group_size; subgroup += kMmaK) {
+      load_mma_subgroup(activation_codes, weight, token_tile_start,
+                        output_tile_start, token_count, output_rows,
+                        input_columns, group * group_size + subgroup, shared);
+      run_mma_subgroup(shared, integer_accumulator);
+    }
+    if (lane < kTokenTile) {
+      const int token = token_tile_start + lane;
+      shared.activation_scales[lane] =
+          token < token_count
+              ? __half2float(activation_scales[token * group_count + group])
+              : 0.0f;
+    }
+    if (lane < kOutputTile) {
+      const int output_row = output_tile_start + lane;
+      shared.weight_scales[lane] =
+          output_row < output_rows
+              ? __half2float(weight_scale[output_row * group_count + group])
+              : 0.0f;
+    }
+    __syncwarp();
+#pragma unroll
+    for (int local = 0; local < 4; ++local) {
+      const int token_in_tile = (lane % 4) * 2 + local % 2;
+      const int output_in_tile = (local / 2) * 8 + lane / 4;
+      sums[local] = fmaf(static_cast<float>(integer_accumulator[local]),
+                         shared.activation_scales[token_in_tile] *
+                             shared.weight_scales[output_in_tile],
+                         sums[local]);
+    }
+    __syncwarp();
+  }
+
+#pragma unroll
+  for (int local = 0; local < 4; ++local) {
+    const int token = token_tile_start + (lane % 4) * 2 + local % 2;
+    const int output_row = output_tile_start + (local / 2) * 8 + lane / 4;
+    if (token < token_count && output_row < output_rows) {
+      output[token * output_rows + output_row] =
+          __float2bfloat16_rn(sums[local]);
+    }
+  }
+}
+
+}  // namespace
+}  // namespace vllm::qwen4_exp
+
+extern "C" int qwen4_exp_hyperconnection_int8_mma_sm86(
+    uintptr_t input, uintptr_t weight, uintptr_t weight_scale,
+    uintptr_t activation_codes, uintptr_t activation_scales, uintptr_t output,
+    int token_count, int output_rows, int input_columns, int group_size,
+    uintptr_t stream) {
+  if (token_count <= 0 || output_rows <= 0 || input_columns <= 0 ||
+      group_size <= 0 || input_columns % group_size != 0 ||
+      group_size % 32 != 0) {
+    return static_cast<int>(cudaErrorInvalidValue);
+  }
+  const int group_count = input_columns / group_size;
+  const auto cuda_stream = reinterpret_cast<cudaStream_t>(stream);
+  vllm::qwen4_exp::quantize_hyperconnection_activation_kernel<<<
+      token_count * group_count, 256, 0, cuda_stream>>>(
+      reinterpret_cast<const __nv_bfloat16*>(input),
+      reinterpret_cast<int8_t*>(activation_codes),
+      reinterpret_cast<__half*>(activation_scales), input_columns, group_size,
+      group_count);
+  if (const auto status = cudaGetLastError(); status != cudaSuccess) {
+    return static_cast<int>(status);
+  }
+  const dim3 grid((output_rows + 15) / 16, (token_count + 7) / 8);
+  vllm::qwen4_exp::
+      hyperconnection_int8_mma_kernel<<<grid, 32, 0, cuda_stream>>>(
+          reinterpret_cast<const __half*>(activation_scales),
+          reinterpret_cast<const int8_t*>(activation_codes),
+          reinterpret_cast<const int8_t*>(weight),
+          reinterpret_cast<const __half*>(weight_scale),
+          reinterpret_cast<__nv_bfloat16*>(output), token_count, output_rows,
+          input_columns, group_size, group_count);
+  return static_cast<int>(cudaGetLastError());
+}
