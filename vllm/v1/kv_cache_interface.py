@@ -51,6 +51,7 @@ class KVQuantMode(IntEnum):
     TURBOQUANT_4BIT_NC = 7
     TURBOQUANT_K3V4_NC = 8
     TURBOQUANT_3BIT_NC = 9
+    QSA_Q8K_Q4V = 10  # Qwen QSA symmetric INT8 K and asymmetric INT4 V
 
     @property
     def is_per_token_head(self) -> bool:
@@ -59,6 +60,7 @@ class KVQuantMode(IntEnum):
             KVQuantMode.INT8_PER_TOKEN_HEAD,
             KVQuantMode.FP8_PER_TOKEN_HEAD,
             KVQuantMode.INT4_PER_TOKEN_HEAD,
+            KVQuantMode.QSA_Q8K_Q4V,
         )
 
     @property
@@ -85,6 +87,8 @@ def get_kv_quant_mode(kv_cache_dtype: str) -> KVQuantMode:
         return KVQuantMode.INT8_PER_TOKEN_HEAD
     if kv_cache_dtype == "fp8_per_token_head":
         return KVQuantMode.FP8_PER_TOKEN_HEAD
+    if kv_cache_dtype == "qsa_q8k_q4v":
+        return KVQuantMode.QSA_Q8K_Q4V
     if kv_cache_dtype.startswith("nvfp4"):
         return KVQuantMode.NVFP4
     if isinstance(kv_cache_dtype, str) and kv_cache_dtype.startswith("turboquant_"):

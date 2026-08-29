@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import ClassVar, cast
 
 import torch
@@ -47,8 +48,10 @@ from vllm.v1.attention.backends.flash_attn import (
     FlashAttentionMetadataBuilder,
 )
 from vllm.v1.kv_cache_interface import (
+    AttentionSpec,
     FullAttentionSpec,
     KVCacheSpec,
+    KVQuantMode,
     get_kv_quant_mode,
 )
 
@@ -85,7 +88,50 @@ class Qwen4ExpQSAFlashAttentionBackend(FlashAttentionBackend):
     """FullAttentionSpec backend used by the merged QSA owner."""
 
     supported_dtypes: ClassVar[list[torch.dtype]] = [torch.bfloat16]
-    supported_kv_cache_dtypes: ClassVar[list[CacheDType]] = ["auto", "bfloat16"]
+    supported_kv_cache_dtypes: ClassVar[list[CacheDType]] = [
+        "auto",
+        "bfloat16",
+        "qsa_q8k_q4v",
+    ]
+
+    @classmethod
+    def customize_spec(cls, spec: AttentionSpec) -> AttentionSpec:
+        """Publish the mixed QSA cache row width to the allocator."""
+        if spec.kv_quant_mode != KVQuantMode.QSA_Q8K_Q4V:
+            return spec
+        if spec.head_size % 2:
+            raise ValueError("QSA Q8-K/Q4-V requires an even head size")
+        content_bytes = spec.head_size + 4 + spec.head_size // 2 + 4
+        return replace(
+            spec,
+            dtype=torch.uint8,
+            state_content_bytes=content_bytes,
+        )
+
+    @staticmethod
+    def get_kv_cache_shape(
+        num_blocks: int,
+        block_size: int,
+        num_kv_heads: int,
+        head_size: int,
+        cache_dtype_str: str = "auto",
+    ) -> tuple[int, ...]:
+        if cache_dtype_str != "qsa_q8k_q4v":
+            return FlashAttentionBackend.get_kv_cache_shape(
+                num_blocks,
+                block_size,
+                num_kv_heads,
+                head_size,
+                cache_dtype_str,
+            )
+        if head_size % 2:
+            raise ValueError("QSA Q8-K/Q4-V requires an even head size")
+        content_bytes = head_size + 4 + head_size // 2 + 4
+        return num_blocks, num_kv_heads, block_size, content_bytes
+
+    @classmethod
+    def supports_kv_cache_dtype(cls, kv_cache_dtype: CacheDType | None) -> bool:
+        return kv_cache_dtype is None or kv_cache_dtype in cls.supported_kv_cache_dtypes
 
     @staticmethod
     def get_name() -> str:
@@ -115,16 +161,54 @@ class Qwen4ExpQSAFlashAttentionImpl(FlashAttentionImpl):
     supports_pcp: bool = False
 
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+        call_args = list(args)
+        if len(call_args) > 6:
+            kv_cache_dtype = call_args[6]
+            if kv_cache_dtype == "qsa_q8k_q4v":
+                call_args[6] = "auto"
+        else:
+            kv_cache_dtype = kwargs.get("kv_cache_dtype", "auto")
+            if kv_cache_dtype == "qsa_q8k_q4v":
+                kwargs["kv_cache_dtype"] = "auto"
+        super().__init__(*call_args, **kwargs)
+        self.kv_cache_dtype = kv_cache_dtype
+        self._kv_quant_mode = get_kv_quant_mode(kv_cache_dtype)
         if not is_flash_attn_varlen_func_available():
             raise NotImplementedError("Qwen4Exp QSA requires FlashAttention")
         if self.dcp_world_size != 1:
             raise NotImplementedError(
                 "Qwen4Exp QSA does not support decode context parallelism"
             )
-        if self.kv_cache_dtype not in ("auto", "bfloat16"):
-            raise NotImplementedError("Qwen4Exp QSA requires a BF16 main KV cache")
+        if self.kv_cache_dtype not in ("auto", "bfloat16", "qsa_q8k_q4v"):
+            raise NotImplementedError(
+                "Qwen4Exp QSA requires BF16 or Q8-K/Q4-V main KV cache"
+            )
         self.supports_quant_query_input = False
+
+    def q8k_q4v_cache_views(
+        self,
+        kv_cache: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Return canonical K data/scales and packed V data/scales."""
+        if self._kv_quant_mode != KVQuantMode.QSA_Q8K_Q4V:
+            raise RuntimeError("QSA mixed-cache views require Q8-K/Q4-V mode")
+        head_size = self.head_size
+        if kv_cache.shape[-1] != head_size + 4 + head_size // 2 + 4:
+            raise ValueError("QSA Q8-K/Q4-V cache row width mismatch")
+        canonical = kv_cache.transpose(1, 2)
+        key_end = head_size
+        key_scale_end = key_end + 4
+        value_end = key_scale_end + head_size // 2
+        key_data = canonical[..., :key_end].view(torch.int8)
+        key_scales = canonical[..., key_end:key_scale_end].view(torch.float32)
+        value_data = canonical[..., key_scale_end:value_end]
+        value_scales = canonical[..., value_end:].view(torch.float32)
+        return (
+            key_data,
+            key_scales.squeeze(-1),
+            value_data,
+            value_scales.squeeze(-1),
+        )
 
     def forward_qsa(
         self,
