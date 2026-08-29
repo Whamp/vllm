@@ -173,10 +173,14 @@ BF16. The merged down-and-injection projection also missed the 0.02 normalized
 RMSE and 0.9999 cosine bounds. See
 [evidence/qwen38-hyperconnection-int8-20260829/README.md](evidence/qwen38-hyperconnection-int8-20260829/README.md).
 
-The two generic compressed-linear paths are now closed. A purpose-built path
-must use separate component or K-block scales and specialize the `[336, 10240]`
-and `[10240, 320]` shapes. It must beat BF16 in the exact-shape gate before any
-full-model experiment.
+The two generic compressed-linear paths are now closed. An all-weight screen
+selects K-group-128 scales for down and injection plus per-row scales for up as
+the custom-kernel input contract. It has 0.010262 aggregate weight-reconstruction
+NRMSE, 0.999912 cosine, 0.016962 worst-tensor NRMSE, and projects 603.31 MiB of
+registered storage savings per rank. It still needs a purpose-built kernel for
+the `[336, 10240]` and `[10240, 320]` shapes, grouped-activation output oracles,
+and exact-shape speed evidence. The projected saving leaves about 67 MiB of the
+670 MiB capacity target to recover elsewhere.
 
 ### H2: lower the QSA top-k batch allocation
 

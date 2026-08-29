@@ -47,9 +47,44 @@ The two layer-0 matrices use 6,759,744 bytes of INT8 weights and scales versus
 13,434,880 BF16 weight bytes, a 49.7% reduction. That storage result is not
 useful with the measured latency and merged-down error.
 
+## All-weight representation screen
+
+A CPU-only screen covered all 97 hyperconnection groups and 290 matrix
+components. It compared symmetric INT8 weights with FP16 scales under three
+scale layouts. This checks weight reconstruction and storage only. It does not
+include activation quantization or kernel execution.
+
+| Scale layout | Aggregate NRMSE | Cosine | Worst tensor NRMSE | Saved MiB/rank |
+| --- | ---: | ---: | ---: | ---: |
+| per output row | 0.013446 | 0.999874 | 0.066956 | 608.05 |
+| per output row and K-group-128 | 0.008709 | 0.999927 | 0.016170 | 538.90 |
+| 128x128 block | 0.031832 | 0.999464 | 0.058397 | 549.27 |
+
+Uniform 128x128 block scaling is numerically worse than the prior E4M3 screen.
+Uniform per-row scaling preserves the most memory but has large errors in some
+down and injection matrices. Uniform K-group scaling repairs those errors but
+spends 69 MiB more on padded weights and scales.
+
+The selected kernel-input contract uses K-group-128 scales for down and
+injection and per-row scales for up. It keeps scale domains separate across the
+three components. Across all weights this mixed policy has 0.010262 aggregate
+NRMSE, 0.999912 cosine, and 0.016962 worst-tensor NRMSE. It projects 603.31 MiB
+of registered storage savings per rank, leaving about 67 MiB of the 670 MiB
+capacity target to recover elsewhere.
+
+This is a design gate, not acceptance. A kernel must prove grouped activation
+quantization, independent output accuracy, caller-stream behavior, CUDA Graph
+replay, SM86 dispatch, sanitizers, and exact-shape speed before a full-model
+launch.
+
 ## Files
 
 - `gate.py.gz`: exact script executed for the shape gate, compressed without timestamps
-- `result.json`: clean machine-readable result
-- `runtime.log.gz`: complete runtime output, including selected-kernel evidence
+- `result.json`: clean machine-readable generic Cutlass result
+- `runtime.log.gz`: complete Cutlass runtime output and selected-kernel evidence
+- `group-screen.py.gz`: exact all-weight CPU screen, compressed without timestamps
+- `group-screen-result.json`: all 290 component results and storage estimates
+- `group-screen-runtime.log.gz`: CPU screen progress output
+- `analyze_mixed_int8.py`: deterministic mixed-policy analyzer
+- `mixed-analysis.json`: selected mixed-policy reconstruction and storage result
 - `SHA256SUMS`: archive hashes
