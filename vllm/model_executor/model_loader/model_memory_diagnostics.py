@@ -366,5 +366,6 @@ def _write_atomic_json(path: Path, report: Mapping[str, Any]) -> None:
         json.dump(report, temporary_file, sort_keys=True, separators=(",", ":"))
         temporary_file.write("\n")
         temporary_file.flush()
+        os.fchmod(temporary_file.fileno(), 0o644)
         os.fsync(temporary_file.fileno())
     os.replace(temporary_path, path)

@@ -157,3 +157,4 @@ def test_capture_model_memory_report_writes_rank_local_json(tmp_path) -> None:
     assert report["memory_counters"]["unregistered_torch_allocated_bytes"] == 12
     assert report["memory_counters"]["allocator_cache_bytes"] == 8
     assert report["memory_counters"]["non_torch_device_bytes"] == 12
+    assert report_path.stat().st_mode & 0o777 == 0o644

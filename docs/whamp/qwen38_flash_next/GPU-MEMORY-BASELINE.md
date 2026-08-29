@@ -1,0 +1,221 @@
+# Qwen3.8 Flash Next GPU memory baseline
+
+## Decision
+
+The Intel AutoRound EP=4 profile has three measured model-side memory targets:
+
+1. Hyperconnections occupy 1.215229 GiB per rank. They are the largest target,
+   but ordinary tensor sharding would add latency-sensitive collectives at up to
+   96 layer boundaries per token. Test weight-only Q8 before distributed
+   sharding.
+2. QSA registers 0.187775 GiB per rank of top-k output buffers from the default
+   2,048-token batch budget. Test 1,024 before 512 because this budget also
+   controls chunked-prefill throughput.
+3. The shared QSA RoPE cache materializes 1,048,576 positions and occupies
+   0.125 GiB per rank. A lower bound needs a vision/MRoPE position audit before
+   implementation because multimodal position IDs need not equal text length.
+
+Post-load Marlin processing is not an expansion source. It removes 204,472,320
+registered bytes per rank. The quantized CPU PLE path adds 23,176,704 Torch
+bytes during initialization and releases part of that setup state before worker
+load completes.
+
+No optimization is accepted by this report. It establishes the exact baseline
+and the measurements required for the first A/Bs.
+
+## Environment
+
+The capture ran on server60 across four RTX 3090 GPUs under the persistent
+230 W power limit. Host swap was disabled and serving-process swap remained
+zero.
+
+| Item | Identity |
+| --- | --- |
+| Model | Intel `Qwen3.8-Flash-Next-W4A16-AutoRound` |
+| Model revision | `861536dda5bcb208376fc4cd879b2bf76bece9fe` |
+| Derived model config | SHA-256 `932cbf4d5dc50efa395db095ea3664fd6ef7672886332b2d0307cd9aa28ac9cf` |
+| Primitive PLE | revision `da8b39586016d8325ac619be28ad77d6296625ec` |
+| Base image | `sha256:0aea30240f3e3d9ffae8526643950e170eb5fa07fc427016a9dd90892afa2aa3` |
+| Diagnostic source | Whamp/vLLM `1833ca8579be3075bbe4c89d24f9e32ceb275ce1` |
+| Diagnostic image | `sha256:59e1df5a8023f7a9c8ee331321826efd6c68ea1bb165740e9a7f48d4e13200ec` |
+| Runtime profile | TP=4, EP=4, `max_num_seqs=2`, `gpu_memory_utilization=0.95` |
+| Context | automatic fit to 148,400 tokens |
+| Main cache | BF16 QSA K/V, unchanged |
+| Vision | enabled |
+
+The diagnostic captured storage-deduplicated registered parameters and buffers,
+Torch allocator counters, device-used memory, and residuals at ten startup
+stages. It is disabled unless `VLLM_MODEL_MEMORY_REPORT_DIR` is set and remains
+absent from compilation cache factors.
+
+## Reproduction
+
+The checksum-bound raw reports and deterministic analyzer are in
+[`evidence/qwen38-memory-baseline-20260829`](evidence/qwen38-memory-baseline-20260829/README.md).
+The raw manifest SHA-256 is
+`690ae384e4385a1cea3db814c78be6c1ccd9612bbd11299bd44ac853565c78ee`.
+The generated summary SHA-256 is
+`f0281c9896c32d70cfde9b349e047a9e2e8a24ec94f7d2e119cc4b1e2534760a`.
+
+## Staged memory
+
+Values are the four-rank means. Registered storage is deduplicated by device,
+storage pointer, byte offset, and storage size, so parameter aliases count once.
+
+| Stage | Registered GiB/rank | Device used GiB/rank |
+| --- | ---: | ---: |
+| Distributed initialized | 0 | 0.434753 |
+| Model runner initialized | 0 | 0.436707 |
+| Module initialized | 18.740460 | 19.819519 |
+| Weights loaded | 18.740460 | 19.898941 |
+| Postprocessed | 18.550030 | 21.996597 |
+| PLE offload initialized | 18.550030 | 19.519455 |
+| Worker model loaded | 18.550030 | 19.512222 |
+| Profile complete | 18.550030 | 19.950684 |
+| KV cache allocated | 18.550030 | 21.649902 |
+| Warmup complete | 18.550030 | 21.755371 |
+
+The postprocessing stage's 21.996597 GiB device use is transient. Device use
+falls to 19.519455 GiB after PLE setup while registered storage remains fixed.
+The durable postprocessed storage is 0.190430 GiB smaller than the loaded
+module storage.
+
+The automatic cache allocator adds 1.848440 GiB of Torch allocations per rank.
+That agrees with the runtime's reported approximately 1.85 GiB cache pool and
+148,400-token fitted context.
+
+At profile completion, device use beyond startup baseline and registered model
+storage is 1,037,127,144 bytes, or 0.965900 GiB per rank. Its measured parts are:
+
+| Residual at profile completion | GiB/rank |
+| --- | ---: |
+| Unregistered persistent Torch allocation | 0.225082 |
+| Torch allocator cache | 0.437778 |
+| Non-Torch growth above distributed startup | 0.303040 |
+| **Total** | **0.965900** |
+
+The allocator-cache value is observational, not a reclaim estimate. vLLM's
+memory-profiling context empties the allocator before its authoritative
+`after_profile` snapshot. This diagnostic stage runs after later graph-memory
+estimation, so a separate free-memory A/B is required before changing allocator
+lifecycle.
+
+## Registered model storage
+
+Every postprocessed rank has the same deduplicated category totals.
+
+| Owner | GiB/rank |
+| --- | ---: |
+| Routed experts | 14.611908 |
+| Hyperconnections | 1.215229 |
+| GDN and linear attention | 0.983974 |
+| Embedding and LM head | 0.592041 |
+| QSA attention | 0.292980 |
+| Vision | 0.216048 |
+| QSA top-k buffers | 0.187775 |
+| RoPE cache | 0.125000 |
+| MoE routers | 0.117188 |
+| Shared experts | 0.110092 |
+| PLE projections and buffers | 0.061169 |
+| QSA indexer | 0.036627 |
+| **Total** | **18.550030** |
+
+This exact inventory replaces the earlier source-only estimate. In particular,
+the RoPE cache is 128 MiB per rank, not 32 MiB. Its storage spans 1,048,576
+positions even though model auto-fit selected 148,400 tokens.
+
+## Gated hypotheses
+
+### H1: Q8 hyperconnection weights
+
+**Observed cost.** Hyperconnection parameters and buffers occupy 1,304,842,240
+bytes per rank. Their source modules use replicated up projections and
+`disable_tp=True` merged down/injection projections.
+
+**Move.** Keep the communication contract unchanged and represent eligible BF16
+hyperconnection matrix weights with an SM86-supported W8A16 path. A raw
+one-byte-per-weight upper-bound estimate reclaims about 0.61 GiB per rank before
+scale and layout overhead.
+
+**Gate.** Prove that the exact skinny shapes dispatch a supported SM86 kernel and
+that it does not regress decode or prefill. Compare numerical output at each
+changed projection, then run deterministic, tool, reasoning, vision, NIAH, and
+benchlocal checks.
+
+**Lose condition.** Reject the path if repacking, scales, activation conversion,
+or a slow skinny-GEMM fallback erases capacity or throughput gains. Q4 is a
+later quality-gated arm, not part of the first experiment.
+
+**Why not shard first.** Perfect four-way storage sharding could reclaim about
+0.911 GiB per rank, but an ordinary row- or column-parallel implementation adds
+small collectives at latency-sensitive hyperconnection boundaries. Do not pay
+that coordination cost without a design that reuses or fuses existing
+collectives.
+
+### H2: lower the QSA top-k batch allocation
+
+**Observed cost.** Twelve QSA layers each register an INT32 buffer shaped from
+2,048 batched tokens and output width 2,051. The exact total is 201,621,504
+bytes per rank.
+
+**Move.** Set `max_num_batched_tokens=1024` as a one-variable A/B. This halves
+the buffer and reclaims 96.14 MiB per rank. A later 512-token arm would reclaim
+144.21 MiB relative to the baseline.
+
+**Gate.** The reclaimed registered bytes must match the estimate. Cache-busted
+prefill, decode, concurrency two, fitted context, activation peak, and graph
+memory must all be measured on the same artifact and image.
+
+**Lose condition.** Reject any setting whose prefill loss is not justified by
+the fitted-context gain. The current 2,048-token budget may be serving real
+chunked-prefill work rather than accidental slack.
+
+### H3: bound RoPE materialization
+
+**Observed cost.** The shared BF16 RoPE storage is 134,217,728 bytes per rank,
+which is 128 bytes for each of 1,048,576 cached positions.
+
+**Move.** Bound only materialized rows while preserving the model's RoPE
+frequency and MRoPE semantics. A 262,144-row cache would reclaim exactly 96 MiB
+per rank. A 148,400-row cache would reclaim about 109.88 MiB per rank.
+
+**Gate.** First prove the maximum Qwen multimodal position ID for the supported
+image and video paths. Text sequence length alone is not a valid bound for
+MRoPE. The implementation must fail closed or grow safely before an index can
+exceed materialized rows, remain CUDA-Graph compatible, and preserve long-text
+and multimodal outputs.
+
+**Lose condition.** Do not implement a text-length cap that breaks legal video
+position IDs or adds runtime reallocations to graph replay.
+
+### H4: native Q8 and Q4 QSA cache
+
+The current QSA path explicitly requires BF16 main K/V storage and does not
+support cache quantization. Q8 and Q4 therefore need new write, read, attention,
+allocation, graph, and numerical contracts. They are not launch-flag tests.
+
+The baseline cache costs 13,056 bytes per token per rank across the twelve QSA
+layers and compressed indexer side cache. Q8 could nearly halve the dominant
+main K/V term and Q4 could nearly quarter it, but neither estimate includes
+scales, side-cache treatment, conversion work, or kernel efficiency. Start this
+work only after H1 to H3 establish the fixed-residency baseline and available
+headroom for kernel bring-up.
+
+## Restored service
+
+After capture, the diagnostic container was removed and the original service
+was restored on the exact base image. Fresh checks showed:
+
+- HTTP health returned 200;
+- `/v1/models` reported the original model and 148,400-token context;
+- a deterministic request returned exactly `PARIS` with a normal stop;
+- restart count was zero;
+- every serving process had zero swap;
+- `vm.overcommit_memory` was restored to `0`;
+- `gpu-power-limit.service` was active.
+
+The rollback script's PLE-log predicate timed out after the service had become
+healthy because the expected registration line was absent from the fresh log.
+The remaining restore timer was cancelled to prevent an unnecessary second
+restart. The service result, not that stale log predicate, is the final health
+evidence for this capture.
