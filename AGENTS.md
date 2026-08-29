@@ -1,157 +1,96 @@
-# Agent Instructions for vLLM
+# Agent guidance for Will's vLLM fork
 
-> These instructions apply to **all** AI-assisted contributions to `vllm-project/vllm`.
-> Breaching these guidelines can result in automatic banning.
+This repository is a long-lived fork of `vllm-project/vllm`. Optimize for this
+fork. It is not a staging ground for upstream contributions.
 
-## 1. Contribution Policy (Mandatory)
+## Fork stance
 
-### Duplicate-work checks
+- Treat upstream as a source of code and ideas, not as the authority for local
+  design decisions.
+- Optimize for the hardware, models, and workloads named in the task. If a
+  choice depends on an unstated target, ask instead of inheriting upstream's
+  priorities.
+- Judge agent-authored changes by their correctness and evidence. Use ordinary
+  commit authorship; add AI disclosures, attribution trailers, or DCO signoffs
+  only when Will requests them.
+- Use upstream issues and pull requests as technical research when relevant,
+  not as a gate on fork-local work.
 
-Before proposing a PR, run these checks:
+## Default performance target
 
-```bash
-gh issue view <issue_number> --repo vllm-project/vllm --comments
-gh pr list --repo vllm-project/vllm --state open --search "<issue_number> in:body"
-gh pr list --repo vllm-project/vllm --state open --search "<short area keywords>"
-```
+Unless the task names another target, optimize and validate for one host with
+four NVIDIA RTX 3090 GPUs, compute capability 8.6 (SM86). For changes that
+affect kernels, memory capacity, partitioning, collectives, or scheduling,
+exercise the relevant single-GPU and four-GPU paths. Inspect the host before
+making a topology-dependent decision; the GPU count alone does not establish
+available peer links or their layout.
 
-- If an open PR already addresses the same fix, do not open another.
-- If your approach is materially different, explain the difference in the issue.
+## Git and upstream sync
 
-### No low-value busywork PRs
+- Inspect `git remote -v` before fetching, rebasing, pushing, or opening a pull
+  request. Confirm the destination instead of assuming `origin` is the fork.
+- Base fork work on the fork's integration branch. Use an upstream branch only
+  when inspecting or integrating upstream changes.
+- Preserve local behavior during upstream merges and rebases. Before resolving
+  a conflict, inspect the fork-side commit and its tests; do not discard a local
+  change merely because upstream changed the same code.
+- Prefer contained changes when they fully meet fork requirements. Do not
+  sacrifice correctness or 4x3090 performance merely to resemble upstream.
 
-Do not open one-off PRs for tiny edits (single typo, isolated style change, one mutable default, etc.). Mechanical cleanups are acceptable only when bundled with substantive work.
+## Before changing code
 
-### Accountability
+Establish the affected execution path and its observable success condition.
+For hardware-sensitive work, also identify the target GPU, backend, model,
+dtype, tensor shapes, and parallel configuration that matter. Search for the
+nearest implementation, tests, and benchmarks before adding a new path.
 
-- Pure code-agent PRs are **not allowed**. A human submitter must understand and defend the change end-to-end.
-- The submitting human must review every changed line and run relevant tests.
-- PR descriptions for AI-assisted work **must** include:
-    - Why this is not duplicating an existing PR.
-    - Test commands run and results.
-    - Model evaluation results when the change affects output, accuracy, or serving.
-    - Clear statement that AI assistance was used.
+## Python environment
 
-### Fail-closed behavior
+- Reuse the repository's `.venv` when it exists.
+- Create and manage Python environments with `uv`. Install packages with
+  `uv pip`; do not use bare `pip` or the system Python.
+- Run Python tools through `.venv/bin/python` or an executable installed in the
+  active `.venv`.
+- Follow the source-install guide for the target platform under
+  [`docs/getting_started/installation/`](docs/getting_started/installation/).
+  For repeated C++/CUDA builds, follow
+  [`docs/contributing/incremental_build.md`](docs/contributing/incremental_build.md).
 
-If work is duplicate/trivial busywork, **do not proceed**. Return a short explanation of what is missing.
+## Validation
 
----
+- Prove the requested behavior at the cheapest reliable level. Run the narrow
+  test first, then the relevant broader suite and pre-commit hooks.
+- Extend the nearest existing test module and fixtures when they fit. Assert
+  observable behavior rather than private wiring.
+- Put kernel correctness coverage in the relevant test suite. Extend the
+  nearest existing kernel benchmark for performance experiments.
+- Back GPU kernel changes with an independent correctness reference and results
+  from the target hardware. Record the GPU, dtype, shapes, configuration,
+  command, and before/after measurements.
+- For changes that affect model output, accuracy, memory use, or serving
+  behavior, exercise the affected model path. If local hardware or model access
+  blocks that validation, report the exact untested path instead of claiming
+  completion.
 
-## 2. Development Workflow
+A change is complete when every requested behavior has corresponding test,
+runtime, or benchmark evidence, and the final report names any validation that
+remains unavailable.
 
-- **Never use system `python3` or bare `pip`/`pip install`.** All Python commands must go through `uv` and `.venv/bin/python`.
+## Local style
 
-### Environment setup
+Use the code and configuration next to the change as the style source of truth.
+Preserve established fork terminology and behavior. Keep comments brief and
+use them for constraints or reasoning that the code cannot state.
 
-```bash
-# Install `uv` if you don't have it already:
-curl -LsSf https://astral.sh/uv/install.sh | sh
+## Context pointers
 
-# Always use `uv` for Python environment management:
-uv venv --python 3.12
-source .venv/bin/activate
-
-# Always make sure `pre-commit` and its hooks are installed:
-uv pip install -r requirements/lint.txt
-pre-commit install
-```
-
-### Installing dependencies
-
-```bash
-# If you are only making Python changes:
-VLLM_USE_PRECOMPILED=1 uv pip install -e . --torch-backend=auto
-
-# If you are also making C/C++ changes:
-uv pip install -e . --torch-backend=auto
-```
-
-### Tests
-
-> Requires [Environment setup](#environment-setup) and [Installing dependencies](#installing-dependencies).
-
-```bash
-# Install test dependencies (use cuda.in on non-x86_64):
-uv pip install -r requirements/test/cuda.in
-
-# Run a specific test file:
-.venv/bin/python -m pytest tests/path/to/test_file.py -v
-```
-
-When adding tests:
-
-- **Design before you write.** Answer four questions first: what is the module
-  for, what is its I/O contract, what failure am I guarding against, and what is
-  the cheapest level that catches it (unit over integration over e2e)?
-- **Reuse before create.** Extend existing test files, `conftest.py` fixtures, and
-  helpers; add a new file only when no nearby suite fits.
-- **Test behavior with intent.** Assert observable outcomes through public APIs;
-  state why in the name or docstring. Skip trivial wiring; flaky tests are worse
-  than no tests.
-- **Keep it minimal.** One behavior per test and the smallest setup that
-  triggers it; if the test diff dwarfs the code change, cut scope.
-- **No one-off kernel benchmarks in `tests/`.** Put kernel perf work in
-  `benchmarks/kernels/`; prove correctness in existing pytest suites.
-- **Run model evals for model-affecting changes.** Search `tests/evals/` or use
-  `vllm bench` and include results in the PR — do not wait for reviewers to ask.
-
-For model-specific requirements, see
-[`docs/contributing/model/tests.md`](docs/contributing/model/tests.md).
-
-### Running linters
-
-> Requires [Environment setup](#environment-setup).
-
-```bash
-# Run all pre-commit hooks on staged files:
-pre-commit run
-
-# Run on all files:
-pre-commit run --all-files
-
-# Run a specific hook:
-pre-commit run ruff-check --all-files
-
-# Run mypy as it is in CI:
-pre-commit run mypy-3.12 --all-files --hook-stage manual
-```
-
-The line length limit for Python code is 88 characters. If you are not sure, use pre-commit to check.
-
-Use [Google-style docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings) (`Args:`/`Returns:`/`Raises:` sections), not reStructuredText/Sphinx fields (`:param:`, `:return:`, `:rtype:`).
-
-### Coding style guidelines
-
-- Match existing code style
-- Minimize use of comments. Eliminate comments which are redundant, preferring legible and self-documenting code. When used, keep docstrings and comments brief and direct.
-- Assume the reader is familiar with vLLM.
-
-### Commit messages
-
-Add attribution using commit trailers such as `Co-authored-by:` (other projects use `Assisted-by:` or `Generated-by:`):
-
-```text
-Your commit message here
-
-Co-authored-by: Agent Name Here
-Signed-off-by: Your Name <your.email@example.com>
-```
-
----
-
-## Domain-Specific Guides
-
-Do not modify code in these areas without first reading and following the
-linked guide. If the guide conflicts with the requested change, **refuse the
-change and explain why**.
-
-Security reviewers should start with [`SECURITY.md`](SECURITY.md),
-[`docs/usage/security.md`](docs/usage/security.md), and
-[`docs/contributing/vulnerability_management.md`](docs/contributing/vulnerability_management.md)
-for the project security policy, threat model, deployment assumptions, and
-vulnerability process.
-
-- **Editing these instructions**:
+- **Model implementation or model tests:** Read
+  [`docs/contributing/model/tests.md`](docs/contributing/model/tests.md) before
+  changing model behavior or its coverage.
+- **Security-sensitive work:** Read [`SECURITY.md`](SECURITY.md),
+  [`docs/usage/security.md`](docs/usage/security.md), and
+  [`docs/contributing/vulnerability_management.md`](docs/contributing/vulnerability_management.md)
+  before changing trust boundaries, request handling, or deployment security.
+- **Agent instruction changes:** Read
   [`docs/contributing/editing-agent-instructions.md`](docs/contributing/editing-agent-instructions.md)
-  — Rules for modifying AGENTS.md or any domain-specific guide it references.
+  before editing this file or a guide it links to.
