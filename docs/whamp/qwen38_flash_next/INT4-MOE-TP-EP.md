@@ -237,10 +237,77 @@ following exact profile:
 | Actual KV pool | 1.85-1.89 GiB | about 7.5 GiB |
 
 Starting with the measured 94.24 GiB visible across four GPUs, the checkpoint
-appears to leave 25.71 GiB. Runtime loading and non-Torch state consume about
+appears to leave 25.71 GiB. Runtime model and post-load state consume about
 9.51 GiB beyond the file payload. Activation profiling, CUDA graphs, and the
 five-percent memory reserve consume another 9.07 GiB. That leaves about 7.1 GiB
 inside the configured budget, close to the measured aggregate KV allocation.
+
+### Decomposing the 9.51 GiB runtime expansion
+
+The 15 selected safetensors files contain 68.499272 GiB of tensor payload plus
+about 0.028 GiB of headers and alignment. A perfectly byte-even TP=4 partition
+would therefore hold 17.124818 GiB of tensors per rank. vLLM's model-load
+profiler measured 18.55 GiB per rank, an increase of about 1.425 GiB/rank or
+5.70 GiB aggregate.
+
+Most of that model-load increase follows directly from module ownership and
+registered runtime buffers:
+
+| Source-derived model-load increase | GiB/rank |
+| --- | ---: |
+| Replicated hyperconnection weights and norms | 0.895 |
+| QSA top-k output buffers for 2,048 batched tokens | 0.188 |
+| Replicated MoE routers | 0.088 |
+| Replicated PLE key/value projections | 0.046 |
+| Materialized 262K-position BF16 RoPE cache | 0.031 |
+| Replicated QSA indexer projection and norms | 0.027 |
+| Hyperconnection merged-linear alignment padding | 0.022 |
+| Replicated QSA K/V projection heads at TP=4 | 0.015 |
+| Replicated GDN a/b projections | 0.012 |
+| Non-TP vision position/patch/bias/norm tensors | 0.007 |
+| **Explained subtotal** | **1.331** |
+| Remaining model-load difference | **about 0.094** |
+
+The two largest items are easy to miss:
+
+- Qwen's hyperconnection low-rank up/down projections are intentionally
+  `ReplicatedLinear`; the combined down/injection projection is also
+  `disable_tp=True` and pads its 324 logical rows to 336 physical rows.
+- Every QSA layer registers an `[max_num_batched_tokens, indexer.output_width]`
+  INT32 top-k buffer. With 12 QSA layers, 2,048 batched tokens, and output width
+  2,051, those buffers occupy 0.187775 GiB/rank before any request runs.
+
+The relevant owners are
+[`Qwen4ExpHyperConnection`](https://github.com/vllm-project/vllm/blob/a5530b90cab09b187463396a99612a486ba91d6f/vllm/models/qwen4_exp/nvidia/hyperconnection.py#L60-L125),
+[`Qwen4ExpQSAAttention`](https://github.com/vllm-project/vllm/blob/a5530b90cab09b187463396a99612a486ba91d6f/vllm/models/qwen4_exp/nvidia/qsa.py#L270-L318),
+[`QSAIndexer`](https://github.com/vllm-project/vllm/blob/a5530b90cab09b187463396a99612a486ba91d6f/vllm/models/qwen4_exp/nvidia/indexer_qsa.py#L100-L170),
+and the replicated PLE projections in
+[`Qwen4ExpPLELayer`](https://github.com/vllm-project/vllm/blob/a5530b90cab09b187463396a99612a486ba91d6f/vllm/models/qwen4_exp/nvidia/ple_layer.py#L915-L950).
+
+This leaves the difference from 18.55 GiB model loading to 19.51-19.55 GiB
+"consumed memory". That roughly 0.96-1.00 GiB/rank is not a clean NCCL figure
+and should not be named `non-Torch` without qualification:
+
+- `DeviceMemoryProfiler` records the free-memory delta around model loading.
+- vLLM initializes NCCL before its startup memory snapshot, so initial NCCL and
+  CUDA-context state are excluded from the later consumed-memory delta.
+- `memory_profiling` then measures all persistent consumption after model
+  construction, including post-load Torch runner buffers, PLE IPC/output
+  buffers, backend allocations invisible to the Torch allocator, and allocator
+  rounding or retained storage.
+- The startup log compresses that total into the label "weights + non-torch";
+  it does not publish an operator-level breakdown.
+
+The profiler definitions are in
+[`MemorySnapshot` and `memory_profiling`](https://github.com/vllm-project/vllm/blob/a5530b90cab09b187463396a99612a486ba91d6f/vllm/utils/mem_utils.py#L108-L325),
+and the Qwen image takes its baseline after distributed initialization in
+[`GPUWorker.init_device`](https://github.com/vllm-project/vllm/blob/a5530b90cab09b187463396a99612a486ba91d6f/vllm/v1/worker/gpu_worker.py#L455-L515).
+
+An exact split of the final roughly 1 GiB/rank requires opt-in staged runtime
+instrumentation: storage-deduplicated named parameters and buffers after model
+load, after model-state/PLE connector initialization, and after profile warmup,
+paired with Torch allocator and device-free-memory counters. It cannot be
+reconstructed exactly from the existing rounded startup log alone.
 
 The KV pool is also not one aggregate cache striped over 96 GB. Qwen has 12 full
 QSA layers, two KV heads, and head dimension 256, as pinned in the
