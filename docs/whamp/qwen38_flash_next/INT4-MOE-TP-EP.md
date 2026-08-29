@@ -211,11 +211,105 @@ research has not measured their exact shares.
 The 0.99 GiB startup "peak activation" and 0.10 GiB CUDA-graph figures are
 separate from model loading. Automatic KV fitting reserves against them. They
 may offer more context capacity than expert-kernel work, especially because the
-profile currently uses vLLM's default `max_num_batched_tokens` rather than a
+profile currently uses `max_num_batched_tokens=2048` rather than a
 capacity-tuned value.
 
 A model-memory inventory and a one-variable batched-token A/B should precede any
 claim that the remaining VRAM is wasted.
+
+## Where the apparent context capacity went
+
+The intuitive calculation starts from about 68.53 GiB of selected checkpoint
+files and four 24 GB cards. The runtime does not have the resulting difference
+available for KV cache.
+
+The live EP startup reported 23.56 GiB of usable device memory per rank and the
+following exact profile:
+
+| Allocation | Per rank | Four ranks |
+| --- | ---: | ---: |
+| Selected checkpoint file payload | 17.13 GiB if perfectly divided | 68.53 GiB |
+| Loaded model | 18.55 GiB | 74.20 GiB |
+| Loaded model plus non-Torch state | 19.51-19.55 GiB | about 78.1 GiB |
+| Peak activation reservation | 0.99 GiB | 3.96 GiB |
+| CUDA graphs | 0.10 GiB | 0.40 GiB |
+| Five-percent utilization reserve | 1.18 GiB | 4.71 GiB |
+| Actual KV pool | 1.85-1.89 GiB | about 7.5 GiB |
+
+Starting with the measured 94.24 GiB visible across four GPUs, the checkpoint
+appears to leave 25.71 GiB. Runtime loading and non-Torch state consume about
+9.51 GiB beyond the file payload. Activation profiling, CUDA graphs, and the
+five-percent memory reserve consume another 9.07 GiB. That leaves about 7.1 GiB
+inside the configured budget, close to the measured aggregate KV allocation.
+
+The KV pool is also not one aggregate cache striped over 96 GB. Qwen has 12 full
+QSA layers, two KV heads, and head dimension 256, as pinned in the
+[Intel config](https://huggingface.co/Intel/Qwen3.8-Flash-Next-W4A16-AutoRound/blob/861536dda5bcb208376fc4cd879b2bf76bece9fe/config.json).
+With TP=4, vLLM cannot assign two whole KV heads evenly to four ranks. It sets
+`num_kv_heads=max(1, 2//4)=1`, so every rank stores one BF16 K head and one BF16
+V head for every full-attention layer:
+
+- [`Qwen4ExpQSAAttention`](https://github.com/vllm-project/vllm/blob/a5530b90cab09b187463396a99612a486ba91d6f/vllm/models/qwen4_exp/nvidia/qsa.py#L165-L215)
+
+```text
+Main QSA KV per token per rank:
+  12 layers * 1 KV head * (K + V) * 256 dimensions * 2 BF16 bytes
+  = 12,288 bytes
+```
+
+The sparse indexer adds a compressed BF16 key side cache. It stores one
+128-value key every four tokens in each of the 12 QSA layers:
+
+- [`QSACompressedKeyCache`](https://github.com/vllm-project/vllm/blob/a5530b90cab09b187463396a99612a486ba91d6f/vllm/models/qwen4_exp/common/qsa_cache.py#L797-L808)
+
+```text
+Indexer side cache per token per rank:
+  12 layers * 128 dimensions * 2 BF16 bytes / compression ratio 4
+  = 768 bytes
+
+Total theoretical cache payload:
+  12,288 + 768 = 13,056 bytes = 12.75 KiB/token/rank
+```
+
+At 148,400 tokens, that is 1.804 GiB per rank before paging, block rounding, raw
+indexer ring state, and other cache metadata. The measured pool was 1.85-1.89
+GiB per rank. The source-derived calculation therefore explains the fitted
+context closely.
+
+The current implementation explicitly rejects both lower-precision QSA cache
+and context parallelism:
+
+- the main QSA cache accepts only BF16;
+- a quantization scheme with KV-cache settings is rejected;
+- QSA reports `supports_dcp=False` and rejects decode or prefill context
+  parallelism greater than one;
+- the QSA side caches are also BF16 and report `supports_dcp=False`.
+
+These restrictions are enforced in
+[`qsa.py`](https://github.com/vllm-project/vllm/blob/a5530b90cab09b187463396a99612a486ba91d6f/vllm/models/qwen4_exp/nvidia/qsa.py#L60-L215)
+and
+[`qsa_cache.py`](https://github.com/vllm-project/vllm/blob/a5530b90cab09b187463396a99612a486ba91d6f/vllm/models/qwen4_exp/common/qsa_cache.py#L655-L808).
+The image's corresponding Qwen3.8 files have the same behavior and differ from
+these PR-head sources only by the Qwen3.8-to-Qwen4Exp rename.
+
+This makes cache format and cache sharding the large context levers:
+
+- A one-byte cache format would roughly halve the 13,056-byte payload and put
+  the native 262K context in range if its writers, sparse indexer, attention
+  readers, quality, and SM86 performance were validated.
+- Context-parallel cache ownership could remove the current TP replication, but
+  the QSA implementation does not support it and it would add cross-rank decode
+  communication.
+- Raising utilization to the physical limit would increase KV from about 1.85
+  to only 2.34-2.39 GiB per rank, enough for roughly 190K rather than 262K.
+- Reducing the 2,048-token prefill chunk can reclaim part of the 0.99 GiB
+  activation reservation, but it trades away prefill throughput and requires a
+  measured A/B. Native 262K needs about 3.19 GiB of cache per rank at the current
+  BF16 layout.
+
+The 148K result is therefore not primarily an expert-parallelism limitation.
+It is the combination of runtime residency, a large prefill reservation, and a
+BF16 QSA cache replicated across TP ranks.
 
 ## Existing fixes and related work
 
