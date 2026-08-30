@@ -71,4 +71,4 @@ provenance identifiers.
 - `build-exact-extension.sh`, `patch-legacy-runtime.py.gz`, and
   `promote-production.py.gz`: exact legacy-runtime build and promotion scripts.
 - `create-ablation.py.gz`: same-image selector-ablation Compose generator.
-- `final-container-inspect.json`, `final-gpu.csv`, `final-state.txt`: final state.
+- `final-container-inspect.json`, `final-gpu.csv.gz`, `final-state.txt`: final state.
