@@ -8,6 +8,10 @@ profile. The exact production instance improved matched single-stream decode fro
 1,529.25 to 1,538.14 tokens/s. The profile kept native 262,144-token context,
 vision, tool use, post-tool continuation, and the BF16 rollback.
 
+This report isolates the collective change. The current production image also
+adds the native SM86 BF16 hyperconnection path described in
+[`KERNEL2-HYPERCONNECTION.md`](KERNEL2-HYPERCONNECTION.md).
+
 The deployment sets:
 
 ```text
@@ -151,7 +155,8 @@ rollback timer.
 | Item | Value |
 | --- | --- |
 | Base FP8-QSA image | `sha256:61971a78222e89335d84a7f4d72b0e8842619a4a29564582a58ff328af48abb9` |
-| Hierarchical production image | `sha256:4b59067e269f313a78f0a698e79261230fb02e3712f42ffd54b3e9ec9be9705a` |
+| Pre-Kernel2 hierarchical image | `sha256:4b59067e269f313a78f0a698e79261230fb02e3712f42ffd54b3e9ec9be9705a` |
+| Current Kernel2 image | `sha256:acff9d8e08096a2265b23e50f5ff0d52a3f1e95ffa91e2fb099346e274a9b735` |
 | Base communicator SHA-256 | `a9a0242175c3d3e0d46d586a38cb76139e6e4e92d15032d5b1e33237af2f6757` |
 | Deployed communicator SHA-256 | `8d6b202ab8838da0196fd3af3a292e30185e5c19d4df32373401428e96d86cd7` |
 | Hierarchical backend SHA-256 | `299a7c6dbbfd620c9d8b904ba0f4fd731f7dfec3cf494b1b24618aa2095adc39` |

@@ -1,19 +1,35 @@
 # Qwen3.8 hyperconnection `Kernel2` investigation
 
-Status: complete. The RTX 3090 mechanism gate returned NO-GO. Production did
-not change.
+Status: production. Server60 runs the native SM86 BF16 hyperconnection path.
 
 ## Decision
 
-Do not integrate a hyperconnection replacement from this experiment. W8A16 was
-a net loss. Every real W4 up tensor failed the numerical gate. The native BF16
-kernel passed numerical, CUDA Graph, and SM86 build gates, but its best combined
-saving was 0.614 ms at M=1 and 0.350 ms at M=2. Both miss the preregistered
-0.8 ms per generated token threshold.
+Promote the native BF16 kernel for the exact Qwen3.8 M=1/2 hyperconnection
+shapes. Keep the standard BF16 linear path for every unsupported shape and
+architecture.
 
-The serving A/B did not run because the mechanism gate failed. The promoted
-hierarchical all-reduce remains unchanged. Collective elimination and overlap
-remain a separate deferred investigation.
+The original mechanism screen returned NO-GO because its best projected saving,
+0.614 ms at M=1 and 0.350 ms at M=2, missed the preregistered 0.8 ms per-token
+service budget. W8A16 was a net loss, and every real W4 up tensor failed the
+numerical gate. Will then approved testing the smaller native BF16 gain in the
+full service.
+
+That production A/B passed. A same-image selector ablation measured +7.84% c=1
+decode and +2.69% c=2 aggregate decode. Cache-busted prefill changed by less
+than 0.3%. The final image passed the functional, long-context, BenchLocal,
+CUDA Graph, Compute Sanitizer, packaged-SM86, zero-swap, and rollback gates.
+
+## Production identity
+
+| Item | Value |
+| --- | --- |
+| Whamp/vLLM commit | `42b918e36fa3bdd04e3d7bd7ad4a9c7695b9624f` |
+| Production image | `sha256:acff9d8e08096a2265b23e50f5ff0d52a3f1e95ffa91e2fb099346e274a9b735` |
+| Stable extension SHA-256 | `91118abf4f8b94e1b41dc4226dfd1ef9cf32bd69a610156543c649b57e523381` |
+| `production.yml` SHA-256 | `bfd7267653464d604f92a8b27f1965467139dc8543760a53b86b844667207d17` |
+| Enabled selectors | 193 Qwen3.8 linears per TP rank |
+| Context | 262,144 tokens |
+| Endpoint | `http://server60:30002/v1` |
 
 ## Production path
 
@@ -99,7 +115,7 @@ This is a weight-streaming problem at M=1 and M=2. The c=1 kernels already move
 weights at roughly 500-590 GB/s, so a replacement must improve M=2 reuse or
 remove surrounding work. Launch reduction alone cannot meet the gate.
 
-## Server60 mechanism gate
+## Original server60 mechanism gate
 
 The complete evidence is in
 [`evidence/qwen38-kernel2-sm86-20260830/`](evidence/qwen38-kernel2-sm86-20260830/README.md).
@@ -264,7 +280,10 @@ decode FP8 in software, while the native BF16 and hardware-supported integer
 paths already failed the target-scope gate. FP8 no longer has a credible path
 to the required result under this work boundary.
 
-## Gated hypothesis
+## Original gated hypothesis
+
+This gate drove the investigation. The later production decision deliberately
+accepted a smaller single-stream gain after Will changed the decision boundary.
 
 Outcome: raise warmed concurrency-2 aggregate decode by at least 5% while
 preserving single-stream decode, prefill, 262,144-token context, vision,
@@ -308,20 +327,40 @@ Falsifier: the best correct exact-shape candidate projects less than
 0.8 ms/token of trace-weighted savings, or a measured kernel gain produces less
 than 5% end-to-end concurrency-2 improvement.
 
-## Validation outcome
+## Production validation
 
-The experiment completed the bounded mechanism gate:
+The complete production evidence is under
+[`evidence/qwen38-kernel2-production-20260830/`](evidence/qwen38-kernel2-production-20260830/README.md).
 
-1. Reused the preserved c=1 and c=2 trace attribution.
-2. Timed exact M=1 and M=2 shapes with 16 pointer-distinct weights.
-3. Compared candidate output with FP32 and BF16 references.
-4. Required deterministic CUDA Graph replay.
-5. Verified an SM86 cubin, 33-48 registers, 512 bytes shared memory, and no
-   local-memory spills for the native BF16 extension.
-6. Streamed all 97 real up tensors through the W4 numerical screen.
-7. Recomputed the decision from archived raw JSON with a deterministic analyzer.
-8. Restored the exact production service healthy with zero swap.
+The native operator passed three seeds for each supported shape. The worst
+normalized RMSE was 0.2721%, cosine stayed at or above 0.9999964 for merged
+down/injection and 0.99999988 for up, and CUDA Graph replay was bitwise
+deterministic. Unsupported M=2 up failed closed. Compute Sanitizer memcheck and
+racecheck reported zero errors and zero hazards. `cuobjdump` found packaged
+SM86 code in the pinned extension.
 
-Compute Sanitizer, full-chain integration, and serving A/B did not run. The
-pre-registered mechanism gate failed first, so those stages could not change the
-decision.
+The service matrix used three warmups and five measured decode rounds plus one
+warmup and three cache-busted prefill rounds. The same-image ablation changed
+only `VLLM_QWEN4_EXP_HYPERCONNECTION_BF16_SM86`.
+
+| Measurement | Same image, disabled | Enabled | Change |
+| --- | ---: | ---: | ---: |
+| c=1 decode | 49.2643 tok/s | 53.1284 tok/s | +7.84% |
+| c=2 aggregate decode | 79.4293 tok/s | 81.5672 tok/s | +2.69% |
+| c=1 prefill | 1,536.69 tok/s | 1,532.68 tok/s | -0.26% |
+| c=2 aggregate prefill | 1,552.69 tok/s | 1,556.74 tok/s | +0.26% |
+
+The earlier cross-image comparison measured +7.26% c=1 decode, -0.12% c=2
+decode, -0.06% c=1 prefill, and +0.85% c=2 prefill. The exact final
+production-named c=1 benchmark measured 51.8565 decode and 1,538.9902 prefill
+tokens/s.
+
+The final image passed deterministic generation, automatic tool calling,
+post-tool continuation, multimodal inference, two concurrent streams, and
+exact `VIOLET ORBIT 9137` retrieval from a 261,492-token prompt. BenchLocal
+quick scored 28/30, with 14/15 ToolCall and 14/15 InstructFollow.
+
+At handoff, the production service was healthy with restart policy
+`unless-stopped`, zero restarts, zero host or serving-process swap, active 230 W
+GPU safety controls, and no rollback timer. The pre-Kernel2 Compose and restore
+script remain in the evidence bundle.

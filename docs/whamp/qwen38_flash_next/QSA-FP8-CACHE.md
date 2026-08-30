@@ -4,8 +4,9 @@
 
 Promote the calibrated direct-E4M3 QSA cache as server60's Qwen3.8 production default.
 Keep the BF16 profile as the rollback path. The current production image also
-enables island-aware hierarchical all-reduce. See
-[Qwen3.8 hierarchical all-reduce](HIERARCHICAL-ALL-REDUCE.md).
+enables island-aware hierarchical all-reduce and the native SM86 BF16
+hyperconnection path. See [Qwen3.8 hierarchical all-reduce](HIERARCHICAL-ALL-REDUCE.md)
+and [Qwen3.8 hyperconnection Kernel2](KERNEL2-HYPERCONNECTION.md).
 
 The promoted profile stores the twelve QSA layers' main K/V cache as E4M3 bytes,
 decodes those bytes in the sparse QSA reader, and applies an exact calibrated
@@ -31,7 +32,8 @@ shape.
 | Primitive PLE revision | `da8b39586016d8325ac619be28ad77d6296625ec` |
 | Accepted base image | `sha256:1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b` |
 | Base FP8 image | `sha256:61971a78222e89335d84a7f4d72b0e8842619a4a29564582a58ff328af48abb9` |
-| Current hierarchical image | `sha256:4b59067e269f313a78f0a698e79261230fb02e3712f42ffd54b3e9ec9be9705a` |
+| Pre-Kernel2 hierarchical image | `sha256:4b59067e269f313a78f0a698e79261230fb02e3712f42ffd54b3e9ec9be9705a` |
+| Current Kernel2 image | `sha256:acff9d8e08096a2265b23e50f5ff0d52a3f1e95ffa91e2fb099346e274a9b735` |
 | Scale-file SHA-256 | `554d68aa917bdcac3ec7e5c14a8ca1421182d0b899da30b6c54501b72aefdcf3` |
 | Cache dtype | `fp8_e4m3` |
 | Context | 262,144 tokens |
@@ -103,8 +105,10 @@ and 1,531.33. The differences were minus 0.47% and minus 0.14%.
 
 After trace-guided hierarchical all-reduce promotion, the exact-final service
 measured 50.34 decode and 1,538.14 prefill tokens/s. Concurrency-2 aggregate
-throughput rose from 53.25 to 59.00 tokens/s. The model, QSA cache, PLE,
-context, batch-token budget, and GPU policy stayed unchanged.
+throughput rose from 53.25 to 59.00 tokens/s. The later native SM86 Kernel2
+same-image ablation raised c=1 decode by 7.84% and c=2 aggregate decode by 2.69%
+with less than 0.3% prefill movement. The model, QSA cache, PLE, context,
+batch-token budget, and GPU policy stayed unchanged.
 
 The later 0.98 production setting reported 2.79 GiB available for KV and
 421,608 cache tokens. It preserved the same 262,144-token context and passed
@@ -136,16 +140,12 @@ decode interference workload.
 
 ## Open performance work
 
-The matched c=1/c=2 trace separated mixed concurrent prefill from steady decode
-and identified BF16 ring all-reduce as the first measured critical segment.
-Island-aware hierarchical all-reduce shortened that segment and raised
-single-stream decode by 15.0%. The next trace-grounded target is the repeated
-BF16 hyperconnection projection family documented in
-[`KERNEL2-HYPERCONNECTION.md`](KERNEL2-HYPERCONNECTION.md).
+The matched c=1/c=2 trace identified BF16 ring all-reduce and repeated BF16
+hyperconnection projections as measured decode costs. Both changes now run in
+production. Hierarchical all-reduce raised the earlier c=1 result by 15.0%, and
+the same-image Kernel2 ablation added 7.84% c=1 decode on top of that stack.
 
-Mixed concurrent-prefill starvation remains separate. The current exact-final
-service costs 19.865 ms/token at 50.34 tokens/s. Alesha's 64.31-token/s
-near-maximum result costs 15.550 ms/token, leaving a 4.315 ms/token external
-comparison gap. Checkpoint differences, split projection structure, companion
-FP8 weights, and host configuration still prevent attributing that gap to one
-runtime mechanism.
+Mixed concurrent-prefill starvation remains separate. Checkpoint differences,
+split projection structure, companion FP8 weights, and host configuration still
+prevent assigning the remaining external comparison gap to one runtime
+mechanism.

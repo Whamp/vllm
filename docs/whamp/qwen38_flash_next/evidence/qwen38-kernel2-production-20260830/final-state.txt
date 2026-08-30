@@ -1,0 +1,9 @@
+vm.overcommit_memory=0
+swap_devices=0
+gpu_power_service=active
+container_health=healthy
+container_restarts=0
+container_restart_policy=unless-stopped
+container_image=sha256:acff9d8e08096a2265b23e50f5ff0d52a3f1e95ffa91e2fb099346e274a9b735
+serving_swap_kib_max=0
+active_kernel2_timers=0
