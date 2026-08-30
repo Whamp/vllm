@@ -303,9 +303,13 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
         "candidate_graph_bitwise_deterministic": graph_bitwise_deterministic,
         "timing": summaries,
         "candidate_speedup": speedup,
-        "performance_gate": {
-            "required_speedup": 1.20,
-            "passed": speedup >= 1.20,
+        "decision_contract": {
+            "status": "screening_only",
+            "required_trace_weighted_savings_ms_per_token": 0.8,
+            "note": (
+                "Combine down and up results using the production trace mix; "
+                "one projection cannot pass the service-level gate alone."
+            ),
         },
         "arguments": {
             "warmups": args.warmups,

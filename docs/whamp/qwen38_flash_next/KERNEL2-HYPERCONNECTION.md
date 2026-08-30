@@ -7,9 +7,9 @@ study.
 
 Investigate the repeated BF16 hyperconnection projections as the next Qwen3.8
 decode target. Do not change production until an RTX 3090 gate proves numerical
-correctness, CUDA Graph replay, runtime dispatch, and at least a 20% reduction in
-the combined M=2 projection time. The intended end-to-end threshold is at least
-5% higher concurrency-2 aggregate decode throughput.
+correctness, CUDA Graph replay, runtime dispatch, and a trace-weighted projection
+saving of at least 0.8 ms per generated token. The end-to-end threshold is at
+least 5% higher concurrency-2 aggregate decode throughput.
 
 Collective elimination and overlap are tracked separately as a deferred
 long-shot. The promoted hierarchical all-reduce remains unchanged.
@@ -156,12 +156,20 @@ Move: specialize the exact M=1 and M=2 projection shapes for SM86, starting with
 a benchmark-only comparison against Torch/CUTLASS. Consider the two epilogue
 fusions only after the projection timing identifies their remaining value.
 
+Budget gate: the matched hierarchical-all-reduce production benchmark measured
+about 59.0 aggregate c=2 tokens/s, or 16.95 ms per generated token. A 5%
+throughput gain requires about 0.81 ms/token of savings. The preserved trace
+assigns 2.665 ms/token to the full `Kernel2` pool, so this direction must remove
+roughly 30% of that pool if it is the sole lever. Individual projection results
+must be combined using their traced production call mix; no arbitrary
+per-projection percentage is an acceptance result.
+
 Architecture and runtime gate: RTX 3090, SM86 cubin, BF16 inputs and outputs,
 FP32 accumulation, packed row-major weights, CUDA Graph replay, and the current
 48-layer Qwen3.8 model contract.
 
-Predicted mediator: at least 20% lower combined M=2 down-plus-up projection time
-with no extra persistent weight copy.
+Predicted mediator: at least 0.8 ms/token lower trace-weighted M=2 projection
+cost with no extra persistent weight copy.
 
 Lose conditions:
 
@@ -171,8 +179,8 @@ Lose conditions:
 - changed BF16 accumulation causes an end-to-end capability regression;
 - prefill dispatch changes.
 
-Falsifier: the best correct exact-shape candidate improves the pointer-distinct
-M=2 projection pair by less than 20%, or a measured kernel gain produces less
+Falsifier: the best correct exact-shape candidate projects less than
+0.8 ms/token of trace-weighted savings, or a measured kernel gain produces less
 than 5% end-to-end concurrency-2 improvement.
 
 ## Validation plan
