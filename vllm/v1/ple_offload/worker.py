@@ -25,8 +25,10 @@ import pickle
 import signal
 import tempfile
 import threading
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from functools import partial
 from multiprocessing.connection import Connection
 from typing import Any, cast
 
@@ -349,6 +351,15 @@ class PleOffloadRunner:
         self._pinned_bufs: dict[int, dict[str, torch.Tensor]] = {}
         # Shared-memory inputs are registered once per DP rank by TP rank zero.
         self._input_bufs: dict[int, PleOffloadInputBuffers] = {}
+        tp_size = self.vllm_config.parallel_config.tensor_parallel_size
+        self._output_target_executor = (
+            ThreadPoolExecutor(
+                max_workers=tp_size,
+                thread_name_prefix="PleOffloadOutput",
+            )
+            if tp_size > 1
+            else None
+        )
         self._load_weights()
 
     @property
@@ -659,6 +670,48 @@ class PleOffloadRunner:
 
             self._handle_requests(requests)
 
+    def _run_output_target_operations(
+        self,
+        targets: list[PleOffloadOutputTarget],
+        operation: Callable[[PleOffloadOutputTarget], None],
+    ) -> None:
+        """Run one operation for each TP target, concurrently when TP > 1."""
+        executor = self._output_target_executor
+        if executor is None:
+            for target in targets:
+                operation(target)
+            return
+
+        def run_on_target_device(target: PleOffloadOutputTarget) -> None:
+            device_index = target.output_mapping.descriptor.device_index
+            with torch.accelerator.device_index(device_index):
+                operation(target)
+
+        futures = [executor.submit(run_on_target_device, target) for target in targets]
+        for future in futures:
+            future.result()
+
+    @staticmethod
+    def _prepare_output_target_for_write(target: PleOffloadOutputTarget) -> None:
+        """Wait until a target's prior transfer and GPU use are ordered."""
+        target.copy_stream.synchronize()
+        target.semaphore_mapping.wait_value32(
+            CpuGpuSemaphore.RESET_VALUE,
+            target.copy_stream,
+        )
+
+    @staticmethod
+    def _copy_result_to_output_target(
+        result: torch.Tensor,
+        target: PleOffloadOutputTarget,
+    ) -> None:
+        """Enqueue one result copy and signal its target stream."""
+        target.output_mapping.copy_from_host(result, target.copy_stream)
+        target.semaphore_mapping.write_value32(
+            CpuGpuSemaphore.DONE_VALUE,
+            target.copy_stream,
+        )
+
     def _handle_requests(self, requests: list[PleOffloadRequest]) -> None:
         """Run requests layer-first so each DP rank can resume promptly."""
         requests_by_dp: dict[int, PleOffloadRequest] = {}
@@ -692,12 +745,10 @@ class PleOffloadRunner:
                 # The CPU must not overwrite a GPU output buffer until its
                 # previous result has been consumed. The GPU runner resets the
                 # flag after the complete model forward.
-                for target in targets:
-                    target.copy_stream.synchronize()
-                    target.semaphore_mapping.wait_value32(
-                        CpuGpuSemaphore.RESET_VALUE,
-                        target.copy_stream,
-                    )
+                self._run_output_target_operations(
+                    targets,
+                    self._prepare_output_target_for_write,
+                )
 
                 input_bufs = self._input_bufs[dp_rank]
                 ngram_context = (
@@ -715,15 +766,17 @@ class PleOffloadRunner:
 
                 # The result is identical on every TP rank in this DP group.
                 # Each copy stream signals only after its DMA completes.
-                for target in targets:
-                    target.output_mapping.copy_from_host(result, target.copy_stream)
-                    target.semaphore_mapping.write_value32(
-                        CpuGpuSemaphore.DONE_VALUE,
-                        target.copy_stream,
-                    )
+                self._run_output_target_operations(
+                    targets,
+                    partial(self._copy_result_to_output_target, result),
+                )
 
     def close(self) -> None:
         """Close all imported CUDA mappings owned by this worker."""
+        executor = getattr(self, "_output_target_executor", None)
+        if executor is not None:
+            executor.shutdown(wait=True)
+            self._output_target_executor = None
         for layer_targets in self._worker_targets.values():
             for targets in layer_targets.values():
                 for target in targets:

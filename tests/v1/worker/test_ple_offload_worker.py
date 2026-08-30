@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 from types import SimpleNamespace
+from typing import Any, cast
 
 import msgspec
 import pytest
@@ -591,6 +592,68 @@ def test_ple_offload_runner_groups_registrations_by_dp_rank(
     assert runner._pinned_bufs[1]["ple"].shape == (8, 3)
 
 
+def test_ple_output_target_operations_submit_before_waiting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events = []
+    monkeypatch.setattr(
+        ple_offload_worker.torch.accelerator,
+        "device_index",
+        lambda _: ple_offload_worker.contextlib.nullcontext(),
+    )
+
+    class DeferredFuture:
+        def __init__(self, operation, target) -> None:
+            self.operation = operation
+            self.target = target
+
+        def result(self) -> None:
+            events.append(("wait", self.target.tp_rank))
+            self.operation(self.target)
+
+    class RecordingExecutor:
+        def submit(self, operation, target):
+            events.append(("submit", target.tp_rank))
+            return DeferredFuture(operation, target)
+
+    runner = ple_offload_worker.PleOffloadRunner.__new__(
+        ple_offload_worker.PleOffloadRunner
+    )
+    runner._output_target_executor = cast(Any, RecordingExecutor())
+    targets = cast(
+        list[ple_offload_worker.PleOffloadOutputTarget],
+        [
+            SimpleNamespace(
+                tp_rank=rank,
+                output_mapping=SimpleNamespace(
+                    descriptor=SimpleNamespace(device_index=rank)
+                ),
+            )
+            for rank in range(4)
+        ],
+    )
+
+    runner._run_output_target_operations(
+        targets,
+        lambda target: events.append(("operation", target.tp_rank)),
+    )
+
+    assert events == [
+        ("submit", 0),
+        ("submit", 1),
+        ("submit", 2),
+        ("submit", 3),
+        ("wait", 0),
+        ("operation", 0),
+        ("wait", 1),
+        ("operation", 1),
+        ("wait", 2),
+        ("operation", 2),
+        ("wait", 3),
+        ("operation", 3),
+    ]
+
+
 def test_ple_offload_runner_routes_requests_layer_first(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -651,6 +714,7 @@ def test_ple_offload_runner_routes_requests_layer_first(
         ple_offload_worker.PleOffloadRunner
     )
     runner._clamp_input_ids = True
+    runner._output_target_executor = None
     runner._layers = {"ple0": FakeLayer("ple0"), "ple1": FakeLayer("ple1")}
     runner._worker_targets = {
         0: {"ple0": [target()], "ple1": [target()]},
@@ -675,6 +739,18 @@ def test_ple_offload_runner_routes_requests_layer_first(
         }
         for dp_rank in range(2)
     }
+    output_target_operation_counts = []
+    run_output_target_operations = runner._run_output_target_operations
+
+    def record_output_target_operations(targets, operation) -> None:
+        output_target_operation_counts.append(len(targets))
+        run_output_target_operations(targets, operation)
+
+    monkeypatch.setattr(
+        runner,
+        "_run_output_target_operations",
+        record_output_target_operations,
+    )
     runner._handle_requests(
         [
             ple_offload_worker.PleOffloadRequest(
@@ -696,6 +772,7 @@ def test_ple_offload_runner_routes_requests_layer_first(
         ("ple1", 0),
         ("ple1", 20),
     ]
+    assert output_target_operation_counts == [1] * 8
     torch.testing.assert_close(
         runner._worker_targets[0]["ple1"][0].output_mapping.buffer[:2],
         torch.tensor([[0, 0], [11, 11]], dtype=torch.int32),
