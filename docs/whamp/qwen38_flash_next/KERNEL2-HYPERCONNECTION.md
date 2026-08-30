@@ -209,10 +209,56 @@ but sparse-attention success does not establish GEMM economics: hyperconnection
 execution decodes hundreds of millions of weight values per token. The decisive
 measurement is whether halved traffic outweighs integer decode and scaling.
 
-The implementation order is BF16 decomposition first, then FP8. The BF16 arm
-isolates the portable scheduling idea without changing model weights. If it
-cannot compile or execute efficiently on SM86, the more complex FP8 arm needs a
-different kernel foundation rather than inheriting the same decomposition.
+### INT8 and INT4 alternatives
+
+SM86 has native INT8 and INT4 Tensor Core instructions, but hardware support
+alone does not make either representation economical for these small-M shapes.
+The already completed hyperconnection INT8 campaign tested generic Cutlass
+W8A8, group-scaled Triton, a one-launch DP4A design, and an IMMA
+`m16n8k32` design. The best per-row up-projection decode reached 21.3 us versus
+about 22.6 us for BF16, but the quality-required group-128 merged-down path took
+about 257 us versus 27 us. Activation quantization, 80 separately scaled K
+groups, and M=1/2 Tensor Core underfill erased the lower-bit benefit. That W8A8
+family is closed by measured evidence, not merely by an architecture argument.
+
+Weight-only Marlin is a distinct mechanism. Its W8A16 and W4A16 modes retain
+BF16 activations and dequantize packed weights inside the GEMM. The inspected
+source statically admits symmetric 8-bit and 4-bit weights on SM86, group sizes
+32/64/128 or per-channel, and zero-padding for dense thread-tile alignment.
+Static eligibility is not dispatch or performance evidence.
+
+For the exact hyperconnection shapes:
+
+- merged down/injection `[336,10240]` needs N padding from 336 to 384; group 128
+  remains legal;
+- up `[10240,320]` fits the alternative Marlin N128/K64 tile family without
+  shape padding and can use group 32, group 64, or per-channel scaling;
+- W8A16 matches the existing high-quality INT8 representation more closely and
+  approximately halves weight traffic;
+- W4A16 approximately quarters logical weight traffic, but its quality on these
+  sensitive projections is unknown.
+
+The narrowest worthwhile compressed-weight screen is therefore:
+
+1. W8A16 Marlin for both projections, using group-128 merged-down and the
+   already screened per-output-row up scales;
+2. W4A16 Marlin for the up projection only, leaving merged down in BF16;
+3. all-W4 only if a complete 97-group CPU reconstruction screen meets the fixed
+   numerical gate before GPU work.
+
+The up-only W4 candidate is intentional. Up weights account for about 0.592 GiB
+per rank and about 1.071 ms of the preserved M=1 component timing, while it
+avoids the 80-group merged-down failure that killed native W8A8. Even its ideal
+fourfold weight-traffic reduction saves only about 0.8 ms before dequantization,
+so it has almost no room to miss the trace-weighted service gate. It is a cheap
+falsifiable experiment, not a recommendation.
+
+The revised implementation order is BF16 decomposition, exact W8A16 Marlin,
+up-only W4A16 Marlin, and only then purpose-built FP8. BF16 isolates scheduling
+without changing weights; W8A16 tests mature Ampere weight-only execution with
+the already screened quality contract; W4A16 tests whether additional traffic
+reduction survives quality and dequantization; FP8 remains last because SM86
+must decode it in software.
 
 ## Gated hypothesis
 
