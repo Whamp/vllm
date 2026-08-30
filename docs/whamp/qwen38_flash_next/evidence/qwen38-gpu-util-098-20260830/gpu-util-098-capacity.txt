@@ -1,0 +1,3 @@
+(Worker_TP0_EP0 pid=415) INFO 08-30 01:44:39 [encoder_runner.py:120] Encoder cache will be initialized with a budget of 16384 tokens, and profiled with 1 image items of the maximum feature size.
+(Worker_TP0_EP0 pid=415) INFO 08-30 01:44:52 [gpu_worker.py:693] Available KV cache memory: 2.79 GiB
+(EngineCore pid=320) INFO 08-30 01:44:53 [kv_cache_utils.py:2258] GPU KV cache size: 421,608 tokens, Maximum concurrency for 262,144 tokens per request: 1.61x

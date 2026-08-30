@@ -10,8 +10,8 @@ enables island-aware hierarchical all-reduce. See
 The promoted profile stores the twelve QSA layers' main K/V cache as E4M3 bytes,
 decodes those bytes in the sparse QSA reader, and applies an exact calibrated
 scale for each layer's K and V tensors. Raw and compressed indexer caches remain
-unchanged. The profile reached the native 262,144-token model limit with 314,261
-aggregate KV tokens and 1.20x maximum concurrency.
+unchanged. The current 0.98 profile reaches the native 262,144-token model limit
+with 421,608 aggregate KV tokens and 1.61x maximum concurrency.
 
 The earlier FP8 no-go in this file tested a generic software conversion path. It
 was valid for that implementation, which took 28.46 times BF16 reader time at
@@ -37,7 +37,7 @@ shape.
 | Context | 262,144 tokens |
 | Maximum sequences | 2 |
 | Batch-token budget | 1,024 |
-| GPU-memory utilization | 0.95 |
+| GPU-memory utilization | 0.98 |
 | CUDA graphs | `FULL_DECODE_ONLY` |
 | Endpoint | `http://server60:30002/v1` |
 
@@ -86,8 +86,8 @@ These are reader microbenchmarks. They do not explain the model's decode gap.
 
 ## Serving gates
 
-At `gpu_memory_utilization=0.95`, the service reported 2.08 GiB available for
-KV and allocated 314,261 tokens. It passed:
+The initial `gpu_memory_utilization=0.95` profile reported 2.08 GiB available
+for KV and allocated 314,261 tokens. It passed:
 
 - deterministic text generation;
 - automatic tool selection and post-tool continuation;
@@ -105,6 +105,14 @@ After trace-guided hierarchical all-reduce promotion, the exact-final service
 measured 50.34 decode and 1,538.14 prefill tokens/s. Concurrency-2 aggregate
 throughput rose from 53.25 to 59.00 tokens/s. The model, QSA cache, PLE,
 context, batch-token budget, and GPU policy stayed unchanged.
+
+The later 0.98 production setting reported 2.79 GiB available for KV and
+421,608 cache tokens. It preserved the same 262,144-token context and passed
+image, tool, post-tool, concurrency-2, and exact 261,544-token NIAH checks. The
+first acceptance warmed another 460 to 500 MiB per GPU. Three more
+concurrency-2 rounds produced no further NVML growth, OOM, allocator retry,
+restart, or swap. See
+[`evidence/qwen38-gpu-util-098-20260830`](evidence/qwen38-gpu-util-098-20260830/README.md).
 
 ## llama-benchy interpretation
 
