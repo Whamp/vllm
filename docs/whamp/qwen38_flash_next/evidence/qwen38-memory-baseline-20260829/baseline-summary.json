@@ -1,0 +1,478 @@
+{
+  "derived": {
+    "baseline_device_bytes_per_rank": 466812928.0,
+    "kv_allocation_torch_allocated_delta_bytes_per_rank": 1984747520.0,
+    "ple_initialization_torch_allocated_delta_bytes_per_rank": 23176704.0,
+    "profile_growth_beyond_registered_bytes_per_rank": 1037127144.0,
+    "weights_loaded_to_postprocessed_registered_delta_bytes_per_rank": -204472320.0
+  },
+  "postprocessed_registered_storage_categories": {
+    "embedding_and_head": {
+      "maximum": 635699200,
+      "mean": 635699200.0,
+      "minimum": 635699200
+    },
+    "hyperconnections": {
+      "maximum": 1304842240,
+      "mean": 1304842240.0,
+      "minimum": 1304842240
+    },
+    "linear_attention": {
+      "maximum": 1056534048,
+      "mean": 1056534048.0,
+      "minimum": 1056534048
+    },
+    "moe_router": {
+      "maximum": 125829120,
+      "mean": 125829120.0,
+      "minimum": 125829120
+    },
+    "ple_projections_and_buffers": {
+      "maximum": 65679360,
+      "mean": 65679360.0,
+      "minimum": 65679360
+    },
+    "qsa_attention": {
+      "maximum": 314585280,
+      "mean": 314585280.0,
+      "minimum": 314585280
+    },
+    "qsa_indexer": {
+      "maximum": 39327744,
+      "mean": 39327744.0,
+      "minimum": 39327744
+    },
+    "qsa_topk_buffers": {
+      "maximum": 201621504,
+      "mean": 201621504.0,
+      "minimum": 201621504
+    },
+    "rope_cache": {
+      "maximum": 134217728,
+      "mean": 134217728.0,
+      "minimum": 134217728
+    },
+    "routed_experts": {
+      "maximum": 15689416704,
+      "mean": 15689416704.0,
+      "minimum": 15689416704
+    },
+    "shared_experts": {
+      "maximum": 118210560,
+      "mean": 118210560.0,
+      "minimum": 118210560
+    },
+    "vision": {
+      "maximum": 231979832,
+      "mean": 231979832.0,
+      "minimum": 231979832
+    }
+  },
+  "rank_count": 4,
+  "raw_manifest_sha256": "690ae384e4385a1cea3db814c78be6c1ccd9612bbd11299bd44ac853565c78ee",
+  "schema_version": 1,
+  "stage_order": [
+    "distributed initialized",
+    "model runner initialized",
+    "initialized",
+    "weights loaded",
+    "postprocessed",
+    "PLE offload initialized",
+    "worker model loaded",
+    "profile complete",
+    "kv cache allocated",
+    "warmup complete"
+  ],
+  "stages": {
+    "PLE offload initialized": {
+      "memory_counters": {
+        "allocator_cache_bytes": {
+          "maximum": 457625088,
+          "mean": 457625088.0,
+          "minimum": 457625088
+        },
+        "device_used_bytes": {
+          "maximum": 21206925312,
+          "mean": 20958855168.0,
+          "minimum": 20865810432
+        },
+        "non_torch_device_bytes": {
+          "maximum": 807927808,
+          "mean": 559857664.0,
+          "minimum": 466812928
+        },
+        "torch_allocated_bytes": {
+          "maximum": 19941372416,
+          "mean": 19941372416.0,
+          "minimum": 19941372416
+        },
+        "torch_reserved_bytes": {
+          "maximum": 20398997504,
+          "mean": 20398997504.0,
+          "minimum": 20398997504
+        },
+        "unregistered_torch_allocated_bytes": {
+          "maximum": 23429096,
+          "mean": 23429096.0,
+          "minimum": 23429096
+        }
+      },
+      "rank_count": 4,
+      "registered_storage_bytes": {
+        "maximum": 19917943320,
+        "mean": 19917943320.0,
+        "minimum": 19917943320
+      }
+    },
+    "distributed initialized": {
+      "memory_counters": {
+        "allocator_cache_bytes": {
+          "maximum": 0,
+          "mean": 0.0,
+          "minimum": 0
+        },
+        "device_used_bytes": {
+          "maximum": 466812928,
+          "mean": 466812928.0,
+          "minimum": 466812928
+        },
+        "non_torch_device_bytes": {
+          "maximum": 466812928,
+          "mean": 466812928.0,
+          "minimum": 466812928
+        },
+        "torch_allocated_bytes": {
+          "maximum": 0,
+          "mean": 0.0,
+          "minimum": 0
+        },
+        "torch_reserved_bytes": {
+          "maximum": 0,
+          "mean": 0.0,
+          "minimum": 0
+        }
+      },
+      "rank_count": 4,
+      "registered_storage_bytes": {
+        "maximum": 0,
+        "mean": 0.0,
+        "minimum": 0
+      }
+    },
+    "initialized": {
+      "memory_counters": {
+        "allocator_cache_bytes": {
+          "maximum": 691565568,
+          "mean": 691565568.0,
+          "minimum": 691565568
+        },
+        "device_used_bytes": {
+          "maximum": 21281046528,
+          "mean": 21281046528.0,
+          "minimum": 21281046528
+        },
+        "non_torch_device_bytes": {
+          "maximum": 466812928,
+          "mean": 466812928.0,
+          "minimum": 466812928
+        },
+        "torch_allocated_bytes": {
+          "maximum": 20122668032,
+          "mean": 20122668032.0,
+          "minimum": 20122668032
+        },
+        "torch_reserved_bytes": {
+          "maximum": 20814233600,
+          "mean": 20814233600.0,
+          "minimum": 20814233600
+        },
+        "unregistered_torch_allocated_bytes": {
+          "maximum": 252392,
+          "mean": 252392.0,
+          "minimum": 252392
+        }
+      },
+      "rank_count": 4,
+      "registered_storage_bytes": {
+        "maximum": 20122415640,
+        "mean": 20122415640.0,
+        "minimum": 20122415640
+      }
+    },
+    "kv cache allocated": {
+      "memory_counters": {
+        "allocator_cache_bytes": {
+          "maximum": 309835264,
+          "mean": 309835264.0,
+          "minimum": 309835264
+        },
+        "device_used_bytes": {
+          "maximum": 23281008640,
+          "mean": 23246405632.0,
+          "minimum": 23234871296
+        },
+        "non_torch_device_bytes": {
+          "maximum": 826802176,
+          "mean": 792199168.0,
+          "minimum": 780664832
+        },
+        "torch_allocated_bytes": {
+          "maximum": 22144371200,
+          "mean": 22144371200.0,
+          "minimum": 22144371200
+        },
+        "torch_reserved_bytes": {
+          "maximum": 22454206464,
+          "mean": 22454206464.0,
+          "minimum": 22454206464
+        },
+        "unregistered_torch_allocated_bytes": {
+          "maximum": 2226427880,
+          "mean": 2226427880.0,
+          "minimum": 2226427880
+        }
+      },
+      "rank_count": 4,
+      "registered_storage_bytes": {
+        "maximum": 19917943320,
+        "mean": 19917943320.0,
+        "minimum": 19917943320
+      }
+    },
+    "model runner initialized": {
+      "memory_counters": {
+        "allocator_cache_bytes": {
+          "maximum": 2066944,
+          "mean": 2066944.0,
+          "minimum": 2066944
+        },
+        "device_used_bytes": {
+          "maximum": 468910080,
+          "mean": 468910080.0,
+          "minimum": 468910080
+        },
+        "non_torch_device_bytes": {
+          "maximum": 466812928,
+          "mean": 466812928.0,
+          "minimum": 466812928
+        },
+        "torch_allocated_bytes": {
+          "maximum": 30208,
+          "mean": 30208.0,
+          "minimum": 30208
+        },
+        "torch_reserved_bytes": {
+          "maximum": 2097152,
+          "mean": 2097152.0,
+          "minimum": 2097152
+        }
+      },
+      "rank_count": 4,
+      "registered_storage_bytes": {
+        "maximum": 0,
+        "mean": 0.0,
+        "minimum": 0
+      }
+    },
+    "postprocessed": {
+      "memory_counters": {
+        "allocator_cache_bytes": {
+          "maximum": 3840439296,
+          "mean": 3148379136.0,
+          "minimum": 2917692416
+        },
+        "device_used_bytes": {
+          "maximum": 24566562816,
+          "mean": 23618666496.0,
+          "minimum": 23302701056
+        },
+        "non_torch_device_bytes": {
+          "maximum": 807927808,
+          "mean": 552091648.0,
+          "minimum": 466812928
+        },
+        "torch_allocated_bytes": {
+          "maximum": 19918195712,
+          "mean": 19918195712.0,
+          "minimum": 19918195712
+        },
+        "torch_reserved_bytes": {
+          "maximum": 23758635008,
+          "mean": 23066574848.0,
+          "minimum": 22835888128
+        },
+        "unregistered_torch_allocated_bytes": {
+          "maximum": 252392,
+          "mean": 252392.0,
+          "minimum": 252392
+        }
+      },
+      "rank_count": 4,
+      "registered_storage_bytes": {
+        "maximum": 19917943320,
+        "mean": 19917943320.0,
+        "minimum": 19917943320
+      }
+    },
+    "profile complete": {
+      "memory_counters": {
+        "allocator_cache_bytes": {
+          "maximum": 470060544,
+          "mean": 470060544.0,
+          "minimum": 470060544
+        },
+        "device_used_bytes": {
+          "maximum": 21456486400,
+          "mean": 21421883392.0,
+          "minimum": 21410349056
+        },
+        "non_torch_device_bytes": {
+          "maximum": 826802176,
+          "mean": 792199168.0,
+          "minimum": 780664832
+        },
+        "torch_allocated_bytes": {
+          "maximum": 20159623680,
+          "mean": 20159623680.0,
+          "minimum": 20159623680
+        },
+        "torch_reserved_bytes": {
+          "maximum": 20629684224,
+          "mean": 20629684224.0,
+          "minimum": 20629684224
+        },
+        "unregistered_torch_allocated_bytes": {
+          "maximum": 241680360,
+          "mean": 241680360.0,
+          "minimum": 241680360
+        }
+      },
+      "rank_count": 4,
+      "registered_storage_bytes": {
+        "maximum": 19917943320,
+        "mean": 19917943320.0,
+        "minimum": 19917943320
+      }
+    },
+    "warmup complete": {
+      "memory_counters": {
+        "allocator_cache_bytes": {
+          "maximum": 358703104,
+          "mean": 358703104.0,
+          "minimum": 358703104
+        },
+        "device_used_bytes": {
+          "maximum": 23394254848,
+          "mean": 23359651840.0,
+          "minimum": 23348117504
+        },
+        "non_torch_device_bytes": {
+          "maximum": 864550912,
+          "mean": 829947904.0,
+          "minimum": 818413568
+        },
+        "torch_allocated_bytes": {
+          "maximum": 22171000832,
+          "mean": 22171000832.0,
+          "minimum": 22171000832
+        },
+        "torch_reserved_bytes": {
+          "maximum": 22529703936,
+          "mean": 22529703936.0,
+          "minimum": 22529703936
+        },
+        "unregistered_torch_allocated_bytes": {
+          "maximum": 2253057512,
+          "mean": 2253057512.0,
+          "minimum": 2253057512
+        }
+      },
+      "rank_count": 4,
+      "registered_storage_bytes": {
+        "maximum": 19917943320,
+        "mean": 19917943320.0,
+        "minimum": 19917943320
+      }
+    },
+    "weights loaded": {
+      "memory_counters": {
+        "allocator_cache_bytes": {
+          "maximum": 691565568,
+          "mean": 691565568.0,
+          "minimum": 691565568
+        },
+        "device_used_bytes": {
+          "maximum": 21622161408,
+          "mean": 21366325248.0,
+          "minimum": 21281046528
+        },
+        "non_torch_device_bytes": {
+          "maximum": 807927808,
+          "mean": 552091648.0,
+          "minimum": 466812928
+        },
+        "torch_allocated_bytes": {
+          "maximum": 20122668032,
+          "mean": 20122668032.0,
+          "minimum": 20122668032
+        },
+        "torch_reserved_bytes": {
+          "maximum": 20814233600,
+          "mean": 20814233600.0,
+          "minimum": 20814233600
+        },
+        "unregistered_torch_allocated_bytes": {
+          "maximum": 252392,
+          "mean": 252392.0,
+          "minimum": 252392
+        }
+      },
+      "rank_count": 4,
+      "registered_storage_bytes": {
+        "maximum": 20122415640,
+        "mean": 20122415640.0,
+        "minimum": 20122415640
+      }
+    },
+    "worker model loaded": {
+      "memory_counters": {
+        "allocator_cache_bytes": {
+          "maximum": 468111360,
+          "mean": 468111360.0,
+          "minimum": 468111360
+        },
+        "device_used_bytes": {
+          "maximum": 21206925312,
+          "mean": 20951089152.0,
+          "minimum": 20865810432
+        },
+        "non_torch_device_bytes": {
+          "maximum": 807927808,
+          "mean": 552091648.0,
+          "minimum": 466812928
+        },
+        "torch_allocated_bytes": {
+          "maximum": 19930886144,
+          "mean": 19930886144.0,
+          "minimum": 19930886144
+        },
+        "torch_reserved_bytes": {
+          "maximum": 20398997504,
+          "mean": 20398997504.0,
+          "minimum": 20398997504
+        },
+        "unregistered_torch_allocated_bytes": {
+          "maximum": 12942824,
+          "mean": 12942824.0,
+          "minimum": 12942824
+        }
+      },
+      "rank_count": 4,
+      "registered_storage_bytes": {
+        "maximum": 19917943320,
+        "mean": 19917943320.0,
+        "minimum": 19917943320
+      }
+    }
+  }
+}

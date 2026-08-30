@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+# syntax=docker/dockerfile:1
+FROM vllm/vllm-openai:qwen38-rope-bound-dev
+ARG VLLM_SITE=/usr/local/lib/python3.12/dist-packages
+RUN echo 'f015e1cf27dd377d341257d07d536eef80f2ca9c88f74748f8041623e9da0f18  /usr/local/lib/python3.12/dist-packages/vllm/models/qwen3_8_flash_next/nvidia/qsa.py' | sha256sum -c - \
+ && echo 'c4ffe3674cafa0ce2dabc39a39f0ddbb4b594bc358ad210ffce9d04383350c7f  /usr/local/lib/python3.12/dist-packages/vllm/models/qwen3_8_flash_next/nvidia/ops/qsa.py' | sha256sum -c -
+COPY root/ /usr/local/lib/python3.12/dist-packages/
+RUN /usr/bin/python3 -m py_compile \
+  ${VLLM_SITE}/vllm/models/qwen3_8_flash_next/common/qsa_fp8.py \
+  ${VLLM_SITE}/vllm/models/qwen3_8_flash_next/common/qsa_fp8_calibration.py \
+  ${VLLM_SITE}/vllm/models/qwen3_8_flash_next/nvidia/qsa.py \
+  ${VLLM_SITE}/vllm/models/qwen3_8_flash_next/nvidia/ops/qsa.py
+LABEL io.whamp.qwen38.base-image="sha256:1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b" \
+      io.whamp.qwen38.qsa-kv-cache="fp8_e4m3_direct_sm86"

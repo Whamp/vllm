@@ -1,0 +1,99 @@
+{
+  "capacity": {
+    "control_max_model_len": 148400,
+    "gain_tokens": 8000,
+    "promoted_max_model_len": 156400
+  },
+  "mechanism": {
+    "baseline_qsa_topk_bytes_per_rank": 201621504,
+    "baseline_registered_bytes_per_rank": 19917943320,
+    "candidate_qsa_topk_bytes_per_rank": 100810752,
+    "candidate_registered_bytes_per_rank": 19817132568,
+    "qsa_topk_bytes_reclaimed_per_rank": 100810752,
+    "registered_bytes_reclaimed_per_rank": 100810752
+  },
+  "one_variable": {
+    "max_num_batched_tokens": {
+      "candidate": 1024,
+      "control": 2048
+    }
+  },
+  "performance": {
+    "candidate_decode_tokens_per_second": {
+      "maximum": 47.8555466414433,
+      "mean": 45.92072370112541,
+      "median": 45.59047515790703,
+      "minimum": 44.71274241615504,
+      "population_cv_percent": 2.379106812808478
+    },
+    "candidate_prefill_tokens_per_second": {
+      "maximum": 1552.987415839929,
+      "mean": 1551.279016855502,
+      "median": 1550.9375652803303,
+      "minimum": 1549.9120694462467,
+      "population_cv_percent": 0.08241649174515468
+    },
+    "concurrency_2_aggregate_tokens_per_second": 54.72053372265296,
+    "concurrency_2_mean_per_stream_tokens_per_second": 35.28920154126464,
+    "control_decode_tokens_per_second": {
+      "maximum": 45.082379245978764,
+      "mean": 44.06974034938114,
+      "median": 44.02123339363116,
+      "minimum": 42.76578659275147,
+      "population_cv_percent": 1.7498386622981144
+    },
+    "control_prefill_tokens_per_second": {
+      "maximum": 1638.120414408209,
+      "mean": 1636.6211603203697,
+      "median": 1636.0514563856275,
+      "minimum": 1635.6916101672723,
+      "population_cv_percent": 0.0653946716004593
+    },
+    "decode_fraction": 0.9971051319519473,
+    "prefill_fraction": 0.9470084380977968,
+    "promoted_decode_tokens_per_second": {
+      "maximum": 45.454281524233224,
+      "mean": 43.94216426615774,
+      "median": 43.78707089862364,
+      "minimum": 42.27949619020797,
+      "population_cv_percent": 2.4401222148094734
+    },
+    "promoted_prefill_tokens_per_second": {
+      "maximum": 1555.8993433829075,
+      "mean": 1549.894048792797,
+      "median": 1551.2428302636847,
+      "minimum": 1542.539972731799,
+      "population_cv_percent": 0.3572310036067841
+    }
+  },
+  "production": {
+    "context": 156400,
+    "image_sha256": "0aea30240f3e3d9ffae8526643950e170eb5fa07fc427016a9dd90892afa2aa3",
+    "max_num_batched_tokens": 1024,
+    "max_num_seqs": 2,
+    "model": "qwen3.8-flash-next-intel-autoround-w4a16",
+    "qsa_cache": "bf16",
+    "restart_count": 0,
+    "serving_process_swap_kib": 0
+  },
+  "quality": {
+    "benchlocal_packs": {
+      "instructfollow-15": {
+        "passed": 14,
+        "scenario_count": 15
+      },
+      "toolcall-15": {
+        "passed": 12,
+        "scenario_count": 15
+      }
+    },
+    "benchlocal_passed": 26,
+    "benchlocal_scenarios": 30,
+    "deterministic": "passed",
+    "multimodal": "passed",
+    "niah_answer": "VIOLET ORBIT 9137",
+    "niah_prompt_tokens": 145041,
+    "tool_and_post_tool": "passed"
+  },
+  "schema_version": 1
+}

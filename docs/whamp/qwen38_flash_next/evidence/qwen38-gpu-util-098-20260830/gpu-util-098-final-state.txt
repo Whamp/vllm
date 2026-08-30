@@ -1,0 +1,22 @@
+2026-08-30T01:52:53+00:00
+image=sha256:4b59067e269f313a78f0a698e79261230fb02e3712f42ffd54b3e9ec9be9705a health=healthy restarts=0 restart_policy=unless-stopped gpu_memory_utilization=0.98
+{"id":"qwen3.8-flash-next-intel-autoround-w4a16","max_model_len":262144}
+swap_devices=0
+pid=3922361 vm_swap_kib=0
+pid=3922362 vm_swap_kib=0
+pid=3922363 vm_swap_kib=0
+pid=3922364 vm_swap_kib=0
+pid=3922365 vm_swap_kib=0
+pid=3922366 vm_swap_kib=0
+pid=3922367 vm_swap_kib=0
+pid=3922368 vm_swap_kib=0
+pid=3922369 vm_swap_kib=0
+pid=3922370 vm_swap_kib=0
+pid=3922371 vm_swap_kib=0
+pid=3922372 vm_swap_kib=0
+active
+0, 230.00 W, 23577 MiB, 550 MiB
+1, 230.00 W, 23473 MiB, 654 MiB
+2, 230.00 W, 23473 MiB, 654 MiB
+3, 230.00 W, 23473 MiB, 654 MiB
+inactive

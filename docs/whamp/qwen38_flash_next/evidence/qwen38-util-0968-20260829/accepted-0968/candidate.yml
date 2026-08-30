@@ -1,0 +1,117 @@
+# Accepted Intel Qwen3.8 QSA-1024 plus runtime-bounded RoPE profile.
+# Materializing 262144 rather than 1048576 rows reclaimed 96 MiB per GPU.
+services:
+  qwen38-flash-next:
+    profiles:
+      - qwen38-flash-next
+    image: vllm/vllm-openai:qwen38-rope-bound-dev@sha256:1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b
+    pull_policy: never
+    container_name: qwen38-util-0968-candidate
+    restart: "no"
+    gpus: all
+    ipc: host
+    cap_add:
+      - SYS_PTRACE
+    mem_limit: 48g
+    memswap_limit: 48g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "30002:8000"
+    volumes:
+      - type: bind
+        source: /mnt/models/huggingface
+        target: /root/.cache/huggingface
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /mnt/models/huggingface
+        target: /mnt/models/huggingface
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/will/inference/runtime/qwen38-intel-autoround/model
+        target: /model
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/will/.cache/vllm/qwen38-flash-next-intel
+        target: /root/.cache/vllm
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/will/.cache/vllm/qwen38-flash-next-intel/triton
+        target: /root/.triton/cache
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /mnt/models/huggingface/hub/models--primitive-ai--Qwen3.8-Flash-Next-PLE-quant/blobs/051f6135eabe2a1ed68f151684a0b05f3295733e
+        target: /usr/local/lib/python3.12/dist-packages/vllm/v1/ple_offload/worker.py
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /mnt/models/huggingface/hub/models--primitive-ai--Qwen3.8-Flash-Next-PLE-quant/blobs/9abe459f1be4174de4aeaaa39a4de8f4d1741e23
+        target: /usr/local/lib/python3.12/dist-packages/vllm/models/qwen3_8_flash_next/nvidia/ple_layer.py
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      HF_HOME: /root/.cache/huggingface
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      PYTORCH_ALLOC_CONF: expandable_segments:True
+      CUDA_DEVICE_ORDER: PCI_BUS_ID
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      VLLM_PLE_CPU_OFFLOAD: "1"
+      VLLM_PLE_OFFLOAD_READY_TIMEOUT: "3600"
+      VLLM_PLE_QUANT_DIR: /root/.cache/huggingface/hub/models--primitive-ai--Qwen3.8-Flash-Next-PLE-quant/snapshots/da8b39586016d8325ac619be28ad77d6296625ec/ples_nvfp4
+      VLLM_GDN_DECODE_KERNEL: triton
+    labels:
+      io.whamp.qwen38.image-digest: sha256:1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b
+      io.whamp.qwen38.rope-cache-rows: "262144"
+      io.whamp.qwen38.rope-source-rows: "1048576"
+      io.whamp.qwen38.gpu-memory-utilization: "0.968"
+      io.whamp.qwen38.model-revision: 861536dda5bcb208376fc4cd879b2bf76bece9fe
+      io.whamp.qwen38.model-view-config-sha256: 932cbf4d5dc50efa395db095ea3664fd6ef7672886332b2d0307cd9aa28ac9cf
+      io.whamp.qwen38.model-view-index-sha256: e8893bbecf33dc7f9cdc27f927adbb3886d41531756e8e46cf9cee85499a1201
+      io.whamp.qwen38.ple-revision: da8b39586016d8325ac619be28ad77d6296625ec
+      io.whamp.qwen38.ple-worker-sha256: e85a2d599a422b0b2451f7ad74e408688f53e59e3a77ba17afb4fdffd0bcebad
+      io.whamp.qwen38.ple-layer-sha256: 1cb682b53f024b2060c5fe205fa0f6eca7c8df2cfbca3d21bea94d832b4db16a
+      io.whamp.qwen38.ple-format: group16_e2m1_e4m3scale_lownibblefirst
+      io.whamp.qwen38.mtp: disabled
+      io.whamp.qwen38.qsa-topk-buffer-mbt: "1024"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl --fail --silent --show-error http://127.0.0.1:8000/health >/dev/null
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60m
+    command:
+      - /model
+      - --served-model-name=qwen3.8-flash-next-intel-util-0968
+      - --host=0.0.0.0
+      - --port=8000
+      - --tensor-parallel-size=4
+      - --distributed-executor-backend=mp
+      - --enable-expert-parallel
+      - --max-model-len=-1
+      - --max-num-seqs=2
+      - --max-num-batched-tokens=1024
+      - --gpu-memory-utilization=0.968
+      - --mamba-cache-mode=align
+      - --enable-prefix-caching
+      - --enable-auto-tool-choice
+      - --tool-call-parser=qwen3_coder
+      - --reasoning-parser=qwen3
+      - --disable-custom-all-reduce
+      - --compilation-config
+      - '{"mode":0,"cudagraph_mode":"FULL_DECODE_ONLY"}'

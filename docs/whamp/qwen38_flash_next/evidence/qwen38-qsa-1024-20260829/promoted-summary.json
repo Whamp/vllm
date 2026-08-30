@@ -1,0 +1,13 @@
+{
+  "concurrency_2_aggregate_tps": 54.72053372265296,
+  "control_context": 148400,
+  "control_decode_tps": 44.06974034938114,
+  "control_prefill_tps": 1636.6211603203697,
+  "decode_fraction": 0.9971051319519473,
+  "niah_answer": "VIOLET ORBIT 9137",
+  "niah_prompt_tokens": 145041,
+  "prefill_fraction": 0.9470084380977968,
+  "promoted_context": 156400,
+  "promoted_decode_tps": 43.94216426615774,
+  "promoted_prefill_tps": 1549.894048792797
+}

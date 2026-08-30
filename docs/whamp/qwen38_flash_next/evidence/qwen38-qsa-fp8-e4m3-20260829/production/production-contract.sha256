@@ -1,0 +1,4 @@
+1ac593ab16a3a0c13732bee24311d7dc05860dfb93e6736bb1577970ccb9f83f  /home/will/inference/runtime/qwen38-qsa-fp8-candidate/production.yml
+46829951e4ff84873dbb4a138a96f4cc97e0af97db797122eac0300222d5c873  /home/will/inference/runtime/qwen38-qsa-fp8-candidate/restore-bf16.sh
+a8998e67324e8d465675bfbda77a513475cb89bd15bdbf4cb0f789eb933af0d8  /home/will/inference/runtime/qwen38-qsa-fp8-candidate/restore-fp8.sh
+554d68aa917bdcac3ec7e5c14a8ca1421182d0b899da30b6c54501b72aefdcf3  /home/will/inference/runtime/qwen38-qsa-fp8-candidate/qsa-fp8-scales.json

@@ -1,0 +1,28 @@
+........................................................................ [ 71%]
+.............................                                            [100%]
+=============================== warnings summary ===============================
+../../../../.cache/uv/archive-v0/qfHzRTatYR0LHbKvvDBMV/lib/python3.12/site-packages/torch/jit/_script.py:365: 14 warnings
+  /home/will/.cache/uv/archive-v0/qfHzRTatYR0LHbKvvDBMV/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================ Hypothesis Statistics =============================
+tests/model_executor/test_qwen3_vl_mrope.py::test_qwen3_vl_mrope_positions_stay_within_sequence_length:
+
+  - during reuse phase (0.00 seconds):
+    - Typical runtimes: ~ 1ms, of which < 1ms in data generation
+    - 1 passing, 0 failing, and 0 invalid test cases
+
+  - during generate phase (0.11 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 149 passing, 0 failing, and 0 invalid test cases
+    - Events:
+      * 53.02%, merge_size=1
+      * 51.68%, modality=video
+      * 48.32%, modality=image
+      * 46.98%, merge_size=2
+
+  - Stopped because settings.max_examples=150
+
+
+101 passed, 14 warnings in 27.32s

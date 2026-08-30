@@ -1,0 +1,109 @@
+{
+  "cases": [
+    {
+      "case": "down-m1",
+      "results": [
+        {
+          "cuda_graph_bitwise_deterministic": true,
+          "metrics": {
+            "cosine": 0.9999970197677612,
+            "max_abs": 0.015625,
+            "normalized_rmse": 0.0024610911680523553
+          },
+          "seed": 8421
+        },
+        {
+          "cuda_graph_bitwise_deterministic": true,
+          "metrics": {
+            "cosine": 0.999996542930603,
+            "max_abs": 0.015625,
+            "normalized_rmse": 0.0026538992211774556
+          },
+          "seed": 8422
+        },
+        {
+          "cuda_graph_bitwise_deterministic": true,
+          "metrics": {
+            "cosine": 0.9999969005584717,
+            "max_abs": 0.015625,
+            "normalized_rmse": 0.0024767701821265904
+          },
+          "seed": 8423
+        }
+      ]
+    },
+    {
+      "case": "down-m2",
+      "results": [
+        {
+          "cuda_graph_bitwise_deterministic": true,
+          "metrics": {
+            "cosine": 0.9999969601631165,
+            "max_abs": 0.015625,
+            "normalized_rmse": 0.002478404083569106
+          },
+          "seed": 8421
+        },
+        {
+          "cuda_graph_bitwise_deterministic": true,
+          "metrics": {
+            "cosine": 0.9999970197677612,
+            "max_abs": 0.015625,
+            "normalized_rmse": 0.0024761345875930316
+          },
+          "seed": 8422
+        },
+        {
+          "cuda_graph_bitwise_deterministic": true,
+          "metrics": {
+            "cosine": 0.9999964237213135,
+            "max_abs": 0.015625,
+            "normalized_rmse": 0.0027203768950725227
+          },
+          "seed": 8423
+        }
+      ]
+    },
+    {
+      "case": "up-m1",
+      "results": [
+        {
+          "cuda_graph_bitwise_deterministic": true,
+          "metrics": {
+            "cosine": 0.9999998807907104,
+            "max_abs": 0.0001220703125,
+            "normalized_rmse": 1.1827982444402286e-06
+          },
+          "seed": 8421
+        },
+        {
+          "cuda_graph_bitwise_deterministic": true,
+          "metrics": {
+            "cosine": 1.0,
+            "max_abs": 6.103515625e-05,
+            "normalized_rmse": 5.974040107598513e-07
+          },
+          "seed": 8422
+        },
+        {
+          "cuda_graph_bitwise_deterministic": true,
+          "metrics": {
+            "cosine": 0.9999999403953552,
+            "max_abs": 0.0,
+            "normalized_rmse": 0.0
+          },
+          "seed": 8423
+        }
+      ]
+    }
+  ],
+  "compute_capability": [
+    8,
+    6
+  ],
+  "extension_sha256": "91118abf4f8b94e1b41dc4226dfd1ef9cf32bd69a610156543c649b57e523381",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "schema_version": 1,
+  "torch_version": "2.13.0+cu130",
+  "unsupported_m2_up_rejected": true
+}

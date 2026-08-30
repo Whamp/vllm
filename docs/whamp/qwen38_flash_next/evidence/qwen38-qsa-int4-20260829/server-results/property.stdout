@@ -1,0 +1,29 @@
+.                                                                        [100%]
+=============================== warnings summary ===============================
+../usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:365: 14 warnings
+  /usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================ Hypothesis Statistics =============================
+test_qsa_int4_properties.py::test_qsa_int4_sparse_attention_tracks_bf16_reference:
+
+  - during generate phase (12.48 seconds):
+    - Typical runtimes: ~ 4-1248 ms, of which ~ 0-11 ms in data generation
+    - 30 passing, 0 failing, and 1 invalid test cases
+    - Events:
+      * 87.10%, has_duplicate=True
+      * 87.10%, has_sentinel=True
+      * 51.61%, requests=2
+      * 51.61%, rows=4
+      * 45.16%, requests=1
+      * 38.71%, rows=1
+      * 9.68%, has_duplicate=False
+      * 9.68%, has_sentinel=False
+      * 6.45%, rows=3
+
+  - Highest target score: 0.156575  (label='normalized_rmse')
+  - Stopped because settings.max_examples=30
+
+
+1 passed, 1 deselected, 14 warnings in 43.21s

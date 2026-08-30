@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "decision": "reject",
+  "capacity": {
+    "bf16_bytes_per_token_per_rank": 13056,
+    "int4_bytes_per_token_per_rank": 3936,
+    "reduction_fraction": 0.6985294117647058,
+    "byte_scaled_context_from_156400": 518790.243902439
+  },
+  "initial_gate": {
+    "result_sha256": "a6a5dadcca61f8dcb1a9b15d3cb3df405d5e7d9078142d7a5722d071d60f2cb6",
+    "m1_reader_ratio": 3.440376748497761,
+    "m256_reader_ratio": 0.9232163031241601,
+    "numerical_gate_passed": true,
+    "cuda_graph_passed": true
+  },
+  "matrix_gate": {
+    "result_sha256": "e3c3e954f012d0ba90bf9e7d1234ba5d7d7c07b71eb8dd2961ede8c6fb21eba2",
+    "m1_reader_ratio": 2.0298619433302885,
+    "m256_reader_ratio": 0.8837229422606507,
+    "numerical_gate_passed": true,
+    "cuda_graph_passed": true
+  },
+  "retile_ratios": {
+    "block32_splits32": 2.0910280430655637,
+    "block64_splits32": 2.0553968141940726,
+    "block64_splits16": 2.0880575033637694,
+    "block128_splits16": 2.0683318268491964
+  },
+  "property_search": {
+    "layout_examples": 150,
+    "matrix_examples": 100,
+    "gpu_semantic_examples": 30,
+    "counterfeits_killed": [
+      "packed_width_after_oracle_repair",
+      "token_stride",
+      "swapped_key_nibbles",
+      "omitted_key_zero_point",
+      "missing_rht_normalization"
+    ],
+    "counterfeit_survivors": []
+  }
+}

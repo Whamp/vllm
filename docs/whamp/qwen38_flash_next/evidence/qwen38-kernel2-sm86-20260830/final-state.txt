@@ -1,0 +1,23 @@
+2026-08-30T13:00:23+00:00
+image=sha256:4b59067e269f313a78f0a698e79261230fb02e3712f42ffd54b3e9ec9be9705a health=healthy restarts=0 restart=unless-stopped
+{"object":"list","data":[{"id":"qwen3.8-flash-next-intel-autoround-w4a16","object":"model","created":1788094823,"owned_by":"vllm","root":"/model","parent":null,"max_model_len":262144,"permission":[{"id":"modelperm-9056626de705ca64","object":"model_permission","created":1788094823,"allow_create_engine":false,"allow_sampling":true,"allow_logprobs":true,"allow_search_indices":false,"allow_view":true,"allow_fine_tuning":false,"organization":"*","group":null,"is_blocking":false}]}]}
+               total        used        free      shared  buff/cache   available
+Mem:            60Gi        20Gi       6.3Gi       2.0Gi        36Gi        39Gi
+Swap:             0B          0B          0B
+4180513 VmSwap:	       0 kB
+4181416 VmSwap:	       0 kB
+4181417 VmSwap:	       0 kB
+4181633 VmSwap:	       0 kB
+4181725 VmSwap:	       0 kB
+4181883 VmSwap:	       0 kB
+4182023 VmSwap:	       0 kB
+4182487 VmSwap:	       0 kB
+4183764 VmSwap:	       0 kB
+4183795 VmSwap:	       0 kB
+4183821 VmSwap:	       0 kB
+4183919 VmSwap:	       0 kB
+0, 230.00 W, 210 MHz, 23077 MiB, 1050 MiB
+1, 230.00 W, 210 MHz, 23013 MiB, 1114 MiB
+2, 230.00 W, 210 MHz, 23013 MiB, 1114 MiB
+3, 230.00 W, 210 MHz, 23013 MiB, 1114 MiB
+active

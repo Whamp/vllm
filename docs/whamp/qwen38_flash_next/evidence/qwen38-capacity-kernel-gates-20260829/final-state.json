@@ -1,0 +1,24 @@
+{
+  "container": "qwen38-flash-next-intel-autoround-vllm",
+  "gpu_safety_service": "active",
+  "health": "healthy",
+  "host_swap_enabled": false,
+  "image": "sha256:1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b",
+  "restart_count": 0,
+  "rollback_timer_active": false,
+  "schema_version": 1,
+  "worker_swap_kib": {
+    "3599722": 0,
+    "3600450": 0,
+    "3600451": 0,
+    "3600629": 0,
+    "3600769": 0,
+    "3601011": 0,
+    "3601161": 0,
+    "3601674": 0,
+    "3603070": 0,
+    "3603104": 0,
+    "3603105": 0,
+    "3603170": 0
+  }
+}

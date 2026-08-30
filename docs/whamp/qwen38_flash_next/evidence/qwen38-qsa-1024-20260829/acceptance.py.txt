@@ -1,0 +1,327 @@
+# SPDX-License-Identifier: Apache-2.0
+
+import argparse
+import base64
+import concurrent.futures
+import json
+import statistics
+import time
+import urllib.request
+from pathlib import Path
+
+
+def request_json(endpoint, path, payload=None, timeout=1800):
+    data = None if payload is None else json.dumps(payload).encode()
+    request = urllib.request.Request(
+        endpoint + path,
+        data=data,
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.load(response)
+
+
+def stream_decode(endpoint, model, run_id, output_tokens=256):
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": (
+                    f"Concurrency nonce {run_id}. Write a detailed technical essay "
+                    "about transactional storage. Continue to the token limit."
+                ),
+            }
+        ],
+        "temperature": 0.6,
+        "top_p": 0.95,
+        "top_k": 20,
+        "max_tokens": output_tokens,
+        "min_tokens": output_tokens,
+        "ignore_eos": True,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+    request = urllib.request.Request(
+        endpoint + "/v1/chat/completions",
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    start = time.perf_counter()
+    first_delta = None
+    usage = None
+    finish_reason = None
+    with urllib.request.urlopen(request, timeout=1800) as response:
+        for raw_line in response:
+            line = raw_line.decode().strip()
+            if not line.startswith("data: "):
+                continue
+            content = line[6:]
+            if content == "[DONE]":
+                break
+            event = json.loads(content)
+            if event.get("usage"):
+                usage = event["usage"]
+            for choice in event.get("choices", []):
+                delta = choice.get("delta", {})
+                if first_delta is None and any(
+                    delta.get(key)
+                    for key in ("content", "reasoning", "reasoning_content")
+                ):
+                    first_delta = time.perf_counter()
+                if choice.get("finish_reason") is not None:
+                    finish_reason = choice["finish_reason"]
+    end = time.perf_counter()
+    if first_delta is None or usage is None:
+        raise RuntimeError("Streaming response omitted timing or usage")
+    return {
+        "wall_seconds": end - start,
+        "ttft_seconds": first_delta - start,
+        "completion_tokens": usage["completion_tokens"],
+        "decode_tokens_per_second": usage["completion_tokens"] / (end - first_delta),
+        "finish_reason": finish_reason,
+    }
+
+
+def deterministic_probe(endpoint, model):
+    response = request_json(
+        endpoint,
+        "/v1/chat/completions",
+        {
+            "model": model,
+            "messages": [{"role": "user", "content": "Reply with exactly PARIS"}],
+            "temperature": 0,
+            "max_tokens": 128,
+        },
+    )
+    message = response["choices"][0]["message"]
+    content = (message.get("content") or "").strip()
+    if content != "PARIS" or response["choices"][0]["finish_reason"] != "stop":
+        raise RuntimeError(f"Deterministic probe failed: {response}")
+    return response
+
+
+def tool_probe(endpoint, model):
+    tool = {
+        "type": "function",
+        "function": {
+            "name": "lookup_temperature",
+            "description": "Return the current temperature for a city.",
+            "parameters": {
+                "type": "object",
+                "properties": {"city": {"type": "string"}},
+                "required": ["city"],
+                "additionalProperties": False,
+            },
+        },
+    }
+    first = request_json(
+        endpoint,
+        "/v1/chat/completions",
+        {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": (
+                        "Use lookup_temperature for Paris. Do not answer from memory."
+                    ),
+                }
+            ],
+            "tools": [tool],
+            "tool_choice": "auto",
+            "temperature": 0,
+            "max_tokens": 256,
+        },
+    )
+    message = first["choices"][0]["message"]
+    calls = message.get("tool_calls") or []
+    if len(calls) != 1 or calls[0]["function"]["name"] != "lookup_temperature":
+        raise RuntimeError(f"Tool selection failed: {first}")
+    assistant = {
+        "role": "assistant",
+        "content": message.get("content"),
+        "tool_calls": calls,
+    }
+    second = request_json(
+        endpoint,
+        "/v1/chat/completions",
+        {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": (
+                        "Use lookup_temperature for Paris. Do not answer from memory."
+                    ),
+                },
+                assistant,
+                {
+                    "role": "tool",
+                    "tool_call_id": calls[0]["id"],
+                    "content": '{"temperature_fahrenheit":72}',
+                },
+            ],
+            "tools": [tool],
+            "temperature": 0,
+            "max_tokens": 256,
+        },
+    )
+    content = (second["choices"][0]["message"].get("content") or "").lower()
+    if "72" not in content or second["choices"][0]["finish_reason"] != "stop":
+        raise RuntimeError(f"Post-tool continuation failed: {second}")
+    return {"tool_call": first, "post_tool": second}
+
+
+def multimodal_probe(endpoint, model):
+    png = base64.b64encode(
+        bytes.fromhex(
+            "89504e470d0a1a0a0000000d4948445200000001000000010802000000907753"
+            "de0000000c4944415408d763f8cfc0000003010100c9fe92ef0000000049454e"
+            "44ae426082"
+        )
+    ).decode()
+    response = request_json(
+        endpoint,
+        "/v1/chat/completions",
+        {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Describe this image briefly."},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{png}"},
+                        },
+                    ],
+                }
+            ],
+            "temperature": 0,
+            "max_tokens": 128,
+        },
+    )
+    message = response["choices"][0]["message"]
+    if not (message.get("content") or "").strip():
+        raise RuntimeError(f"Multimodal response was empty: {response}")
+    return response
+
+
+def make_niah_prompt(line_count, needle):
+    insertion = line_count * 9 // 10
+    lines = ["LONG-CONTEXT-VALIDATION-NONCE-20260829"]
+    for index in range(line_count):
+        if index == insertion:
+            lines.append(f"The unique hidden phrase is {needle}.")
+        lines.append(
+            f"Ledger row {index}: stable systems preserve invariants through recovery."
+        )
+    lines.append("Return only the exact unique hidden phrase, without explanation.")
+    return "\n".join(lines)
+
+
+def niah_probe(endpoint, model, target_tokens=145000):
+    needle = "VIOLET ORBIT 9137"
+    low, high = 1, 20000
+    while low < high:
+        midpoint = (low + high + 1) // 2
+        prompt = make_niah_prompt(midpoint, needle)
+        count = request_json(
+            endpoint,
+            "/tokenize",
+            {"model": model, "prompt": prompt},
+        )["count"]
+        if count <= target_tokens:
+            low = midpoint
+        else:
+            high = midpoint - 1
+    prompt = make_niah_prompt(low, needle)
+    token_count = request_json(
+        endpoint,
+        "/tokenize",
+        {"model": model, "prompt": prompt},
+    )["count"]
+    start = time.perf_counter()
+    response = request_json(
+        endpoint,
+        "/v1/chat/completions",
+        {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0,
+            "max_tokens": 256,
+        },
+    )
+    elapsed = time.perf_counter() - start
+    content = (response["choices"][0]["message"].get("content") or "").strip()
+    if needle not in content:
+        raise RuntimeError(f"NIAH failed at {token_count} tokens: {response}")
+    return {
+        "target_tokens": target_tokens,
+        "tokenized_prompt_tokens": token_count,
+        "api_prompt_tokens": response["usage"]["prompt_tokens"],
+        "wall_seconds": elapsed,
+        "answer": content,
+        "finish_reason": response["choices"][0]["finish_reason"],
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--endpoint", required=True)
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--output", required=True, type=Path)
+    args = parser.parse_args()
+    endpoint = args.endpoint.rstrip("/")
+
+    deterministic = deterministic_probe(endpoint, args.model)
+    tools = tool_probe(endpoint, args.model)
+    multimodal = multimodal_probe(endpoint, args.model)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(stream_decode, endpoint, args.model, f"concurrency-{i}")
+            for i in range(2)
+        ]
+        concurrent_runs = [future.result() for future in futures]
+    aggregate_tokens = sum(run["completion_tokens"] for run in concurrent_runs)
+    aggregate_wall = max(run["wall_seconds"] for run in concurrent_runs)
+    concurrency_summary = {
+        "runs": concurrent_runs,
+        "aggregate_tokens_per_second": aggregate_tokens / aggregate_wall,
+        "mean_per_stream_decode_tokens_per_second": statistics.mean(
+            run["decode_tokens_per_second"] for run in concurrent_runs
+        ),
+    }
+    niah = niah_probe(endpoint, args.model)
+
+    result = {
+        "schema_version": 1,
+        "model": args.model,
+        "deterministic": deterministic,
+        "tools": tools,
+        "multimodal": multimodal,
+        "concurrency_2": concurrency_summary,
+        "niah": niah,
+    }
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = args.output.with_suffix(args.output.suffix + ".tmp")
+    temporary.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    temporary.replace(args.output)
+    print(
+        json.dumps(
+            {
+                "deterministic": "passed",
+                "tools": "passed",
+                "multimodal": "passed",
+                "concurrency_2": concurrency_summary,
+                "niah": niah,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

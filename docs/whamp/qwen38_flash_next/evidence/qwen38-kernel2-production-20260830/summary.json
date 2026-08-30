@@ -1,0 +1,45 @@
+{
+  "benchlocal_quick": {
+    "passed": 28,
+    "total": 30
+  },
+  "decision": "PROMOTE",
+  "exact_final": {
+    "decode_tokens_per_second": 51.856507808121606,
+    "prefill_tokens_per_second": 1538.9901733276731
+  },
+  "metrics": {
+    "c1_decode": {
+      "kernel2_enabled": 53.128436635155175,
+      "prior_image": 49.53305943196776,
+      "prior_image_change_percent": 7.258540547299663,
+      "same_image_change_percent": 7.843601858749993,
+      "same_image_disabled": 49.264338096515964
+    },
+    "c1_prefill": {
+      "kernel2_enabled": 1532.6828622158757,
+      "prior_image": 1533.5390115806445,
+      "prior_image_change_percent": -0.05582833943600374,
+      "same_image_change_percent": -0.2604798864101032,
+      "same_image_disabled": 1536.6856191711731
+    },
+    "c2_decode": {
+      "kernel2_enabled": 81.56715298474063,
+      "prior_image": 81.66293688453288,
+      "prior_image_change_percent": -0.11729176471779734,
+      "same_image_change_percent": 2.691495909878938,
+      "same_image_disabled": 79.42931618828806
+    },
+    "c2_prefill": {
+      "kernel2_enabled": 1556.7421738871856,
+      "prior_image": 1543.6280366295766,
+      "prior_image_change_percent": 0.8495658893474589,
+      "same_image_change_percent": 0.2612719546009501,
+      "same_image_disabled": 1552.6854422833276
+    }
+  },
+  "production_image": "sha256:acff9d8e08096a2265b23e50f5ff0d52a3f1e95ffa91e2fb099346e274a9b735",
+  "schema_version": 1,
+  "source_commit": "42b918e36fa3bdd04e3d7bd7ad4a9c7695b9624f",
+  "stable_extension_sha256": "91118abf4f8b94e1b41dc4226dfd1ef9cf32bd69a610156543c649b57e523381"
+}

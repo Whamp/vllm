@@ -490,6 +490,7 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
       "csrc/libtorch_stable/quantization/gguf_dsv4/q2_k_matvec.cu"
       "csrc/libtorch_stable/quantization/gguf_dsv4/q2_k_grouped.cu"
       "csrc/libtorch_stable/quantization/gguf_dsv4/swiglu_q8.cu")
+      "csrc/libtorch_stable/qwen4_exp_hyperconnection_bf16_sm86.cu")
 
     SET(CUTLASS_ENABLE_HEADERS_ONLY ON CACHE BOOL "Enable only the header library")
 

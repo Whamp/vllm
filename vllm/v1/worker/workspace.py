@@ -140,6 +140,19 @@ class WorkspaceManager:
             for i in range(len(shapes_and_dtypes))
         ]
 
+    def memory_diagnostics(self) -> dict[str, int]:
+        """Return allocated workspace bytes by slot for startup diagnostics."""
+        slot_bytes = {
+            f"workspace_manager_slot_{index}_bytes": self._workspace_size_bytes(
+                workspace
+            )
+            for index, workspace in enumerate(self._current_workspaces)
+        }
+        return {
+            "workspace_manager_total_bytes": sum(slot_bytes.values()),
+            **slot_bytes,
+        }
+
     def _ensure_workspace_size(self, required_bytes: int) -> torch.Tensor:
         """Ensure workspace is allocated and large enough, return current workspace.
 
@@ -230,6 +243,13 @@ def is_workspace_manager_initialized() -> bool:
         True if workspace manager is initialized, False otherwise.
     """
     return _manager is not None
+
+
+def workspace_memory_diagnostics() -> dict[str, int]:
+    """Return global workspace bytes without initializing the manager."""
+    if _manager is None:
+        return {}
+    return _manager.memory_diagnostics()
 
 
 def current_workspace_manager() -> "WorkspaceManager":

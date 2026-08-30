@@ -1,0 +1,35 @@
+..                                                                       [100%]
+=============================== warnings summary ===============================
+../../../../.cache/uv/archive-v0/qfHzRTatYR0LHbKvvDBMV/lib/python3.12/site-packages/torch/jit/_script.py:365: 14 warnings
+  /home/will/.cache/uv/archive-v0/qfHzRTatYR0LHbKvvDBMV/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================ Hypothesis Statistics =============================
+tests/models/qwen4_exp/test_qsa_quantized_cache_properties.py::test_qsa_int4_inline_scale_views_follow_declared_cache_layout:
+
+  - during generate phase (0.16 seconds):
+    - Typical runtimes: ~ 0-1 ms, of which < 1ms in data generation
+    - 150 passing, 0 failing, and 0 invalid test cases
+    - Events:
+      * 60.00%, layout=HND
+      * 40.00%, layout=NHD
+      * 28.00%, head_size=16
+      * 21.33%, head_size=32
+      * 20.00%, head_size=256
+      * 15.33%, head_size=128
+      * 15.33%, head_size=64
+
+  - Stopped because settings.max_examples=150
+
+
+tests/models/qwen4_exp/test_qsa_quantized_cache_properties.py::test_single_rht_matrix_pair_round_trips_generated_rows:
+
+  - during generate phase (0.08 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing, 0 failing, and 0 invalid test cases
+
+  - Stopped because settings.max_examples=100
+
+
+2 passed, 1 deselected, 14 warnings in 1.49s

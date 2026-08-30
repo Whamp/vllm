@@ -1,0 +1,211 @@
+INFO 08-29 04:08:01 [scheduler.py:246] Chunked prefill is enabled with max_num_batched_tokens=2048.
+INFO 08-29 04:08:01 [kernel.py:308] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'])
+INFO 08-29 04:08:01 [__init__.py:689] Selected MarlinFP8ScaledMMLinearKernel for Qwen4ExpHyperconnectionFp8GpuGate
+WARNING 08-29 04:08:08 [marlin_utils_fp8.py:112] Your GPU does not have native support for FP8 computation but FP8 quantization is being used. Weight-only FP8 compression will be used leveraging the Marlin kernel. This may degrade performance for compute-heavy workloads.
+WARNING 08-29 04:08:08 [marlin_utils.py:238] Marlin requires thread-tile padding for some weight shapes in this model. Activations and/or outputs of the padded layers are padded/sliced on every forward; performance may be degraded.
+INFO 08-29 04:08:08 [marlin_utils.py:625] Marlin kernel can achieve better performance for small size_n with experimental use_atomic_add feature. You can consider set environment variable VLLM_MARLIN_USE_ATOMIC_ADD to 1 if possible.
+INFO 08-29 04:08:10 [kernel.py:308] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'])
+{
+  "acceptance": {
+    "maximum_normalized_rmse": 0.04,
+    "minimum_cosine_similarity": 0.999,
+    "minimum_fp8_to_bf16_speed_ratio": 0.9
+  },
+  "compute_capability": [
+    8,
+    6
+  ],
+  "device_name": "NVIDIA GeForce RTX 3090",
+  "matrices": {
+    "merged_down": {
+      "cuda_graph": {
+        "bitwise_equal": true,
+        "finite": true
+      },
+      "kernel": "MarlinFP8ScaledMMLinearKernel",
+      "logical_shape": [
+        336,
+        10240
+      ],
+      "packed_weight_bytes": 3932160,
+      "scale_bytes": 61440,
+      "shapes": {
+        "1": {
+          "bf16_timing": {
+            "median_microseconds": 26.78374481201172,
+            "samples": [
+              26.763263702392578,
+              27.012096405029297,
+              27.2936954498291,
+              26.78374481201172,
+              26.71513557434082
+            ]
+          },
+          "cosine_similarity": 0.9996418952941895,
+          "fp8_marlin_timing": {
+            "median_microseconds": 112.7475814819336,
+            "samples": [
+              112.9697265625,
+              112.7475814819336,
+              112.90726470947266,
+              112.54886627197266,
+              112.6983642578125
+            ]
+          },
+          "maximum_absolute_error": 0.3125,
+          "normalized_rmse": 0.02684791572391987,
+          "speed_ratio": 0.23755493873989203
+        },
+        "2": {
+          "bf16_timing": {
+            "median_microseconds": 26.5513916015625,
+            "samples": [
+              26.54105567932129,
+              26.601472854614258,
+              26.670080184936523,
+              26.5513916015625,
+              26.53388786315918
+            ]
+          },
+          "cosine_similarity": 0.9997106790542603,
+          "fp8_marlin_timing": {
+            "median_microseconds": 138.0228729248047,
+            "samples": [
+              137.84165954589844,
+              138.1703338623047,
+              138.12940979003906,
+              138.0228729248047,
+              137.80889892578125
+            ]
+          },
+          "maximum_absolute_error": 0.37744140625,
+          "normalized_rmse": 0.024087432771921158,
+          "speed_ratio": 0.1923695039736478
+        },
+        "256": {
+          "bf16_timing": {
+            "median_microseconds": 48.936638832092285,
+            "samples": [
+              48.93695831298828,
+              48.92672061920166,
+              48.93695831298828,
+              48.92672061920166,
+              48.936638832092285
+            ]
+          },
+          "cosine_similarity": 0.9996578693389893,
+          "fp8_marlin_timing": {
+            "median_microseconds": 139.48927879333496,
+            "samples": [
+              140.0217628479004,
+              139.55072402954102,
+              139.32543754577637,
+              139.48927879333496,
+              139.42784309387207
+            ]
+          },
+          "maximum_absolute_error": 0.609375,
+          "normalized_rmse": 0.02616024576127529,
+          "speed_ratio": 0.35082724102829443
+        }
+      },
+      "workspace_bytes": 328
+    },
+    "up": {
+      "cuda_graph": {
+        "bitwise_equal": true,
+        "finite": true
+      },
+      "kernel": "MarlinFP8ScaledMMLinearKernel",
+      "logical_shape": [
+        10240,
+        320
+      ],
+      "packed_weight_bytes": 3932160,
+      "scale_bytes": 61440,
+      "shapes": {
+        "1": {
+          "bf16_timing": {
+            "median_microseconds": 22.217727661132812,
+            "samples": [
+              22.334463119506836,
+              22.25049591064453,
+              22.217727661132812,
+              22.08358383178711,
+              22.192127227783203
+            ]
+          },
+          "cosine_similarity": 0.999724268913269,
+          "fp8_marlin_timing": {
+            "median_microseconds": 127.17670440673828,
+            "samples": [
+              127.1377944946289,
+              127.17670440673828,
+              127.1305923461914,
+              127.45721435546875,
+              127.68569946289062
+            ]
+          },
+          "maximum_absolute_error": 0.28125,
+          "normalized_rmse": 0.023488085716962814,
+          "speed_ratio": 0.1746996650430237
+        },
+        "2": {
+          "bf16_timing": {
+            "median_microseconds": 21.990400314331055,
+            "samples": [
+              22.129663467407227,
+              22.008832931518555,
+              21.984256744384766,
+              21.943199157714844,
+              21.990400314331055
+            ]
+          },
+          "cosine_similarity": 0.9996118545532227,
+          "fp8_marlin_timing": {
+            "median_microseconds": 125.6622085571289,
+            "samples": [
+              125.73382568359375,
+              125.6622085571289,
+              126.08614349365234,
+              125.46867370605469,
+              125.47891235351562
+            ]
+          },
+          "maximum_absolute_error": 0.421875,
+          "normalized_rmse": 0.027860844507813454,
+          "speed_ratio": 0.17499613103118203
+        },
+        "256": {
+          "bf16_timing": {
+            "median_microseconds": 34.96959924697876,
+            "samples": [
+              34.96959924697876,
+              34.96959924697876,
+              34.96959924697876,
+              34.949119091033936,
+              35.01055955886841
+            ]
+          },
+          "cosine_similarity": 0.9996606707572937,
+          "fp8_marlin_timing": {
+            "median_microseconds": 127.51775741577148,
+            "samples": [
+              127.51775741577148,
+              127.60064125061035,
+              127.26271629333496,
+              127.6416015625,
+              127.47679710388184
+            ]
+          },
+          "maximum_absolute_error": 0.8125,
+          "normalized_rmse": 0.026051810011267662,
+          "speed_ratio": 0.2742331731333733
+        }
+      },
+      "workspace_bytes": 328
+    }
+  },
+  "performance_gate_passed": false,
+  "schema_version": 1
+}

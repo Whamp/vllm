@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "attempts": [
+    {
+      "format": "E4M3FN typed Triton cache",
+      "image_sha256": "8411b3a36b01b937dcb3f8c1310bf46e66ea86a7ebbc3859a02fc3c3a916829e",
+      "decision": "rejected",
+      "reason": "SM86 Triton compilation rejected fp8e4nv; supported typed FP8 formats were fp8e4b15 and fp8e5"
+    },
+    {
+      "format": "E5M2 typed Triton cache",
+      "image_sha256": "16deb6e671d3bb1e278b6d831eb3a719d7dc0331c55b561389dcea47cf3f9e58",
+      "decision": "rejected",
+      "normalized_rmse": 0.05941018834710121,
+      "cosine_similarity": 0.9982386827468872,
+      "maximum_absolute_error": 0.011962890625,
+      "reason": "normalized RMSE exceeded the preregistered 0.05 bound"
+    },
+    {
+      "format": "E4M3FN integer software decode, two pipeline stages",
+      "image_sha256": "d93b633e49df2e02a823d39da94279175c35d047ad61ce58450e48a979352f74",
+      "decision": "retuned",
+      "required_shared_memory_bytes": 102400,
+      "sm86_shared_memory_limit_bytes": 101376,
+      "reason": "M=256 kernel exceeded the RTX 3090 per-block shared-memory limit by 1024 bytes"
+    },
+    {
+      "format": "E4M3FN integer software decode, one FP8 pipeline stage",
+      "image_sha256": "760f61d10645fbd16381f78823627d94ccb0f979ab4cd475ce00adba784698bf",
+      "decision": "rejected",
+      "result_sha256": "48d1defd5fee5fc693be3dfd5f1caf105705c6e7aedd9b5d55b7e59afca9a0bd",
+      "reason": "numerical, writer, CUDA Graph, and M=1 timing gates passed, but M=256 was 28.46 times slower than BF16"
+    }
+  ]
+}

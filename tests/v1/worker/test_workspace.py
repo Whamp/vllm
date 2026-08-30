@@ -1,14 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+from types import SimpleNamespace
 from typing import cast
 
 import pytest
 import torch
 
+import vllm.v1.worker.gpu_worker as gpu_worker_module
 import vllm.v1.worker.workspace as workspace
 from vllm.config import VllmConfig
-from vllm.v1.worker.gpu_worker import _num_workspace_lanes
+from vllm.v1.worker.gpu_worker import Worker, _num_workspace_lanes
 
 
 class _SpecConfig:
@@ -62,6 +64,45 @@ def test_workspace_lanes_do_not_alias_and_restore_context(monkeypatch) -> None:
     assert target.data_ptr() != draft.data_ptr()
     assert draft.data_ptr() == draft_reused.data_ptr()
     assert target.data_ptr() == target_reused.data_ptr()
+
+
+def test_workspace_memory_diagnostics_reports_each_slot(monkeypatch) -> None:
+    manager = workspace.WorkspaceManager(
+        torch.device("cpu"), num_ubatches=1, num_lanes=2
+    )
+    manager._current_workspaces = [
+        torch.empty((512,), dtype=torch.uint8),
+        torch.empty((256,), dtype=torch.uint8),
+    ]
+    monkeypatch.setattr(workspace, "_manager", manager)
+
+    assert workspace.workspace_memory_diagnostics() == {
+        "workspace_manager_total_bytes": 768,
+        "workspace_manager_slot_0_bytes": 512,
+        "workspace_manager_slot_1_bytes": 256,
+    }
+
+
+def test_worker_memory_diagnostics_merges_workspace_ple_and_stage_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    worker = Worker.__new__(Worker)
+    worker.model_runner = SimpleNamespace(
+        _ple_offload_connector=SimpleNamespace(
+            memory_diagnostics=lambda: {"ple_gpu_output_buffer_bytes": 24}
+        )
+    )
+    monkeypatch.setattr(
+        gpu_worker_module,
+        "workspace_memory_diagnostics",
+        lambda: {"workspace_manager_total_bytes": 16},
+    )
+
+    assert worker._memory_diagnostic_allocations(cudagraph_actual_bytes=32) == {
+        "workspace_manager_total_bytes": 16,
+        "ple_gpu_output_buffer_bytes": 24,
+        "cudagraph_actual_bytes": 32,
+    }
 
 
 def test_workspace_lanes_compose_with_ubatches(monkeypatch) -> None:

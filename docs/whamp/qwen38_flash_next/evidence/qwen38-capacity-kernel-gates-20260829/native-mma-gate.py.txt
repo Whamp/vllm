@@ -1,0 +1,378 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+
+import argparse
+import ctypes
+import json
+import random
+import statistics
+from functools import partial
+from pathlib import Path
+
+import torch
+import torch.nn.functional as F
+from safetensors import safe_open
+
+MAXIMUM_NRMSE = 0.02
+MINIMUM_COSINE = 0.9999
+MINIMUM_SPEED_RATIO = 0.90
+MAXIMUM_ORACLE_ERROR = 0.25
+
+
+class NativeHyperconnectionInt8:
+    def __init__(self, path: Path):
+        self.library = ctypes.CDLL(str(path))
+        pointer = ctypes.c_uint64
+        integer = ctypes.c_int
+        self.decode_op = self.library.qwen4_exp_hyperconnection_int8_mma_sm86
+        self.decode_op.argtypes = [
+            pointer,
+            pointer,
+            pointer,
+            pointer,
+            pointer,
+            pointer,
+            integer,
+            integer,
+            integer,
+            integer,
+            pointer,
+        ]
+        self.decode_op.restype = integer
+
+    @staticmethod
+    def _stream() -> int:
+        return torch.cuda.current_stream().cuda_stream
+
+    def decode_into(
+        self,
+        inputs: torch.Tensor,
+        weight: torch.Tensor,
+        scales: torch.Tensor,
+        group_size: int,
+        activation_codes: torch.Tensor,
+        activation_scales: torch.Tensor,
+        output: torch.Tensor,
+    ) -> torch.Tensor:
+        status = self.decode_op(
+            inputs.data_ptr(),
+            weight.data_ptr(),
+            scales.data_ptr(),
+            activation_codes.data_ptr(),
+            activation_scales.data_ptr(),
+            output.data_ptr(),
+            inputs.shape[0],
+            weight.shape[0],
+            weight.shape[1],
+            group_size,
+            self._stream(),
+        )
+        if status:
+            raise RuntimeError(f"Native hyperconnection MMA launch failed: {status}")
+        return output
+
+    def decode(
+        self,
+        inputs: torch.Tensor,
+        weight: torch.Tensor,
+        scales: torch.Tensor,
+        group_size: int,
+    ) -> torch.Tensor:
+        activation_codes = torch.empty_like(inputs, dtype=torch.int8)
+        activation_scales = torch.empty(
+            (inputs.shape[0], inputs.shape[1] // group_size),
+            dtype=torch.float16,
+            device=inputs.device,
+        )
+        output = torch.empty(
+            (inputs.shape[0], weight.shape[0]),
+            dtype=torch.bfloat16,
+            device=inputs.device,
+        )
+        return self.decode_into(
+            inputs,
+            weight,
+            scales,
+            group_size,
+            activation_codes,
+            activation_scales,
+            output,
+        )
+
+
+def load_weights(model: Path) -> dict[str, torch.Tensor]:
+    index = json.loads((model / "model.safetensors.index.json").read_text())
+    prefix = "model.language_model.layers.0.attn_hyper_connection."
+    names = {
+        "down": prefix + "input_mix_weight_down.weight",
+        "inject": prefix + "block_inject_weight.weight",
+        "up": prefix + "input_mix_weight_up.weight",
+    }
+    shards = {index["weight_map"][name] for name in names.values()}
+    if len(shards) != 1:
+        raise RuntimeError("Layer-0 hyperconnection weights cross source shards")
+    with safe_open(model / next(iter(shards)), framework="pt", device="cpu") as source:
+        loaded = {kind: source.get_tensor(name) for kind, name in names.items()}
+    valid_rows = loaded["down"].shape[0] + loaded["inject"].shape[0]
+    padding_rows = (-valid_rows) % 16
+    merged = torch.cat(
+        (
+            loaded["down"],
+            loaded["inject"],
+            torch.zeros(
+                (padding_rows, loaded["down"].shape[1]),
+                dtype=loaded["down"].dtype,
+            ),
+        )
+    )
+    return {"merged_down": merged, "up": loaded["up"]}
+
+
+def quantize_weight(
+    weight: torch.Tensor,
+    group_size: int,
+    valid_rows: int | None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    rows, columns = weight.shape
+    valid_rows = rows if valid_rows is None else valid_rows
+    grouped = (
+        weight[:valid_rows]
+        .float()
+        .reshape(valid_rows, columns // group_size, group_size)
+    )
+    scales = (grouped.abs().amax(dim=2) / 127).clamp_min(1e-8).to(torch.float16)
+    codes = (
+        (grouped / scales.float()[:, :, None])
+        .round()
+        .clamp(-127, 127)
+        .to(torch.int8)
+        .reshape(valid_rows, columns)
+    )
+    output_codes = torch.zeros((rows, columns), dtype=torch.int8, device=weight.device)
+    output_scales = torch.ones(
+        (rows, columns // group_size), dtype=torch.float16, device=weight.device
+    )
+    output_codes[:valid_rows] = codes
+    output_scales[:valid_rows] = scales
+    return output_codes, output_scales
+
+
+def quantized_reference(
+    inputs: torch.Tensor,
+    weight: torch.Tensor,
+    weight_scales: torch.Tensor,
+    group_size: int,
+) -> torch.Tensor:
+    token_count, columns = inputs.shape
+    groups = columns // group_size
+    grouped_inputs = inputs.float().reshape(token_count, groups, group_size)
+    input_scales = (grouped_inputs.abs().amax(dim=2) / 127).clamp_min(1e-8)
+    input_codes = (
+        (grouped_inputs / input_scales[:, :, None])
+        .round()
+        .clamp(-127, 127)
+        .to(torch.int32)
+    )
+    grouped_weight = weight.to(torch.int32).reshape(weight.shape[0], groups, group_size)
+    integer_dot = torch.einsum(
+        "mgk,ngk->mng", input_codes.float(), grouped_weight.float()
+    )
+    output = torch.sum(
+        integer_dot.float()
+        * input_scales[:, None, :]
+        * weight_scales.float()[None, :, :],
+        dim=2,
+    )
+    return output.to(torch.bfloat16)
+
+
+def metrics(reference: torch.Tensor, candidate: torch.Tensor) -> dict:
+    reference = reference.float().reshape(-1)
+    candidate = candidate.float().reshape(-1)
+    error = candidate - reference
+    return {
+        "normalized_rmse": float(
+            torch.linalg.vector_norm(error) / torch.linalg.vector_norm(reference)
+        ),
+        "cosine_similarity": float(
+            F.cosine_similarity(reference[None], candidate[None])
+        ),
+        "maximum_absolute_error": float(error.abs().amax()),
+    }
+
+
+def time_operation(operation, iterations: int, repeats: int = 5) -> dict:
+    for _ in range(20):
+        operation()
+    torch.accelerator.synchronize()
+    samples = []
+    for _ in range(repeats):
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
+        for _ in range(iterations):
+            operation()
+        end.record()
+        end.synchronize()
+        samples.append(start.elapsed_time(end) * 1000 / iterations)
+    return {"median_microseconds": statistics.median(samples), "samples": samples}
+
+
+def graph_gate(operation) -> dict:
+    for _ in range(3):
+        operation()
+    torch.accelerator.synchronize()
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        output = operation()
+    graph.replay()
+    first = output.clone()
+    graph.replay()
+    second = output.clone()
+    torch.accelerator.synchronize()
+    return {
+        "finite": bool(torch.isfinite(first).all()),
+        "bitwise_equal": bool(torch.equal(first, second)),
+    }
+
+
+def generated_oracle_gate(native: NativeHyperconnectionInt8) -> dict:
+    generator = random.Random(20260829)
+    maximum_error = 0.0
+    cases = 0
+    for group_size in (128, 320):
+        for _ in range(25):
+            token_count = generator.choice((1, 2))
+            group_count = generator.randint(1, 4)
+            output_rows = generator.randint(1, 65)
+            columns = group_size * group_count
+            inputs = torch.randn(
+                (token_count, columns), dtype=torch.bfloat16, device="cuda"
+            )
+            source_weight = torch.randn(
+                (output_rows, columns), dtype=torch.bfloat16, device="cuda"
+            )
+            weight, scales = quantize_weight(source_weight, group_size, None)
+            expected = quantized_reference(inputs, weight, scales, group_size)
+            actual = native.decode(inputs, weight, scales, group_size)
+            maximum_error = max(
+                maximum_error,
+                float((actual.float() - expected.float()).abs().amax()),
+            )
+            cases += 1
+    return {
+        "case_count": cases,
+        "maximum_absolute_error": maximum_error,
+        "passed": maximum_error <= MAXIMUM_ORACLE_ERROR,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--library", type=Path, required=True)
+    parser.add_argument("--model", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    if torch.cuda.get_device_capability() != (8, 6):
+        raise RuntimeError("Native hyperconnection gate requires SM86")
+    native = NativeHyperconnectionInt8(args.library)
+    torch.manual_seed(20260829)
+    oracle = generated_oracle_gate(native)
+    results = {}
+    for name, source_cpu in load_weights(args.model).items():
+        source = source_cpu.cuda()
+        group_size = 128 if name == "merged_down" else source.shape[1]
+        valid_rows = 324 if name == "merged_down" else None
+        codes, scales = quantize_weight(source, group_size, valid_rows)
+        matrix_result = {
+            "shape": list(source.shape),
+            "group_size": group_size,
+            "storage_bytes": codes.nbytes + scales.nbytes,
+            "bf16_bytes": source.nbytes,
+            "token_counts": {},
+        }
+        for token_count in (1, 2, 256):
+            inputs = torch.randn(
+                (token_count, source.shape[1]),
+                dtype=torch.bfloat16,
+                device="cuda",
+            )
+            reference = F.linear(inputs, source)
+            activation_codes = torch.empty_like(inputs, dtype=torch.int8)
+            activation_scales = torch.empty(
+                (token_count, inputs.shape[1] // group_size),
+                dtype=torch.float16,
+                device=inputs.device,
+            )
+            output = torch.empty(
+                (token_count, codes.shape[0]),
+                dtype=torch.bfloat16,
+                device=inputs.device,
+            )
+            operation = partial(
+                native.decode_into,
+                inputs,
+                codes,
+                scales,
+                group_size,
+                activation_codes,
+                activation_scales,
+                output,
+            )
+            candidate = operation()
+            result = metrics(reference, candidate)
+            iterations = 1000 if token_count <= 2 else 100
+            bf16_timing = time_operation(
+                lambda inputs=inputs, source=source: F.linear(inputs, source),
+                iterations,
+            )
+            candidate_timing = time_operation(operation, iterations)
+            result.update(
+                {
+                    "bf16_timing": bf16_timing,
+                    "candidate_timing": candidate_timing,
+                    "speed_ratio": bf16_timing["median_microseconds"]
+                    / candidate_timing["median_microseconds"],
+                }
+            )
+            if token_count <= 2:
+                result["cuda_graph"] = graph_gate(operation)
+            matrix_result["token_counts"][str(token_count)] = result
+        results[name] = matrix_result
+    cases = [
+        case for matrix in results.values() for case in matrix["token_counts"].values()
+    ]
+    report = {
+        "schema_version": 1,
+        "device": torch.cuda.get_device_name(),
+        "compute_capability": list(torch.cuda.get_device_capability()),
+        "generated_oracle": oracle,
+        "matrices": results,
+        "numerical_passed": oracle["passed"]
+        and all(
+            case["normalized_rmse"] <= MAXIMUM_NRMSE
+            and case["cosine_similarity"] >= MINIMUM_COSINE
+            for case in cases
+        ),
+        "performance_passed": all(
+            case["speed_ratio"] >= MINIMUM_SPEED_RATIO for case in cases
+        ),
+        "graph_passed": all(
+            all(
+                case.get("cuda_graph", {"finite": True, "bitwise_equal": True}).values()
+            )
+            for case in cases
+        ),
+    }
+    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    summary = {
+        key: report[key]
+        for key in ("numerical_passed", "performance_passed", "graph_passed")
+    }
+    print(json.dumps(summary, sort_keys=True))
+    if not all(summary.values()):
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

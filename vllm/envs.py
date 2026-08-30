@@ -91,6 +91,7 @@ if TYPE_CHECKING:
     VLLM_MAIN_CUDA_VERSION: str = "13.0"
     VLLM_FLOAT32_MATMUL_PRECISION: Literal["highest", "high", "medium"] = "highest"
     VLLM_BATCH_INVARIANT: bool = False
+    VLLM_QWEN4_EXP_HYPERCONNECTION_BF16_SM86: bool = False
     VLLM_TRITON_USE_TD: bool | None = None
     VLLM_GPU_SYNC_CHECK: Literal["warn", "error"] | None = None
     MAX_JOBS: str | None = None
@@ -324,7 +325,12 @@ if TYPE_CHECKING:
     VLLM_MULTI_STREAM_GEMM_TOKEN_THRESHOLD: int = 1024
     VLLM_COMPILE_CACHE_SAVE_FORMAT: Literal["binary", "unpacked"] = "binary"
     VLLM_USE_V2_MODEL_RUNNER: bool | None = None
+    VLLM_PLE_CPU_OFFLOAD: bool = False
+    VLLM_PLE_OFFLOAD_READY_TIMEOUT: float = 600.0
+    VLLM_PLE_NVFP4_SIDECAR_DIR: str | None = None
+    VLLM_PLE_NVFP4_SIDECAR_META_SHA256: str | None = None
     VLLM_LOG_MODEL_INSPECTION: bool = False
+    VLLM_MODEL_MEMORY_REPORT_DIR: str | None = None
     VLLM_DEBUG_MFU_METRICS: bool = False
     VLLM_WEIGHT_OFFLOADING_DISABLE_PIN_MEMORY: bool = False
     VLLM_WEIGHT_OFFLOADING_DISABLE_UVA: bool = False
@@ -647,6 +653,10 @@ environment_variables: dict[str, Callable[[], Any]] = {
     "VLLM_BATCH_INVARIANT": lambda: bool(int(os.getenv("VLLM_BATCH_INVARIANT", "0"))),
     "VLLM_REPLICATE_EMBED": lambda: (
         os.getenv("VLLM_REPLICATE_EMBED", "0").strip().lower() in ("1", "true")
+    ),
+    # Use the exact-shape native BF16 hyperconnection GEMM on NVIDIA SM86.
+    "VLLM_QWEN4_EXP_HYPERCONNECTION_BF16_SM86": lambda: bool(
+        int(os.getenv("VLLM_QWEN4_EXP_HYPERCONNECTION_BF16_SM86", "0"))
     ),
     # Use tensor descriptors for Q/K/V loads and output stores in the
     # Triton unified-attention kernel.  Enables HW 2D block reads on
@@ -2349,12 +2359,29 @@ environment_variables: dict[str, Callable[[], Any]] = {
     "VLLM_USE_V2_MODEL_RUNNER": lambda: maybe_convert_bool(
         os.getenv("VLLM_USE_V2_MODEL_RUNNER", None)
     ),
+    # Run n-gram PLE lookup in a dedicated CPU offload worker. The initial
+    # implementation supports ModelRunner V1 and single-node TP only.
+    "VLLM_PLE_CPU_OFFLOAD": lambda: (
+        os.getenv("VLLM_PLE_CPU_OFFLOAD", "False").lower() in ("true", "1")
+    ),
+    # Timeout for PLE weight loading and TP worker registration.
+    "VLLM_PLE_OFFLOAD_READY_TIMEOUT": lambda: float(
+        os.getenv("VLLM_PLE_OFFLOAD_READY_TIMEOUT", "600")
+    ),
+    # Immutable NVFP4 PLE sidecar directory used by the CPU offload worker.
+    "VLLM_PLE_NVFP4_SIDECAR_DIR": lambda: os.getenv("VLLM_PLE_NVFP4_SIDECAR_DIR"),
+    # Required SHA-256 of the sidecar META.json when a sidecar is configured.
+    "VLLM_PLE_NVFP4_SIDECAR_META_SHA256": lambda: os.getenv(
+        "VLLM_PLE_NVFP4_SIDECAR_META_SHA256"
+    ),
     # Log model inspection after loading.
     # If enabled, logs a transformers-style hierarchical view of the model
     # with quantization methods and attention backends.
     "VLLM_LOG_MODEL_INSPECTION": lambda: bool(
         int(os.getenv("VLLM_LOG_MODEL_INSPECTION", "0"))
     ),
+    # Write storage-deduplicated model memory diagnostics at loader boundaries.
+    "VLLM_MODEL_MEMORY_REPORT_DIR": lambda: os.getenv("VLLM_MODEL_MEMORY_REPORT_DIR"),
     # Debug logging for --enable-mfu-metrics
     "VLLM_DEBUG_MFU_METRICS": lambda: bool(
         int(os.getenv("VLLM_DEBUG_MFU_METRICS", "0"))
@@ -2573,6 +2600,7 @@ def compile_factors() -> dict[str, object]:
         "VLLM_USE_MODELSCOPE",
         "VLLM_RINGBUFFER_WARNING_INTERVAL",
         "VLLM_DEBUG_DUMP_PATH",
+        "VLLM_MODEL_MEMORY_REPORT_DIR",
         "VLLM_PORT",
         "VLLM_CACHE_ROOT",
         # Runtime memory-plan persistence; does not affect compiled graphs.

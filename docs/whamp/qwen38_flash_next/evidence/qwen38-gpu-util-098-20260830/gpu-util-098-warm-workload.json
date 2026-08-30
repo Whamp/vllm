@@ -1,0 +1,50 @@
+[
+  [
+    {
+      "completion_tokens": 256,
+      "decode_tokens_per_second": 39.27653180950352,
+      "finish_reason": "length",
+      "ttft_seconds": 0.4921284602023661,
+      "wall_seconds": 7.010015559848398
+    },
+    {
+      "completion_tokens": 256,
+      "decode_tokens_per_second": 38.124377228795225,
+      "finish_reason": "length",
+      "ttft_seconds": 0.2574404291808605,
+      "wall_seconds": 6.972304214723408
+    }
+  ],
+  [
+    {
+      "completion_tokens": 256,
+      "decode_tokens_per_second": 38.714748260308895,
+      "finish_reason": "length",
+      "ttft_seconds": 0.2417813530191779,
+      "wall_seconds": 6.854248474817723
+    },
+    {
+      "completion_tokens": 256,
+      "decode_tokens_per_second": 39.84821581367192,
+      "finish_reason": "length",
+      "ttft_seconds": 0.46508352225646377,
+      "wall_seconds": 6.889461496844888
+    }
+  ],
+  [
+    {
+      "completion_tokens": 256,
+      "decode_tokens_per_second": 42.48299990766755,
+      "finish_reason": "length",
+      "ttft_seconds": 0.21678997110575438,
+      "wall_seconds": 6.242729771882296
+    },
+    {
+      "completion_tokens": 256,
+      "decode_tokens_per_second": 43.778234951870864,
+      "finish_reason": "length",
+      "ttft_seconds": 0.4383291220292449,
+      "wall_seconds": 6.285983790643513
+    }
+  ]
+]

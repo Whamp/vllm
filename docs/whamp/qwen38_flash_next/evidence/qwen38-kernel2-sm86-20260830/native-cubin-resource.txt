@@ -1,0 +1,64 @@
+a8cf2795bbf3e89728ba80ddab474a2ffeaeb22403036569ed81216579b3298e  /artifact/kernel.so
+ELF
+ELF file    1: qwen4_exp_hyperconnection_bf16_sm86.sm_86.cubin
+RESOURCE_USAGE
+
+Fatbin elf code:
+================
+arch = sm_86
+code version = [1,8]
+host = linux
+compile_size = 64bit
+identifier = /work/qwen4_exp_hyperconnection_bf16_sm86.cu
+
+Resource usage:
+ Common:
+  GLOBAL:28 CONSTANT[4]:224
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi8ELi256EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:48 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi8ELi128EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:48 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi8ELi64EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:48 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi8ELi32EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:48 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi4ELi256EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:44 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi4ELi128EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:44 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi4ELi64EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:44 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi4ELi32EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:44 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi1ELi256EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:33 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi1ELi128EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:33 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi1ELi64EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:33 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi2ELi1ELi32EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:33 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi8ELi256EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:40 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi8ELi128EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:40 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi8ELi64EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:40 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi8ELi32EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:40 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi4ELi256EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:40 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi4ELi128EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:40 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi4ELi64EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:40 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi4ELi32EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:40 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi1ELi256EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:38 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi1ELi128EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:38 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi1ELi64EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:38 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0
+ Function _ZN71_GLOBAL__N__24a692af_38_qwen4_exp_hyperconnection_bf16_sm86_cu_2212db0e37qwen4_exp_hyperconnection_bf16_kernelILi1ELi1ELi32EEEvPK13__nv_bfloat16S3_PS1_ii:
+  REG:38 STACK:0 SHARED:512 LOCAL:0 CONSTANT[0]:384 TEXTURE:0 SURFACE:0 SAMPLER:0

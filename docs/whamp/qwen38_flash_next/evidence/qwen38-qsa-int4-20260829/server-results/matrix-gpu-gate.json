@@ -1,0 +1,133 @@
+{
+  "acceptance": {
+    "maximum_int4_to_bf16_reader_time_ratio": 1.25,
+    "maximum_normalized_rmse": 0.18,
+    "minimum_cosine_similarity": 0.98
+  },
+  "compute_capability": [
+    8,
+    6
+  ],
+  "cuda_graph": {
+    "bitwise_equal": true,
+    "finite": true
+  },
+  "device": "NVIDIA GeForce RTX 3090",
+  "numerical_gate_passed": true,
+  "performance": {
+    "m1": {
+      "numerical_passed": true,
+      "output": {
+        "cosine_similarity": 0.9892529249191284,
+        "maximum_absolute_error": 0.01934814453125,
+        "normalized_rmse": 0.14823466539382935
+      },
+      "reader": {
+        "bf16": {
+          "median_microseconds": 137.16479539871216,
+          "samples": [
+            139.32160139083862,
+            136.5504026412964,
+            137.16479539871216,
+            137.21599578857422,
+            136.9088053703308
+          ]
+        },
+        "int4": {
+          "median_microseconds": 278.42559814453125,
+          "samples": [
+            280.3136110305786,
+            278.06079387664795,
+            278.6303997039795,
+            278.0672073364258,
+            278.42559814453125
+          ]
+        },
+        "int4_to_bf16_ratio": 2.0298619433302885,
+        "passed": false
+      },
+      "rows": 1,
+      "writer": {
+        "bf16": {
+          "median_microseconds": 62.4127984046936,
+          "samples": [
+            63.948798179626465,
+            62.4127984046936,
+            62.15680241584778,
+            62.05440163612366,
+            63.3791983127594
+          ]
+        },
+        "int4": {
+          "median_microseconds": 366.4896011352539,
+          "samples": [
+            368.17920207977295,
+            367.5647974014282,
+            366.4896011352539,
+            365.31200408935547,
+            365.7263994216919
+          ]
+        },
+        "int4_to_bf16_ratio": 5.872026419307181
+      }
+    },
+    "m256": {
+      "numerical_passed": true,
+      "output": {
+        "cosine_similarity": 0.9877002239227295,
+        "maximum_absolute_error": 0.0352783203125,
+        "normalized_rmse": 0.1583724170923233
+      },
+      "reader": {
+        "bf16": {
+          "median_microseconds": 575.9488105773926,
+          "samples": [
+            576.0000228881836,
+            575.4367828369141,
+            575.6415843963623,
+            575.9488105773926,
+            576.0032176971436
+          ]
+        },
+        "int4": {
+          "median_microseconds": 508.9791774749756,
+          "samples": [
+            504.9856185913086,
+            505.4975986480713,
+            508.9791774749756,
+            512.8704071044922,
+            522.9055881500244
+          ]
+        },
+        "int4_to_bf16_ratio": 0.8837229422606507,
+        "passed": true
+      },
+      "rows": 256,
+      "writer": {
+        "bf16": {
+          "median_microseconds": 61.902397871017456,
+          "samples": [
+            63.231998682022095,
+            62.0032012462616,
+            61.849600076675415,
+            61.902397871017456,
+            61.849600076675415
+          ]
+        },
+        "int4": {
+          "median_microseconds": 368.4351921081543,
+          "samples": [
+            368.5375928878784,
+            368.2800054550171,
+            368.4351921081543,
+            367.25759506225586,
+            370.79360485076904
+          ]
+        },
+        "int4_to_bf16_ratio": 5.951872702505677
+      }
+    }
+  },
+  "performance_gate_passed": false,
+  "schema_version": 1
+}

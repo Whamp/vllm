@@ -1,0 +1,79 @@
+{
+  "container": "qwen38-qsa-fp8-candidate",
+  "gpu_power_limit_service": "active",
+  "gpus": [
+    {
+      "index": 0,
+      "memory_free_mib": 1374,
+      "memory_used_mib": 22753,
+      "power_limit_w": 230.0
+    },
+    {
+      "index": 1,
+      "memory_free_mib": 1398,
+      "memory_used_mib": 22729,
+      "power_limit_w": 230.0
+    },
+    {
+      "index": 2,
+      "memory_free_mib": 1398,
+      "memory_used_mib": 22729,
+      "power_limit_w": 230.0
+    },
+    {
+      "index": 3,
+      "memory_free_mib": 1398,
+      "memory_used_mib": 22729,
+      "power_limit_w": 230.0
+    }
+  ],
+  "health": "healthy",
+  "image": "sha256:61971a78222e89335d84a7f4d72b0e8842619a4a29564582a58ff328af48abb9",
+  "models": [
+    {
+      "created": 1788041279,
+      "id": "qwen3.8-flash-next-intel-autoround-w4a16",
+      "max_model_len": 262144,
+      "object": "model",
+      "owned_by": "vllm",
+      "parent": null,
+      "permission": [
+        {
+          "allow_create_engine": false,
+          "allow_fine_tuning": false,
+          "allow_logprobs": true,
+          "allow_sampling": true,
+          "allow_search_indices": false,
+          "allow_view": true,
+          "created": 1788041279,
+          "group": null,
+          "id": "modelperm-87480da52970ab70",
+          "is_blocking": false,
+          "object": "model_permission",
+          "organization": "*"
+        }
+      ],
+      "root": "/model"
+    }
+  ],
+  "process_swap_kib": {
+    "3728138": 0,
+    "3729354": 0,
+    "3729355": 0,
+    "3729579": 0,
+    "3729666": 0,
+    "3729830": 0,
+    "3729970": 0,
+    "3730436": 0,
+    "3731692": 0,
+    "3731696": 0,
+    "3731722": 0,
+    "3731852": 0
+  },
+  "restart_count": 0,
+  "restart_policy": "unless-stopped",
+  "schema_version": 1,
+  "status": "running",
+  "swap_devices": "0",
+  "vm_overcommit_memory": 0
+}

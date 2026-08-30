@@ -1,0 +1,212 @@
+{
+  "compute_capability": [
+    8,
+    6
+  ],
+  "device": "NVIDIA GeForce RTX 3090",
+  "generated_oracle": {
+    "case_count": 50,
+    "maximum_absolute_error": 0.5,
+    "passed": false
+  },
+  "graph_passed": true,
+  "matrices": {
+    "merged_down": {
+      "bf16_bytes": 6881280,
+      "group_size": 128,
+      "shape": [
+        336,
+        10240
+      ],
+      "storage_bytes": 3494400,
+      "token_counts": {
+        "1": {
+          "bf16_timing": {
+            "median_microseconds": 26.905567169189453,
+            "samples": [
+              26.829696655273438,
+              26.868736267089844,
+              27.049983978271484,
+              26.905567169189453,
+              27.02956771850586
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 256.8581237792969,
+            "samples": [
+              256.8581237792969,
+              256.8570861816406,
+              256.8765563964844,
+              256.8601379394531,
+              256.8529968261719
+            ]
+          },
+          "cosine_similarity": 0.9999397993087769,
+          "cuda_graph": {
+            "bitwise_equal": true,
+            "finite": true
+          },
+          "maximum_absolute_error": 0.171875,
+          "normalized_rmse": 0.010971941985189915,
+          "speed_ratio": 0.10474874912777853
+        },
+        "2": {
+          "bf16_timing": {
+            "median_microseconds": 27.53433609008789,
+            "samples": [
+              27.53433609008789,
+              27.56505584716797,
+              27.55891227722168,
+              27.380640029907227,
+              27.399168014526367
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 257.6548767089844,
+            "samples": [
+              257.65582275390625,
+              257.6517028808594,
+              257.6548767089844,
+              257.65484619140625,
+              257.6783447265625
+            ]
+          },
+          "cosine_similarity": 0.9999319314956665,
+          "cuda_graph": {
+            "bitwise_equal": true,
+            "finite": true
+          },
+          "maximum_absolute_error": 0.1875,
+          "normalized_rmse": 0.011683708056807518,
+          "speed_ratio": 0.10686518509481709
+        },
+        "256": {
+          "bf16_timing": {
+            "median_microseconds": 48.7116813659668,
+            "samples": [
+              48.752641677856445,
+              48.73216152191162,
+              48.69120121002197,
+              48.7116813659668,
+              48.7011194229126
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 561.3875198364258,
+            "samples": [
+              560.4556655883789,
+              561.0598373413086,
+              561.4905548095703,
+              561.7766571044922,
+              561.3875198364258
+            ]
+          },
+          "cosine_similarity": 0.9999305009841919,
+          "maximum_absolute_error": 0.375,
+          "normalized_rmse": 0.011793198995292187,
+          "speed_ratio": 0.08677015367238687
+        }
+      }
+    },
+    "up": {
+      "bf16_bytes": 6553600,
+      "group_size": 320,
+      "shape": [
+        10240,
+        320
+      ],
+      "storage_bytes": 3297280,
+      "token_counts": {
+        "1": {
+          "bf16_timing": {
+            "median_microseconds": 22.527999877929688,
+            "samples": [
+              22.813631057739258,
+              22.516735076904297,
+              22.46758460998535,
+              22.527999877929688,
+              22.605823516845703
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 21.26540756225586,
+            "samples": [
+              21.345279693603516,
+              21.27667236328125,
+              21.26540756225586,
+              21.2172794342041,
+              21.245952606201172
+            ]
+          },
+          "cosine_similarity": 0.9999185800552368,
+          "cuda_graph": {
+            "bitwise_equal": true,
+            "finite": true
+          },
+          "maximum_absolute_error": 0.3125,
+          "normalized_rmse": 0.012953214347362518,
+          "speed_ratio": 1.059373059838026
+        },
+        "2": {
+          "bf16_timing": {
+            "median_microseconds": 22.7010555267334,
+            "samples": [
+              22.7010555267334,
+              22.69798469543457,
+              22.72675132751465,
+              22.68262481689453,
+              22.736896514892578
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 21.25823974609375,
+            "samples": [
+              21.242944717407227,
+              21.29203224182129,
+              21.25823974609375,
+              21.22444725036621,
+              21.356544494628906
+            ]
+          },
+          "cosine_similarity": 0.999906063079834,
+          "cuda_graph": {
+            "bitwise_equal": true,
+            "finite": true
+          },
+          "maximum_absolute_error": 0.4375,
+          "normalized_rmse": 0.013707325793802738,
+          "speed_ratio": 1.067870896079473
+        },
+        "256": {
+          "bf16_timing": {
+            "median_microseconds": 35.14303922653198,
+            "samples": [
+              35.13312101364136,
+              35.143680572509766,
+              35.14303922653198,
+              35.13344049453735,
+              35.20512104034424
+            ]
+          },
+          "candidate_timing": {
+            "median_microseconds": 255.60064315795898,
+            "samples": [
+              255.2217674255371,
+              255.3036880493164,
+              255.60064315795898,
+              255.95903396606445,
+              256.9728088378906
+            ]
+          },
+          "cosine_similarity": 0.9999027252197266,
+          "maximum_absolute_error": 0.5625,
+          "normalized_rmse": 0.013951456174254417,
+          "speed_ratio": 0.13749198277570018
+        }
+      }
+    }
+  },
+  "numerical_passed": false,
+  "performance_passed": false,
+  "schema_version": 1
+}

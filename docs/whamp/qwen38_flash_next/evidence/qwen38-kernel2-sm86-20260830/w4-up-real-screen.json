@@ -1,0 +1,5289 @@
+{
+  "decision_contract": {
+    "maximum_normalized_rmse": 0.02,
+    "minimum_cosine_similarity": 0.9999,
+    "status": "model_reconstruction_screen_only"
+  },
+  "model_index_sha256": "e8893bbecf33dc7f9cdc27f927adbb3886d41531756e8e46cf9cee85499a1201",
+  "model_index_tensor_count": 222587,
+  "quantization": {
+    "maximum_code": 7,
+    "minimum_code": -8,
+    "scale_dtype": "float16",
+    "weight_codes": "symmetric signed INT4"
+  },
+  "schema_version": 1,
+  "schemes": {
+    "group_32": {
+      "cosine_similarity": 0.9937171416470304,
+      "element_count": 317849600,
+      "maximum_absolute_error": 0.5732421875,
+      "maximum_tensor_normalized_rmse": 0.13778061630213642,
+      "minimum_tensor_cosine_similarity": 0.9905959277982775,
+      "normalized_rmse": 0.11237124103377281,
+      "passing_tensor_count": 0,
+      "tensor_count": 97
+    },
+    "group_64": {
+      "cosine_similarity": 0.9913722151371912,
+      "element_count": 317849600,
+      "maximum_absolute_error": 0.5732421875,
+      "maximum_tensor_normalized_rmse": 0.17227299227504014,
+      "minimum_tensor_cosine_similarity": 0.9853979308821934,
+      "normalized_rmse": 0.13197014731282222,
+      "passing_tensor_count": 0,
+      "tensor_count": 97
+    },
+    "per_channel": {
+      "cosine_similarity": 0.9840781952104888,
+      "element_count": 317849600,
+      "maximum_absolute_error": 0.5732421875,
+      "maximum_tensor_normalized_rmse": 0.27592271517892886,
+      "minimum_tensor_cosine_similarity": 0.9632425469698529,
+      "normalized_rmse": 0.18023351081602867,
+      "passing_tensor_count": 0,
+      "tensor_count": 97
+    }
+  },
+  "tensor_metrics": [
+    {
+      "cosine_similarity": 0.9801082269718534,
+      "dot_sum": 49782.21875,
+      "element_count": 3276800,
+      "error_squared_sum": 2034.1195068359375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2578125,
+      "normalized_rmse": 0.20186345716841236,
+      "reconstructed_squared_sum": 51682.0078125,
+      "reference_squared_sum": 49918.4453125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00017-of-00017.safetensors",
+      "tensor_name": "model.language_model.hyper_connection_mixer.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9892905439666497,
+      "dot_sum": 49876.1015625,
+      "element_count": 3276800,
+      "error_squared_sum": 1082.15625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2578125,
+      "normalized_rmse": 0.14723615262837825,
+      "reconstructed_squared_sum": 50918.57421875,
+      "reference_squared_sum": 49918.4453125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00017-of-00017.safetensors",
+      "tensor_name": "model.language_model.hyper_connection_mixer.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9925753643872177,
+      "dot_sum": 49900.65625,
+      "element_count": 3276800,
+      "error_squared_sum": 746.3273315429688,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2578125,
+      "normalized_rmse": 0.12227400788491093,
+      "reconstructed_squared_sum": 50631.9296875,
+      "reference_squared_sum": 49918.4453125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00017-of-00017.safetensors",
+      "tensor_name": "model.language_model.hyper_connection_mixer.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9839047211748879,
+      "dot_sum": 15174.25390625,
+      "element_count": 3276800,
+      "error_squared_sum": 499.53375244140625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.244140625,
+      "normalized_rmse": 0.18121991389960476,
+      "reconstructed_squared_sum": 15637.078125,
+      "reference_squared_sum": 15210.8330078125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00001-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.0.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9922607103800317,
+      "dot_sum": 15203.55859375,
+      "element_count": 3276800,
+      "error_squared_sum": 237.54922485351562,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2353515625,
+      "normalized_rmse": 0.12496842880209207,
+      "reconstructed_squared_sum": 15434.263671875,
+      "reference_squared_sum": 15210.8330078125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00001-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.0.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9944239366677605,
+      "dot_sum": 15211.1328125,
+      "element_count": 3276800,
+      "error_squared_sum": 170.35647583007812,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2353515625,
+      "normalized_rmse": 0.10582854480101551,
+      "reconstructed_squared_sum": 15382.501953125,
+      "reference_squared_sum": 15210.8330078125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00001-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.0.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9801324303884669,
+      "dot_sum": 32830.57421875,
+      "element_count": 3276800,
+      "error_squared_sum": 1341.5955810546875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.53515625,
+      "normalized_rmse": 0.20186094284942616,
+      "reconstructed_squared_sum": 34077.7109375,
+      "reference_squared_sum": 32924.3359375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00001-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.0.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9896770025802759,
+      "dot_sum": 32890.4609375,
+      "element_count": 3276800,
+      "error_squared_sum": 688.966064453125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.46875,
+      "normalized_rmse": 0.14465731615699606,
+      "reconstructed_squared_sum": 33545.62890625,
+      "reference_squared_sum": 32924.3359375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00001-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.0.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9927160778479116,
+      "dot_sum": 32908.7421875,
+      "element_count": 3276800,
+      "error_squared_sum": 483.96795654296875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.453125,
+      "normalized_rmse": 0.12124107874720262,
+      "reconstructed_squared_sum": 33377.625,
+      "reference_squared_sum": 32924.3359375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00001-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.0.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.984158391365307,
+      "dot_sum": 18641.39453125,
+      "element_count": 3276800,
+      "error_squared_sum": 603.422119140625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.17578125,
+      "normalized_rmse": 0.17980909639027423,
+      "reconstructed_squared_sum": 19223.341796875,
+      "reference_squared_sum": 18663.70703125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.1.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9912303045271422,
+      "dot_sum": 18660.61328125,
+      "element_count": 3276800,
+      "error_squared_sum": 330.6588134765625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.17578125,
+      "normalized_rmse": 0.13310399700968067,
+      "reconstructed_squared_sum": 18989.1171875,
+      "reference_squared_sum": 18663.70703125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.1.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9935938727335814,
+      "dot_sum": 18666.76953125,
+      "element_count": 3276800,
+      "error_squared_sum": 240.486083984375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.17578125,
+      "normalized_rmse": 0.11351310958487916,
+      "reconstructed_squared_sum": 18911.353515625,
+      "reference_squared_sum": 18663.70703125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.1.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9813489774421565,
+      "dot_sum": 21624.755859375,
+      "element_count": 3276800,
+      "error_squared_sum": 826.3068237304688,
+      "group_size": -1,
+      "maximum_absolute_error": 0.318359375,
+      "normalized_rmse": 0.19516055946050626,
+      "reconstructed_squared_sum": 22381.966796875,
+      "reference_squared_sum": 21694.87890625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.1.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9900678478721524,
+      "dot_sum": 21674.35546875,
+      "element_count": 3276800,
+      "error_squared_sum": 435.35955810546875,
+      "group_size": 64,
+      "maximum_absolute_error": 0.314453125,
+      "normalized_rmse": 0.1416594093331891,
+      "reconstructed_squared_sum": 22090.484375,
+      "reference_squared_sum": 21694.87890625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.1.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9929464582612696,
+      "dot_sum": 21688.37109375,
+      "element_count": 3276800,
+      "error_squared_sum": 307.9335021972656,
+      "group_size": 32,
+      "maximum_absolute_error": 0.3046875,
+      "normalized_rmse": 0.11913787662816375,
+      "reconstructed_squared_sum": 21991.0,
+      "reference_squared_sum": 21694.87890625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.1.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9821906815920208,
+      "dot_sum": 13618.310546875,
+      "element_count": 3276800,
+      "error_squared_sum": 497.4451599121094,
+      "group_size": -1,
+      "maximum_absolute_error": 0.1640625,
+      "normalized_rmse": 0.19096180700270202,
+      "reconstructed_squared_sum": 14092.974609375,
+      "reference_squared_sum": 13641.1875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.10.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9908892499798,
+      "dot_sum": 13634.9892578125,
+      "element_count": 3276800,
+      "error_squared_sum": 251.28280639648438,
+      "group_size": 64,
+      "maximum_absolute_error": 0.162109375,
+      "normalized_rmse": 0.13572357721773726,
+      "reconstructed_squared_sum": 13880.56640625,
+      "reference_squared_sum": 13641.1875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.10.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9935322823173024,
+      "dot_sum": 13638.78515625,
+      "element_count": 3276800,
+      "error_squared_sum": 177.52432250976562,
+      "group_size": 32,
+      "maximum_absolute_error": 0.16015625,
+      "normalized_rmse": 0.1140782480104056,
+      "reconstructed_squared_sum": 13814.501953125,
+      "reference_squared_sum": 13641.1875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.10.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9862407085071059,
+      "dot_sum": 33833.8125,
+      "element_count": 3276800,
+      "error_squared_sum": 947.7789306640625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.29443359375,
+      "normalized_rmse": 0.16730975810626803,
+      "reconstructed_squared_sum": 34759.33984375,
+      "reference_squared_sum": 33858.25,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.10.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9921481234869894,
+      "dot_sum": 33859.63671875,
+      "element_count": 3276800,
+      "error_squared_sum": 536.3849487304688,
+      "group_size": 64,
+      "maximum_absolute_error": 0.28857421875,
+      "normalized_rmse": 0.1258653064981354,
+      "reconstructed_squared_sum": 34399.09765625,
+      "reference_squared_sum": 33858.25,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.10.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9941146985265427,
+      "dot_sum": 33862.34375,
+      "element_count": 3276800,
+      "error_squared_sum": 400.4832763671875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.28857421875,
+      "normalized_rmse": 0.10875768105689747,
+      "reconstructed_squared_sum": 34268.61328125,
+      "reference_squared_sum": 33858.25,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.10.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9845005671511566,
+      "dot_sum": 25619.072265625,
+      "element_count": 3276800,
+      "error_squared_sum": 810.5778198242188,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2158203125,
+      "normalized_rmse": 0.17778074737538369,
+      "reconstructed_squared_sum": 26403.9921875,
+      "reference_squared_sum": 25646.33203125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.11.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9913012983493661,
+      "dot_sum": 25641.11328125,
+      "element_count": 3276800,
+      "error_squared_sum": 450.22991943359375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.20947265625,
+      "normalized_rmse": 0.13249654257865118,
+      "reconstructed_squared_sum": 26087.78125,
+      "reference_squared_sum": 25646.33203125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.11.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9936238474394172,
+      "dot_sum": 25649.89453125,
+      "element_count": 3276800,
+      "error_squared_sum": 328.6315002441406,
+      "group_size": 32,
+      "maximum_absolute_error": 0.197021484375,
+      "normalized_rmse": 0.11319883686266903,
+      "reconstructed_squared_sum": 25983.75390625,
+      "reference_squared_sum": 25646.33203125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.11.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9844152686194437,
+      "dot_sum": 30860.3125,
+      "element_count": 3276800,
+      "error_squared_sum": 981.8790283203125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2294921875,
+      "normalized_rmse": 0.17824883849924708,
+      "reconstructed_squared_sum": 31800.8984375,
+      "reference_squared_sum": 30903.279296875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.11.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9913238092397472,
+      "dot_sum": 30890.48046875,
+      "element_count": 3276800,
+      "error_squared_sum": 541.5243530273438,
+      "group_size": 64,
+      "maximum_absolute_error": 0.228515625,
+      "normalized_rmse": 0.13237522539885183,
+      "reconstructed_squared_sum": 31420.54296875,
+      "reference_squared_sum": 30903.279296875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.11.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937076929540244,
+      "dot_sum": 30904.501953125,
+      "element_count": 3276800,
+      "error_squared_sum": 391.3017578125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.228515625,
+      "normalized_rmse": 0.11252619039041672,
+      "reconstructed_squared_sum": 31298.36328125,
+      "reference_squared_sum": 30903.279296875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.11.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9828127428378362,
+      "dot_sum": 14802.9521484375,
+      "element_count": 3276800,
+      "error_squared_sum": 521.1126708984375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2421875,
+      "normalized_rmse": 0.18745705516351982,
+      "reconstructed_squared_sum": 15297.732421875,
+      "reference_squared_sum": 14829.552734375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.12.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9911704836085438,
+      "dot_sum": 14825.5537109375,
+      "element_count": 3276800,
+      "error_squared_sum": 264.5282897949219,
+      "group_size": 64,
+      "maximum_absolute_error": 0.240234375,
+      "normalized_rmse": 0.13355865465541147,
+      "reconstructed_squared_sum": 15086.7978515625,
+      "reference_squared_sum": 14829.552734375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.12.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9936496853879508,
+      "dot_sum": 14830.474609375,
+      "element_count": 3276800,
+      "error_squared_sum": 189.3089141845703,
+      "group_size": 32,
+      "maximum_absolute_error": 0.16650390625,
+      "normalized_rmse": 0.11298518626069917,
+      "reconstructed_squared_sum": 15021.57421875,
+      "reference_squared_sum": 14829.552734375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.12.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9854827876018971,
+      "dot_sum": 37747.1171875,
+      "element_count": 3276800,
+      "error_squared_sum": 1117.351806640625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2724609375,
+      "normalized_rmse": 0.17199377036226707,
+      "reconstructed_squared_sum": 38842.3046875,
+      "reference_squared_sum": 37771.5234375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.12.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9919392767391783,
+      "dot_sum": 37775.9609375,
+      "element_count": 3276800,
+      "error_squared_sum": 613.8980102539062,
+      "group_size": 64,
+      "maximum_absolute_error": 0.243896484375,
+      "normalized_rmse": 0.127486988431838,
+      "reconstructed_squared_sum": 38396.91796875,
+      "reference_squared_sum": 37771.5234375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.12.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9940910860207535,
+      "dot_sum": 37781.328125,
+      "element_count": 3276800,
+      "error_squared_sum": 447.87066650390625,
+      "group_size": 32,
+      "maximum_absolute_error": 0.243896484375,
+      "normalized_rmse": 0.10889151966096393,
+      "reconstructed_squared_sum": 38241.734375,
+      "reference_squared_sum": 37771.5234375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.12.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9835106858692487,
+      "dot_sum": 13599.6337890625,
+      "element_count": 3276800,
+      "error_squared_sum": 458.96502685546875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.11865234375,
+      "normalized_rmse": 0.1836300627692713,
+      "reconstructed_squared_sum": 14047.66796875,
+      "reference_squared_sum": 13611.0625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.13.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.991656881886144,
+      "dot_sum": 13612.4609375,
+      "element_count": 3276800,
+      "error_squared_sum": 229.31918334960938,
+      "group_size": 64,
+      "maximum_absolute_error": 0.1171875,
+      "normalized_rmse": 0.12979984658166965,
+      "reconstructed_squared_sum": 13843.8984375,
+      "reference_squared_sum": 13611.0625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.13.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9939607633832152,
+      "dot_sum": 13612.3046875,
+      "element_count": 3276800,
+      "error_squared_sum": 165.02642822265625,
+      "group_size": 32,
+      "maximum_absolute_error": 0.1171875,
+      "normalized_rmse": 0.11011100738109544,
+      "reconstructed_squared_sum": 13779.4794921875,
+      "reference_squared_sum": 13611.0625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.13.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.984854122485022,
+      "dot_sum": 35915.921875,
+      "element_count": 3276800,
+      "error_squared_sum": 1110.0687255859375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.390625,
+      "normalized_rmse": 0.17568951542387606,
+      "reconstructed_squared_sum": 36980.4375,
+      "reference_squared_sum": 35963.1875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.13.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9920624112187122,
+      "dot_sum": 35953.5234375,
+      "element_count": 3276800,
+      "error_squared_sum": 575.5050659179688,
+      "group_size": 64,
+      "maximum_absolute_error": 0.37890625,
+      "normalized_rmse": 0.12650144511749908,
+      "reconstructed_squared_sum": 36521.34375,
+      "reference_squared_sum": 35963.1875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.13.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9941984446157954,
+      "dot_sum": 35969.84375,
+      "element_count": 3276800,
+      "error_squared_sum": 419.337646484375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.35546875,
+      "normalized_rmse": 0.10798236575132356,
+      "reconstructed_squared_sum": 36397.6015625,
+      "reference_squared_sum": 35963.1875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.13.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9803133155876563,
+      "dot_sum": 18649.87890625,
+      "element_count": 3276800,
+      "error_squared_sum": 754.69775390625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.166015625,
+      "normalized_rmse": 0.20094349823340324,
+      "reconstructed_squared_sum": 19364.08984375,
+      "reference_squared_sum": 18690.681640625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.14.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9902141562843318,
+      "dot_sum": 18682.30859375,
+      "element_count": 3276800,
+      "error_squared_sum": 370.2376403808594,
+      "group_size": 64,
+      "maximum_absolute_error": 0.162109375,
+      "normalized_rmse": 0.14074329511378075,
+      "reconstructed_squared_sum": 19044.85546875,
+      "reference_squared_sum": 18690.681640625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.14.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9930862184731061,
+      "dot_sum": 18689.16015625,
+      "element_count": 3276800,
+      "error_squared_sum": 260.28564453125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.154541015625,
+      "normalized_rmse": 0.11800829564129327,
+      "reconstructed_squared_sum": 18948.748046875,
+      "reference_squared_sum": 18690.681640625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.14.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9862494097734488,
+      "dot_sum": 37154.5078125,
+      "element_count": 3276800,
+      "error_squared_sum": 1040.3076171875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.5478515625,
+      "normalized_rmse": 0.16728582507401885,
+      "reconstructed_squared_sum": 38177.37109375,
+      "reference_squared_sum": 37174.359375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.14.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9921839773858043,
+      "dot_sum": 37179.89453125,
+      "element_count": 3276800,
+      "error_squared_sum": 585.8977661132812,
+      "group_size": 64,
+      "maximum_absolute_error": 0.5400390625,
+      "normalized_rmse": 0.12554203800078556,
+      "reconstructed_squared_sum": 37773.6015625,
+      "reference_squared_sum": 37174.359375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.14.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9941617137540868,
+      "dot_sum": 37184.12109375,
+      "element_count": 3276800,
+      "error_squared_sum": 435.8331604003906,
+      "group_size": 32,
+      "maximum_absolute_error": 0.5400390625,
+      "normalized_rmse": 0.10827754209677325,
+      "reconstructed_squared_sum": 37632.015625,
+      "reference_squared_sum": 37174.359375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.14.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9849257241939856,
+      "dot_sum": 30423.814453125,
+      "element_count": 3276800,
+      "error_squared_sum": 935.753662109375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.209716796875,
+      "normalized_rmse": 0.17532973946035518,
+      "reconstructed_squared_sum": 31345.125,
+      "reference_squared_sum": 30440.400390625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.15.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9915346309219095,
+      "dot_sum": 30437.44921875,
+      "element_count": 3276800,
+      "error_squared_sum": 519.7714233398438,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2060546875,
+      "normalized_rmse": 0.1306715428998183,
+      "reconstructed_squared_sum": 30956.39453125,
+      "reference_squared_sum": 30440.400390625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.15.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937543172406903,
+      "dot_sum": 30445.5390625,
+      "element_count": 3276800,
+      "error_squared_sum": 381.78631591796875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2021484375,
+      "normalized_rmse": 0.11199148382856021,
+      "reconstructed_squared_sum": 30834.642578125,
+      "reference_squared_sum": 30440.400390625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.15.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9844138066314875,
+      "dot_sum": 32372.3671875,
+      "element_count": 3276800,
+      "error_squared_sum": 1029.716064453125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.5,
+      "normalized_rmse": 0.1782193016198021,
+      "reconstructed_squared_sum": 33356.88671875,
+      "reference_squared_sum": 32419.626953125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.15.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9913241880479734,
+      "dot_sum": 32413.595703125,
+      "element_count": 3276800,
+      "error_squared_sum": 567.86474609375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.4921875,
+      "normalized_rmse": 0.13234832441825392,
+      "reconstructed_squared_sum": 32977.29296875,
+      "reference_squared_sum": 32419.626953125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.15.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937501675265489,
+      "dot_sum": 32427.5625,
+      "element_count": 3276800,
+      "error_squared_sum": 407.578125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.4921875,
+      "normalized_rmse": 0.11212473430719108,
+      "reconstructed_squared_sum": 32844.765625,
+      "reference_squared_sum": 32419.626953125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00006-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.15.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9824100667903368,
+      "dot_sum": 14087.767578125,
+      "element_count": 3276800,
+      "error_squared_sum": 508.29705810546875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.183349609375,
+      "normalized_rmse": 0.18986584675030146,
+      "reconstructed_squared_sum": 14583.939453125,
+      "reference_squared_sum": 14100.1552734375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.16.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9914143377157417,
+      "dot_sum": 14102.7216796875,
+      "element_count": 3276800,
+      "error_squared_sum": 244.63153076171875,
+      "group_size": 64,
+      "maximum_absolute_error": 0.17333984375,
+      "normalized_rmse": 0.13171773948914822,
+      "reconstructed_squared_sum": 14350.650390625,
+      "reference_squared_sum": 14100.1552734375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.16.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9938292086221175,
+      "dot_sum": 14104.8828125,
+      "element_count": 3276800,
+      "error_squared_sum": 174.88905334472656,
+      "group_size": 32,
+      "maximum_absolute_error": 0.16015625,
+      "normalized_rmse": 0.11137029393552444,
+      "reconstructed_squared_sum": 14285.3720703125,
+      "reference_squared_sum": 14100.1552734375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.16.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9868435256340581,
+      "dot_sum": 36531.1484375,
+      "element_count": 3276800,
+      "error_squared_sum": 977.6597900390625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.5234375,
+      "normalized_rmse": 0.1635258872891969,
+      "reconstructed_squared_sum": 37481.359375,
+      "reference_squared_sum": 36560.71875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.16.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9923704159829049,
+      "dot_sum": 36548.6796875,
+      "element_count": 3276800,
+      "error_squared_sum": 561.4828491210938,
+      "group_size": 64,
+      "maximum_absolute_error": 0.47265625,
+      "normalized_rmse": 0.12392555854803099,
+      "reconstructed_squared_sum": 37100.609375,
+      "reference_squared_sum": 36560.71875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.16.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9942940027428278,
+      "dot_sum": 36554.86328125,
+      "element_count": 3276800,
+      "error_squared_sum": 418.24810791015625,
+      "group_size": 32,
+      "maximum_absolute_error": 0.47265625,
+      "normalized_rmse": 0.1069571026837532,
+      "reconstructed_squared_sum": 36969.703125,
+      "reference_squared_sum": 36560.71875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.16.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9789822726051901,
+      "dot_sum": 13593.7216796875,
+      "element_count": 3276800,
+      "error_squared_sum": 588.854248046875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.185546875,
+      "normalized_rmse": 0.20800298970897682,
+      "reconstructed_squared_sum": 14166.365234375,
+      "reference_squared_sum": 13610.330078125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.17.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9900255715438376,
+      "dot_sum": 13608.259765625,
+      "element_count": 3276800,
+      "error_squared_sum": 274.7816162109375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.131591796875,
+      "normalized_rmse": 0.1420886892265049,
+      "reconstructed_squared_sum": 13881.7333984375,
+      "reference_squared_sum": 13610.330078125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.17.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9929790152702052,
+      "dot_sum": 13611.697265625,
+      "element_count": 3276800,
+      "error_squared_sum": 192.29156494140625,
+      "group_size": 32,
+      "maximum_absolute_error": 0.130859375,
+      "normalized_rmse": 0.11886275388091917,
+      "reconstructed_squared_sum": 13806.2509765625,
+      "reference_squared_sum": 13610.330078125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.17.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9869420002209496,
+      "dot_sum": 39792.375,
+      "element_count": 3276800,
+      "error_squared_sum": 1056.14892578125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.423828125,
+      "normalized_rmse": 0.16287024738225794,
+      "reconstructed_squared_sum": 40829.5703125,
+      "reference_squared_sum": 39814.53515625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.17.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.992383126383685,
+      "dot_sum": 39821.90625,
+      "element_count": 3276800,
+      "error_squared_sum": 610.9556274414062,
+      "group_size": 64,
+      "maximum_absolute_error": 0.40625,
+      "normalized_rmse": 0.12387509766436225,
+      "reconstructed_squared_sum": 40443.03125,
+      "reference_squared_sum": 39814.53515625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.17.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9942349306183101,
+      "dot_sum": 39824.77734375,
+      "element_count": 3276800,
+      "error_squared_sum": 460.6552429199219,
+      "group_size": 32,
+      "maximum_absolute_error": 0.40625,
+      "normalized_rmse": 0.1075640595356806,
+      "reconstructed_squared_sum": 40298.328125,
+      "reference_squared_sum": 39814.53515625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.17.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9820353237427063,
+      "dot_sum": 16480.11328125,
+      "element_count": 3276800,
+      "error_squared_sum": 607.3026123046875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.1708984375,
+      "normalized_rmse": 0.19183897854091653,
+      "reconstructed_squared_sum": 17066.1171875,
+      "reference_squared_sum": 16501.8046875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.18.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.990677123355987,
+      "dot_sum": 16498.15234375,
+      "element_count": 3276800,
+      "error_squared_sum": 311.0893249511719,
+      "group_size": 64,
+      "maximum_absolute_error": 0.1708984375,
+      "normalized_rmse": 0.13730199037983828,
+      "reconstructed_squared_sum": 16806.408203125,
+      "reference_squared_sum": 16501.8046875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.18.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.993311847482886,
+      "dot_sum": 16502.06640625,
+      "element_count": 3276800,
+      "error_squared_sum": 222.00672912597656,
+      "group_size": 32,
+      "maximum_absolute_error": 0.1650390625,
+      "normalized_rmse": 0.11598914520673781,
+      "reconstructed_squared_sum": 16725.302734375,
+      "reference_squared_sum": 16501.8046875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.18.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9871250314130083,
+      "dot_sum": 41632.72265625,
+      "element_count": 3276800,
+      "error_squared_sum": 1090.322998046875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2890625,
+      "normalized_rmse": 0.16178797399700698,
+      "reconstructed_squared_sum": 42703.4140625,
+      "reference_squared_sum": 41654.57421875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.18.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9926095073727083,
+      "dot_sum": 41654.47265625,
+      "element_count": 3276800,
+      "error_squared_sum": 619.709228515625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.287109375,
+      "normalized_rmse": 0.12197269844990484,
+      "reconstructed_squared_sum": 42276.95703125,
+      "reference_squared_sum": 41654.57421875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.18.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9944372798947853,
+      "dot_sum": 41665.03515625,
+      "element_count": 3276800,
+      "error_squared_sum": 464.668701171875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.27734375,
+      "normalized_rmse": 0.10561858880600174,
+      "reconstructed_squared_sum": 42143.0546875,
+      "reference_squared_sum": 41654.57421875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.18.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9837282386398473,
+      "dot_sum": 19920.7734375,
+      "element_count": 3276800,
+      "error_squared_sum": 662.559326171875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.1650390625,
+      "normalized_rmse": 0.18226735441819375,
+      "reconstructed_squared_sum": 20561.515625,
+      "reference_squared_sum": 19943.7578125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.19.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9910211027002881,
+      "dot_sum": 19939.5859375,
+      "element_count": 3276800,
+      "error_squared_sum": 361.58837890625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.16015625,
+      "normalized_rmse": 0.13464918723599545,
+      "reconstructed_squared_sum": 20298.291015625,
+      "reference_squared_sum": 19943.7578125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.19.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9934101499005513,
+      "dot_sum": 19943.70703125,
+      "element_count": 3276800,
+      "error_squared_sum": 264.12255859375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.16015625,
+      "normalized_rmse": 0.11507984069276736,
+      "reconstructed_squared_sum": 20209.12890625,
+      "reference_squared_sum": 19943.7578125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.19.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9845304239292688,
+      "dot_sum": 30220.81640625,
+      "element_count": 3276800,
+      "error_squared_sum": 954.4404907226562,
+      "group_size": -1,
+      "maximum_absolute_error": 0.21875,
+      "normalized_rmse": 0.17763448175894353,
+      "reconstructed_squared_sum": 31150.125,
+      "reference_squared_sum": 30247.8359375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.19.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9912530604766366,
+      "dot_sum": 30248.365234375,
+      "element_count": 3276800,
+      "error_squared_sum": 534.3455200195312,
+      "group_size": 64,
+      "maximum_absolute_error": 0.21875,
+      "normalized_rmse": 0.13291192005886912,
+      "reconstructed_squared_sum": 30785.08984375,
+      "reference_squared_sum": 30247.8359375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.19.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.993626370622939,
+      "dot_sum": 30257.875,
+      "element_count": 3276800,
+      "error_squared_sum": 387.6890869140625,
+      "group_size": 32,
+      "maximum_absolute_error": 0.21875,
+      "normalized_rmse": 0.113212565942046,
+      "reconstructed_squared_sum": 30657.470703125,
+      "reference_squared_sum": 30247.8359375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00007-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.19.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9847241102960669,
+      "dot_sum": 16193.255859375,
+      "element_count": 3276800,
+      "error_squared_sum": 505.09197998046875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.31494140625,
+      "normalized_rmse": 0.17651170837574712,
+      "reconstructed_squared_sum": 16680.7578125,
+      "reference_squared_sum": 16211.5087890625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.2.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9919973185051838,
+      "dot_sum": 16211.0498046875,
+      "element_count": 3276800,
+      "error_squared_sum": 261.6482849121094,
+      "group_size": 64,
+      "maximum_absolute_error": 0.306640625,
+      "normalized_rmse": 0.12704197248914378,
+      "reconstructed_squared_sum": 16473.1953125,
+      "reference_squared_sum": 16211.5087890625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.2.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9941617701825866,
+      "dot_sum": 16216.6669921875,
+      "element_count": 3276800,
+      "error_squared_sum": 189.97227478027344,
+      "group_size": 32,
+      "maximum_absolute_error": 0.234375,
+      "normalized_rmse": 0.10825136804143215,
+      "reconstructed_squared_sum": 16412.912109375,
+      "reference_squared_sum": 16211.5087890625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.2.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9818810277787295,
+      "dot_sum": 28085.1953125,
+      "element_count": 3276800,
+      "error_squared_sum": 1042.161376953125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.38671875,
+      "normalized_rmse": 0.19239174658320832,
+      "reconstructed_squared_sum": 29058.625,
+      "reference_squared_sum": 28155.42578125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.2.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9903669291193059,
+      "dot_sum": 28138.583984375,
+      "element_count": 3276800,
+      "error_squared_sum": 548.028076171875,
+      "group_size": 64,
+      "maximum_absolute_error": 0.380859375,
+      "normalized_rmse": 0.1395148236833399,
+      "reconstructed_squared_sum": 28671.48046875,
+      "reference_squared_sum": 28155.42578125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.2.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9930280832941595,
+      "dot_sum": 28153.462890625,
+      "element_count": 3276800,
+      "error_squared_sum": 394.9612731933594,
+      "group_size": 32,
+      "maximum_absolute_error": 0.380859375,
+      "normalized_rmse": 0.11843940239539406,
+      "reconstructed_squared_sum": 28548.18359375,
+      "reference_squared_sum": 28155.42578125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.2.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9786937394908993,
+      "dot_sum": 15933.5390625,
+      "element_count": 3276800,
+      "error_squared_sum": 699.670654296875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.205078125,
+      "normalized_rmse": 0.20934961710588243,
+      "reconstructed_squared_sum": 16602.80859375,
+      "reference_squared_sum": 15964.279296875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.20.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9895640720587656,
+      "dot_sum": 15957.9443359375,
+      "element_count": 3276800,
+      "error_squared_sum": 337.54449462890625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.205078125,
+      "normalized_rmse": 0.14540885541252632,
+      "reconstructed_squared_sum": 16289.8369140625,
+      "reference_squared_sum": 15964.279296875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.20.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9926437577158462,
+      "dot_sum": 15964.103515625,
+      "element_count": 3276800,
+      "error_squared_sum": 236.6542205810547,
+      "group_size": 32,
+      "maximum_absolute_error": 0.173828125,
+      "normalized_rmse": 0.12175378426151831,
+      "reconstructed_squared_sum": 16201.4140625,
+      "reference_squared_sum": 15964.279296875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.20.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9868118703182462,
+      "dot_sum": 36780.13671875,
+      "element_count": 3276800,
+      "error_squared_sum": 986.9114379882812,
+      "group_size": -1,
+      "maximum_absolute_error": 0.41845703125,
+      "normalized_rmse": 0.16378540112159434,
+      "reconstructed_squared_sum": 37759.83984375,
+      "reference_squared_sum": 36789.83203125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.20.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9923841049590011,
+      "dot_sum": 36792.9140625,
+      "element_count": 3276800,
+      "error_squared_sum": 564.3180541992188,
+      "group_size": 64,
+      "maximum_absolute_error": 0.41552734375,
+      "normalized_rmse": 0.12385058717738462,
+      "reconstructed_squared_sum": 37362.93359375,
+      "reference_squared_sum": 36789.83203125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.20.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9942680994012921,
+      "dot_sum": 36799.71875,
+      "element_count": 3276800,
+      "error_squared_sum": 423.25140380859375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.41552734375,
+      "normalized_rmse": 0.10725938465753333,
+      "reconstructed_squared_sum": 37235.2421875,
+      "reference_squared_sum": 36789.83203125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.20.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.982192901435628,
+      "dot_sum": 16851.51953125,
+      "element_count": 3276800,
+      "error_squared_sum": 614.8829345703125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.140380859375,
+      "normalized_rmse": 0.19082772275166116,
+      "reconstructed_squared_sum": 17433.1171875,
+      "reference_squared_sum": 16885.328125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.21.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.990425650710665,
+      "dot_sum": 16881.16796875,
+      "element_count": 3276800,
+      "error_squared_sum": 327.00927734375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.135986328125,
+      "normalized_rmse": 0.13916348136848597,
+      "reconstructed_squared_sum": 17204.8828125,
+      "reference_squared_sum": 16885.328125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.21.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.993222417358684,
+      "dot_sum": 16885.146484375,
+      "element_count": 3276800,
+      "error_squared_sum": 230.26535034179688,
+      "group_size": 32,
+      "maximum_absolute_error": 0.135986328125,
+      "normalized_rmse": 0.11677759948088139,
+      "reconstructed_squared_sum": 17116.19140625,
+      "reference_squared_sum": 16885.328125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.21.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.985542687764589,
+      "dot_sum": 40578.7890625,
+      "element_count": 3276800,
+      "error_squared_sum": 1195.6231689453125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.24853515625,
+      "normalized_rmse": 0.17155749770147644,
+      "reconstructed_squared_sum": 41732.3046875,
+      "reference_squared_sum": 40623.2734375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.21.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9916698120311702,
+      "dot_sum": 40616.31640625,
+      "element_count": 3276800,
+      "error_squared_sum": 682.3353271484375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.24072265625,
+      "normalized_rmse": 0.12960193043503984,
+      "reconstructed_squared_sum": 41294.4765625,
+      "reference_squared_sum": 40623.2734375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.21.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937725478696738,
+      "dot_sum": 40625.359375,
+      "element_count": 3276800,
+      "error_squared_sum": 507.9654541015625,
+      "group_size": 32,
+      "maximum_absolute_error": 0.24072265625,
+      "normalized_rmse": 0.11182261156241106,
+      "reconstructed_squared_sum": 41138.22265625,
+      "reference_squared_sum": 40623.2734375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.21.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9819510467284658,
+      "dot_sum": 15733.2421875,
+      "element_count": 3276800,
+      "error_squared_sum": 582.0000610351562,
+      "group_size": -1,
+      "maximum_absolute_error": 0.28125,
+      "normalized_rmse": 0.19210369482589945,
+      "reconstructed_squared_sum": 16278.1552734375,
+      "reference_squared_sum": 15770.72265625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.22.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9907988851514429,
+      "dot_sum": 15765.54296875,
+      "element_count": 3276800,
+      "error_squared_sum": 293.2144775390625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2734375,
+      "normalized_rmse": 0.1363536939223548,
+      "reconstructed_squared_sum": 16054.443359375,
+      "reference_squared_sum": 15770.72265625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.22.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9934678385417596,
+      "dot_sum": 15771.240234375,
+      "element_count": 3276800,
+      "error_squared_sum": 207.0984344482422,
+      "group_size": 32,
+      "maximum_absolute_error": 0.263671875,
+      "normalized_rmse": 0.11459419306271885,
+      "reconstructed_squared_sum": 15979.841796875,
+      "reference_squared_sum": 15770.72265625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.22.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9855529927226236,
+      "dot_sum": 34519.890625,
+      "element_count": 3276800,
+      "error_squared_sum": 1016.3123779296875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.255859375,
+      "normalized_rmse": 0.17145778910284817,
+      "reconstructed_squared_sum": 35486.73828125,
+      "reference_squared_sum": 34571.06640625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.22.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9918954872754375,
+      "dot_sum": 34565.20703125,
+      "element_count": 3276800,
+      "error_squared_sum": 565.0621337890625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.255859375,
+      "normalized_rmse": 0.12784734526844274,
+      "reconstructed_squared_sum": 35126.40625,
+      "reference_squared_sum": 34571.06640625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.22.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9939399944226588,
+      "dot_sum": 34574.81640625,
+      "element_count": 3276800,
+      "error_squared_sum": 420.878662109375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.255859375,
+      "normalized_rmse": 0.1103372272305439,
+      "reconstructed_squared_sum": 35001.5,
+      "reference_squared_sum": 34571.06640625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.22.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.980964003412469,
+      "dot_sum": 16932.0625,
+      "element_count": 3276800,
+      "error_squared_sum": 662.2381591796875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2099609375,
+      "normalized_rmse": 0.19762803322261543,
+      "reconstructed_squared_sum": 17571.0,
+      "reference_squared_sum": 16955.75390625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.23.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9898788849357153,
+      "dot_sum": 16953.36328125,
+      "element_count": 3276800,
+      "error_squared_sum": 347.6851501464844,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2099609375,
+      "normalized_rmse": 0.1431971975678138,
+      "reconstructed_squared_sum": 17299.37890625,
+      "reference_squared_sum": 16955.75390625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.23.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9928091909285989,
+      "dot_sum": 16957.66015625,
+      "element_count": 3276800,
+      "error_squared_sum": 245.65029907226562,
+      "group_size": 32,
+      "maximum_absolute_error": 0.1884765625,
+      "normalized_rmse": 0.12036496566424709,
+      "reconstructed_squared_sum": 17206.12890625,
+      "reference_squared_sum": 16955.75390625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.23.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9827915530055598,
+      "dot_sum": 24136.8984375,
+      "element_count": 3276800,
+      "error_squared_sum": 850.5901489257812,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2099609375,
+      "normalized_rmse": 0.18756872447067796,
+      "reconstructed_squared_sum": 24948.279296875,
+      "reference_squared_sum": 24176.837890625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.23.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9904667274253239,
+      "dot_sum": 24171.63671875,
+      "element_count": 3276800,
+      "error_squared_sum": 466.6308898925781,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2041015625,
+      "normalized_rmse": 0.13892710731719335,
+      "reconstructed_squared_sum": 24633.880859375,
+      "reference_squared_sum": 24176.837890625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.23.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9930713650207189,
+      "dot_sum": 24174.30859375,
+      "element_count": 3276800,
+      "error_squared_sum": 337.606201171875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2041015625,
+      "normalized_rmse": 0.11816951643473292,
+      "reconstructed_squared_sum": 24510.248046875,
+      "reference_squared_sum": 24176.837890625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00008-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.23.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9824253145162057,
+      "dot_sum": 16196.15625,
+      "element_count": 3276800,
+      "error_squared_sum": 583.370361328125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2060546875,
+      "normalized_rmse": 0.18962678482961484,
+      "reconstructed_squared_sum": 16752.5078125,
+      "reference_squared_sum": 16223.5166015625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.24.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9906012717355503,
+      "dot_sum": 16221.06640625,
+      "element_count": 3276800,
+      "error_squared_sum": 308.45733642578125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.20361328125,
+      "normalized_rmse": 0.137887549424495,
+      "reconstructed_squared_sum": 16527.837890625,
+      "reference_squared_sum": 16223.5166015625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.24.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9932253736518466,
+      "dot_sum": 16224.8916015625,
+      "element_count": 3276800,
+      "error_squared_sum": 221.22930908203125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.20361328125,
+      "normalized_rmse": 0.11677471949225542,
+      "reconstructed_squared_sum": 16448.375,
+      "reference_squared_sum": 16223.5166015625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.24.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9860293916587662,
+      "dot_sum": 37562.99609375,
+      "element_count": 3276800,
+      "error_squared_sum": 1069.190673828125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.291015625,
+      "normalized_rmse": 0.16864142027484372,
+      "reconstructed_squared_sum": 38602.37890625,
+      "reference_squared_sum": 37594.703125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.24.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9920316807002504,
+      "dot_sum": 37593.3671875,
+      "element_count": 3276800,
+      "error_squared_sum": 604.6952514648438,
+      "group_size": 64,
+      "maximum_absolute_error": 0.28759765625,
+      "normalized_rmse": 0.1268250228586608,
+      "reconstructed_squared_sum": 38198.359375,
+      "reference_squared_sum": 37594.703125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.24.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9941844114959135,
+      "dot_sum": 37604.8359375,
+      "element_count": 3276800,
+      "error_squared_sum": 439.5208740234375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.287109375,
+      "normalized_rmse": 0.10812507532380917,
+      "reconstructed_squared_sum": 38056.32421875,
+      "reference_squared_sum": 37594.703125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.24.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9849974448330491,
+      "dot_sum": 14242.26171875,
+      "element_count": 3276800,
+      "error_squared_sum": 436.4436950683594,
+      "group_size": -1,
+      "maximum_absolute_error": 0.203125,
+      "normalized_rmse": 0.17495018941213739,
+      "reconstructed_squared_sum": 14661.8349609375,
+      "reference_squared_sum": 14259.3388671875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.25.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9916086258465837,
+      "dot_sum": 14258.251953125,
+      "element_count": 3276800,
+      "error_squared_sum": 241.6197052001953,
+      "group_size": 64,
+      "maximum_absolute_error": 0.193359375,
+      "normalized_rmse": 0.13017167105883728,
+      "reconstructed_squared_sum": 14499.4853515625,
+      "reference_squared_sum": 14259.3388671875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.25.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937754494848027,
+      "dot_sum": 14259.193359375,
+      "element_count": 3276800,
+      "error_squared_sum": 178.319091796875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.193359375,
+      "normalized_rmse": 0.11182765728089608,
+      "reconstructed_squared_sum": 14438.2314453125,
+      "reference_squared_sum": 14259.3388671875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.25.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9858944493483699,
+      "dot_sum": 36633.625,
+      "element_count": 3276800,
+      "error_squared_sum": 1052.521240234375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.341796875,
+      "normalized_rmse": 0.16941926819632397,
+      "reconstructed_squared_sum": 37652.48828125,
+      "reference_squared_sum": 36669.5234375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.25.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9917944765993852,
+      "dot_sum": 36669.50390625,
+      "element_count": 3276800,
+      "error_squared_sum": 606.9144287109375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.337890625,
+      "normalized_rmse": 0.12865038739854703,
+      "reconstructed_squared_sum": 37278.7578125,
+      "reference_squared_sum": 36669.5234375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.25.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9939029205041864,
+      "dot_sum": 36677.71484375,
+      "element_count": 3276800,
+      "error_squared_sum": 449.2496337890625,
+      "group_size": 32,
+      "maximum_absolute_error": 0.337890625,
+      "normalized_rmse": 0.11068562786835176,
+      "reconstructed_squared_sum": 37137.38671875,
+      "reference_squared_sum": 36669.5234375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.25.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9811312095494948,
+      "dot_sum": 12417.337890625,
+      "element_count": 3276800,
+      "error_squared_sum": 480.9543762207031,
+      "group_size": -1,
+      "maximum_absolute_error": 0.172119140625,
+      "normalized_rmse": 0.1965554075666944,
+      "reconstructed_squared_sum": 12866.751953125,
+      "reference_squared_sum": 12448.9833984375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.26.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.990570602094805,
+      "dot_sum": 12440.5615234375,
+      "element_count": 3276800,
+      "error_squared_sum": 237.3976593017578,
+      "group_size": 64,
+      "maximum_absolute_error": 0.172119140625,
+      "normalized_rmse": 0.13809287530944894,
+      "reconstructed_squared_sum": 12669.958984375,
+      "reference_squared_sum": 12448.9833984375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.26.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9933723283881681,
+      "dot_sum": 12447.5634765625,
+      "element_count": 3276800,
+      "error_squared_sum": 166.02345275878906,
+      "group_size": 32,
+      "maximum_absolute_error": 0.169189453125,
+      "normalized_rmse": 0.11548292541201238,
+      "reconstructed_squared_sum": 12612.7763671875,
+      "reference_squared_sum": 12448.9833984375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.26.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9862221762207387,
+      "dot_sum": 33577.9765625,
+      "element_count": 3276800,
+      "error_squared_sum": 942.0001831054688,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2998046875,
+      "normalized_rmse": 0.1673963916501869,
+      "reconstructed_squared_sum": 34482.65625,
+      "reference_squared_sum": 33616.98828125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.26.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9921388854636828,
+      "dot_sum": 33612.9140625,
+      "element_count": 3276800,
+      "error_squared_sum": 532.9913330078125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.296875,
+      "normalized_rmse": 0.12591592844897978,
+      "reconstructed_squared_sum": 34143.54296875,
+      "reference_squared_sum": 33616.98828125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.26.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9941241607737381,
+      "dot_sum": 33619.328125,
+      "element_count": 3276800,
+      "error_squared_sum": 397.0645751953125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.296875,
+      "normalized_rmse": 0.10868038540414561,
+      "reconstructed_squared_sum": 34020.2890625,
+      "reference_squared_sum": 33616.98828125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00009-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.26.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9841505815392723,
+      "dot_sum": 24827.259765625,
+      "element_count": 3276800,
+      "error_squared_sum": 803.5938720703125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.21630859375,
+      "normalized_rmse": 0.179786587148474,
+      "reconstructed_squared_sum": 25598.376953125,
+      "reference_squared_sum": 24861.197265625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.27.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.991149137536935,
+      "dot_sum": 24851.830078125,
+      "element_count": 3276800,
+      "error_squared_sum": 444.10595703125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2158203125,
+      "normalized_rmse": 0.13365409807191309,
+      "reconstructed_squared_sum": 25288.12890625,
+      "reference_squared_sum": 24861.197265625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.27.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9935494654336039,
+      "dot_sum": 24861.60546875,
+      "element_count": 3276800,
+      "error_squared_sum": 322.3330993652344,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2158203125,
+      "normalized_rmse": 0.1138653098492946,
+      "reconstructed_squared_sum": 25185.890625,
+      "reference_squared_sum": 24861.197265625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.27.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9844149353617598,
+      "dot_sum": 30993.22265625,
+      "element_count": 3276800,
+      "error_squared_sum": 986.7376708984375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.23486328125,
+      "normalized_rmse": 0.1783255174517082,
+      "reconstructed_squared_sum": 31944.9609375,
+      "reference_squared_sum": 31029.49609375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.27.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9913297583820864,
+      "dot_sum": 31028.8984375,
+      "element_count": 3276800,
+      "error_squared_sum": 544.0185546875,
+      "group_size": 64,
+      "maximum_absolute_error": 0.23486328125,
+      "normalized_rmse": 0.13240960644039024,
+      "reconstructed_squared_sum": 31573.42578125,
+      "reference_squared_sum": 31029.49609375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.27.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937194226484369,
+      "dot_sum": 31031.857421875,
+      "element_count": 3276800,
+      "error_squared_sum": 392.48992919921875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.232666015625,
+      "normalized_rmse": 0.11246746270254275,
+      "reconstructed_squared_sum": 31427.748046875,
+      "reference_squared_sum": 31029.49609375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.27.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9822420477438021,
+      "dot_sum": 14071.328125,
+      "element_count": 3276800,
+      "error_squared_sum": 512.1725463867188,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2470703125,
+      "normalized_rmse": 0.19060878039452406,
+      "reconstructed_squared_sum": 14558.03125,
+      "reference_squared_sum": 14097.123046875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.28.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9909328683430383,
+      "dot_sum": 14090.6884765625,
+      "element_count": 3276800,
+      "error_squared_sum": 258.184326171875,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2470703125,
+      "normalized_rmse": 0.13533174805702042,
+      "reconstructed_squared_sum": 14343.1806640625,
+      "reference_squared_sum": 14097.123046875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.28.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9935152872449693,
+      "dot_sum": 14096.244140625,
+      "element_count": 3276800,
+      "error_squared_sum": 183.74813842773438,
+      "group_size": 32,
+      "maximum_absolute_error": 0.1728515625,
+      "normalized_rmse": 0.11416848253695201,
+      "reconstructed_squared_sum": 14279.9677734375,
+      "reference_squared_sum": 14097.123046875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.28.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9855619773596928,
+      "dot_sum": 37670.984375,
+      "element_count": 3276800,
+      "error_squared_sum": 1108.9014892578125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2734375,
+      "normalized_rmse": 0.17150721735712168,
+      "reconstructed_squared_sum": 38754.12109375,
+      "reference_squared_sum": 37698.85546875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.28.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9918559821672863,
+      "dot_sum": 37699.72265625,
+      "element_count": 3276800,
+      "error_squared_sum": 619.1619873046875,
+      "group_size": 64,
+      "maximum_absolute_error": 0.255859375,
+      "normalized_rmse": 0.12815573924086487,
+      "reconstructed_squared_sum": 38322.2421875,
+      "reference_squared_sum": 37698.85546875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.28.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9940417138084123,
+      "dot_sum": 37710.90625,
+      "element_count": 3276800,
+      "error_squared_sum": 450.9622802734375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.255859375,
+      "normalized_rmse": 0.10937196788266648,
+      "reconstructed_squared_sum": 38176.5390625,
+      "reference_squared_sum": 37698.85546875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.28.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9825927229260663,
+      "dot_sum": 12802.74609375,
+      "element_count": 3276800,
+      "error_squared_sum": 456.83892822265625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.1279296875,
+      "normalized_rmse": 0.18881000061442693,
+      "reconstructed_squared_sum": 13247.8701171875,
+      "reference_squared_sum": 12814.837890625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.29.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9913379178397224,
+      "dot_sum": 12813.560546875,
+      "element_count": 3276800,
+      "error_squared_sum": 224.20413208007812,
+      "group_size": 64,
+      "maximum_absolute_error": 0.125,
+      "normalized_rmse": 0.13227118606641142,
+      "reconstructed_squared_sum": 13037.1630859375,
+      "reference_squared_sum": 12814.837890625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.29.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937852315541001,
+      "dot_sum": 12815.40234375,
+      "element_count": 3276800,
+      "error_squared_sum": 159.96092224121094,
+      "group_size": 32,
+      "maximum_absolute_error": 0.125,
+      "normalized_rmse": 0.11172500720563423,
+      "reconstructed_squared_sum": 12976.7607421875,
+      "reference_squared_sum": 12814.837890625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.29.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9850235336566793,
+      "dot_sum": 36855.84765625,
+      "element_count": 3276800,
+      "error_squared_sum": 1125.72509765625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.380859375,
+      "normalized_rmse": 0.17464586540116386,
+      "reconstructed_squared_sum": 37931.8359375,
+      "reference_squared_sum": 36907.59375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.29.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9921195616274266,
+      "dot_sum": 36907.9453125,
+      "element_count": 3276800,
+      "error_squared_sum": 586.96044921875,
+      "group_size": 64,
+      "maximum_absolute_error": 0.3671875,
+      "normalized_rmse": 0.1261091369203721,
+      "reconstructed_squared_sum": 37496.953125,
+      "reference_squared_sum": 36907.59375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.29.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9942148655434132,
+      "dot_sum": 36914.58203125,
+      "element_count": 3276800,
+      "error_squared_sum": 429.3594970703125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.3671875,
+      "normalized_rmse": 0.10785807650271949,
+      "reconstructed_squared_sum": 37352.5,
+      "reference_squared_sum": 36907.59375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.29.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.983654670580117,
+      "dot_sum": 19235.59765625,
+      "element_count": 3276800,
+      "error_squared_sum": 642.9228515625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.166259765625,
+      "normalized_rmse": 0.18273146264614615,
+      "reconstructed_squared_sum": 19860.66796875,
+      "reference_squared_sum": 19254.498046875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.3.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9916371598000534,
+      "dot_sum": 19253.197265625,
+      "element_count": 3276800,
+      "error_squared_sum": 324.88623046875,
+      "group_size": 64,
+      "maximum_absolute_error": 0.166259765625,
+      "normalized_rmse": 0.12989712887580926,
+      "reconstructed_squared_sum": 19577.982421875,
+      "reference_squared_sum": 19254.498046875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.3.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9939028640096613,
+      "dot_sum": 19256.451171875,
+      "element_count": 3276800,
+      "error_squared_sum": 235.76730346679688,
+      "group_size": 32,
+      "maximum_absolute_error": 0.166259765625,
+      "normalized_rmse": 0.11065618352288513,
+      "reconstructed_squared_sum": 19495.412109375,
+      "reference_squared_sum": 19254.498046875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.3.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9844869430212304,
+      "dot_sum": 33505.2265625,
+      "element_count": 3276800,
+      "error_squared_sum": 1060.5078125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.3359375,
+      "normalized_rmse": 0.17773208167339088,
+      "reconstructed_squared_sum": 34500.30859375,
+      "reference_squared_sum": 33572.38671875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.3.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9913257706813533,
+      "dot_sum": 33551.84765625,
+      "element_count": 3276800,
+      "error_squared_sum": 587.203369140625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.333984375,
+      "normalized_rmse": 0.13225227783981608,
+      "reconstructed_squared_sum": 34120.6953125,
+      "reference_squared_sum": 33572.38671875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.3.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.993668953489331,
+      "dot_sum": 33563.1171875,
+      "element_count": 3276800,
+      "error_squared_sum": 426.5884094238281,
+      "group_size": 32,
+      "maximum_absolute_error": 0.333984375,
+      "normalized_rmse": 0.11272322804105331,
+      "reconstructed_squared_sum": 33982.78125,
+      "reference_squared_sum": 33572.38671875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.3.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9796624842405645,
+      "dot_sum": 18556.36328125,
+      "element_count": 3276800,
+      "error_squared_sum": 775.9471435546875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.18359375,
+      "normalized_rmse": 0.2042039966432209,
+      "reconstructed_squared_sum": 19280.98046875,
+      "reference_squared_sum": 18608.169921875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.30.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9900303029046001,
+      "dot_sum": 18598.767578125,
+      "element_count": 3276800,
+      "error_squared_sum": 375.69964599609375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.166015625,
+      "normalized_rmse": 0.14209165128141946,
+      "reconstructed_squared_sum": 18965.6484375,
+      "reference_squared_sum": 18608.169921875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.30.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9929846403380588,
+      "dot_sum": 18607.06640625,
+      "element_count": 3276800,
+      "error_squared_sum": 263.0424499511719,
+      "group_size": 32,
+      "maximum_absolute_error": 0.162353515625,
+      "normalized_rmse": 0.11889431493292368,
+      "reconstructed_squared_sum": 18869.791015625,
+      "reference_squared_sum": 18608.169921875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.30.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9862459741125778,
+      "dot_sum": 37831.53515625,
+      "element_count": 3276800,
+      "error_squared_sum": 1058.8773193359375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.5732421875,
+      "normalized_rmse": 0.1672104484180044,
+      "reconstructed_squared_sum": 38852.46875,
+      "reference_squared_sum": 37872.05078125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.30.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9921485468621034,
+      "dot_sum": 37869.28125,
+      "element_count": 3276800,
+      "error_squared_sum": 599.1702880859375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.5732421875,
+      "normalized_rmse": 0.12578119693557063,
+      "reconstructed_squared_sum": 38468.203125,
+      "reference_squared_sum": 37872.05078125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.30.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.994153077912379,
+      "dot_sum": 37880.1171875,
+      "element_count": 3276800,
+      "error_squared_sum": 444.55255126953125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.5732421875,
+      "normalized_rmse": 0.10834332058687927,
+      "reconstructed_squared_sum": 38335.16015625,
+      "reference_squared_sum": 37872.05078125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00010-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.30.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9847461276259502,
+      "dot_sum": 30333.3671875,
+      "element_count": 3276800,
+      "error_squared_sum": 944.40380859375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.220947265625,
+      "normalized_rmse": 0.17640547760100625,
+      "reconstructed_squared_sum": 31265.046875,
+      "reference_squared_sum": 30348.24609375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.31.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9914505983334516,
+      "dot_sum": 30347.91796875,
+      "element_count": 3276800,
+      "error_squared_sum": 523.4743041992188,
+      "group_size": 64,
+      "maximum_absolute_error": 0.220947265625,
+      "normalized_rmse": 0.1313351231365817,
+      "reconstructed_squared_sum": 30873.228515625,
+      "reference_squared_sum": 30348.24609375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.31.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.993709269772288,
+      "dot_sum": 30356.248046875,
+      "element_count": 3276800,
+      "error_squared_sum": 383.67999267578125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2177734375,
+      "normalized_rmse": 0.11243920804021555,
+      "reconstructed_squared_sum": 30749.9140625,
+      "reference_squared_sum": 30348.24609375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.31.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9841542424606632,
+      "dot_sum": 32945.1328125,
+      "element_count": 3276800,
+      "error_squared_sum": 1065.7821044921875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.515625,
+      "normalized_rmse": 0.17968807722624697,
+      "reconstructed_squared_sum": 33948.9453125,
+      "reference_squared_sum": 33008.8125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.31.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9912192548874518,
+      "dot_sum": 32994.16015625,
+      "element_count": 3276800,
+      "error_squared_sum": 585.549072265625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.5,
+      "normalized_rmse": 0.13318849092531126,
+      "reconstructed_squared_sum": 33566.40234375,
+      "reference_squared_sum": 33008.8125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.31.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9936914566644971,
+      "dot_sum": 33009.26171875,
+      "element_count": 3276800,
+      "error_squared_sum": 419.01019287109375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.5,
+      "normalized_rmse": 0.1126671590418716,
+      "reconstructed_squared_sum": 33430.171875,
+      "reference_squared_sum": 33008.8125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.31.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9815457810420473,
+      "dot_sum": 13871.33984375,
+      "element_count": 3276800,
+      "error_squared_sum": 525.7105712890625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.183349609375,
+      "normalized_rmse": 0.19457378703057204,
+      "reconstructed_squared_sum": 14382.6083984375,
+      "reference_squared_sum": 13886.0283203125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.32.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9911392356116958,
+      "dot_sum": 13884.642578125,
+      "element_count": 3276800,
+      "error_squared_sum": 248.6063690185547,
+      "group_size": 64,
+      "maximum_absolute_error": 0.1748046875,
+      "normalized_rmse": 0.13380338545513,
+      "reconstructed_squared_sum": 14132.5986328125,
+      "reference_squared_sum": 13886.0283203125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.32.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9936840289927779,
+      "dot_sum": 13888.748046875,
+      "element_count": 3276800,
+      "error_squared_sum": 176.32424926757812,
+      "group_size": 32,
+      "maximum_absolute_error": 0.136474609375,
+      "normalized_rmse": 0.11268523075924881,
+      "reconstructed_squared_sum": 14068.62109375,
+      "reference_squared_sum": 13886.0283203125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.32.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9866860167155053,
+      "dot_sum": 37599.9765625,
+      "element_count": 3276800,
+      "error_squared_sum": 1018.4581909179688,
+      "group_size": -1,
+      "maximum_absolute_error": 0.5234375,
+      "normalized_rmse": 0.16449924170188082,
+      "reconstructed_squared_sum": 38583.515625,
+      "reference_squared_sum": 37637.03515625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.32.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9923415965418783,
+      "dot_sum": 37623.96875,
+      "element_count": 3276800,
+      "error_squared_sum": 580.3447875976562,
+      "group_size": 64,
+      "maximum_absolute_error": 0.5234375,
+      "normalized_rmse": 0.12417533540366454,
+      "reconstructed_squared_sum": 38193.671875,
+      "reference_squared_sum": 37637.03515625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.32.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9942650607113034,
+      "dot_sum": 37632.7578125,
+      "element_count": 3276800,
+      "error_squared_sum": 432.8662414550781,
+      "group_size": 32,
+      "maximum_absolute_error": 0.470703125,
+      "normalized_rmse": 0.10724304984995423,
+      "reconstructed_squared_sum": 38063.81640625,
+      "reference_squared_sum": 37637.03515625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.32.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9784396012680765,
+      "dot_sum": 13642.080078125,
+      "element_count": 3276800,
+      "error_squared_sum": 606.6455688476562,
+      "group_size": -1,
+      "maximum_absolute_error": 0.1962890625,
+      "normalized_rmse": 0.21071525141821526,
+      "reconstructed_squared_sum": 14228.203125,
+      "reference_squared_sum": 13662.90625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.33.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9897948663060144,
+      "dot_sum": 13662.1572265625,
+      "element_count": 3276800,
+      "error_squared_sum": 282.49322509765625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.13916015625,
+      "normalized_rmse": 0.14379125499818135,
+      "reconstructed_squared_sum": 13944.568359375,
+      "reference_squared_sum": 13662.90625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.33.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9928275452792176,
+      "dot_sum": 13665.1474609375,
+      "element_count": 3276800,
+      "error_squared_sum": 197.4006805419922,
+      "group_size": 32,
+      "maximum_absolute_error": 0.13037109375,
+      "normalized_rmse": 0.12019953251698887,
+      "reconstructed_squared_sum": 13865.576171875,
+      "reference_squared_sum": 13662.90625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.33.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9867392300665137,
+      "dot_sum": 41612.3125,
+      "element_count": 3276800,
+      "error_squared_sum": 1122.7900390625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.435546875,
+      "normalized_rmse": 0.16421880369285746,
+      "reconstructed_squared_sum": 42715.5625,
+      "reference_squared_sum": 41634.4453125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.33.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9923000395838906,
+      "dot_sum": 41632.40625,
+      "element_count": 3276800,
+      "error_squared_sum": 645.5914306640625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.408203125,
+      "normalized_rmse": 0.12452383491919666,
+      "reconstructed_squared_sum": 42278.953125,
+      "reference_squared_sum": 41634.4453125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.33.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9941840093394928,
+      "dot_sum": 41646.84375,
+      "element_count": 3276800,
+      "error_squared_sum": 485.90130615234375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.408203125,
+      "normalized_rmse": 0.10803081232751592,
+      "reconstructed_squared_sum": 42148.0859375,
+      "reference_squared_sum": 41634.4453125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.33.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9818119158077823,
+      "dot_sum": 16794.02734375,
+      "element_count": 3276800,
+      "error_squared_sum": 626.5128784179688,
+      "group_size": -1,
+      "maximum_absolute_error": 0.1787109375,
+      "normalized_rmse": 0.19297082312868255,
+      "reconstructed_squared_sum": 17390.2734375,
+      "reference_squared_sum": 16824.67578125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.34.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.990550985007577,
+      "dot_sum": 16817.001953125,
+      "element_count": 3276800,
+      "error_squared_sum": 321.43719482421875,
+      "group_size": 64,
+      "maximum_absolute_error": 0.1787109375,
+      "normalized_rmse": 0.13822121706668483,
+      "reconstructed_squared_sum": 17131.5546875,
+      "reference_squared_sum": 16824.67578125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.34.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9932401964931578,
+      "dot_sum": 16823.48046875,
+      "element_count": 3276800,
+      "error_squared_sum": 228.86129760742188,
+      "group_size": 32,
+      "maximum_absolute_error": 0.1669921875,
+      "normalized_rmse": 0.11663068491391858,
+      "reconstructed_squared_sum": 17052.04296875,
+      "reference_squared_sum": 16824.67578125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.34.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9870960125966516,
+      "dot_sum": 43209.171875,
+      "element_count": 3276800,
+      "error_squared_sum": 1133.490478515625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.29736328125,
+      "normalized_rmse": 0.1619017051023326,
+      "reconstructed_squared_sum": 44311.6640625,
+      "reference_squared_sum": 43242.921875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.34.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.99260187251642,
+      "dot_sum": 43249.91796875,
+      "element_count": 3276800,
+      "error_squared_sum": 643.9903564453125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.29541015625,
+      "normalized_rmse": 0.12203437084555746,
+      "reconstructed_squared_sum": 43904.12890625,
+      "reference_squared_sum": 43242.921875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.34.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9944285389362201,
+      "dot_sum": 43255.47265625,
+      "element_count": 3276800,
+      "error_squared_sum": 482.8985290527344,
+      "group_size": 32,
+      "maximum_absolute_error": 0.279296875,
+      "normalized_rmse": 0.1056745545261667,
+      "reconstructed_squared_sum": 43754.21875,
+      "reference_squared_sum": 43242.921875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00011-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.34.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9835321929044198,
+      "dot_sum": 20219.853515625,
+      "element_count": 3276800,
+      "error_squared_sum": 680.7129516601562,
+      "group_size": -1,
+      "maximum_absolute_error": 0.1826171875,
+      "normalized_rmse": 0.18332633915455301,
+      "reconstructed_squared_sum": 20867.21875,
+      "reference_squared_sum": 20254.162109375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.35.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9909318974147875,
+      "dot_sum": 20249.224609375,
+      "element_count": 3276800,
+      "error_squared_sum": 371.155517578125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.1826171875,
+      "normalized_rmse": 0.13536949842185683,
+      "reconstructed_squared_sum": 20616.498046875,
+      "reference_squared_sum": 20254.162109375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.35.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9933589390748916,
+      "dot_sum": 20254.83984375,
+      "element_count": 3276800,
+      "error_squared_sum": 270.56024169921875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.1826171875,
+      "normalized_rmse": 0.11557791304764167,
+      "reconstructed_squared_sum": 20527.2578125,
+      "reference_squared_sum": 20254.162109375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.35.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9842974391344346,
+      "dot_sum": 32049.982421875,
+      "element_count": 3276800,
+      "error_squared_sum": 1027.706787109375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.228515625,
+      "normalized_rmse": 0.17897912264066096,
+      "reconstructed_squared_sum": 33047.484375,
+      "reference_squared_sum": 32082.224609375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.35.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9912219732774069,
+      "dot_sum": 32082.52734375,
+      "element_count": 3276800,
+      "error_squared_sum": 568.842041015625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2236328125,
+      "normalized_rmse": 0.13315687842163004,
+      "reconstructed_squared_sum": 32653.58203125,
+      "reference_squared_sum": 32082.224609375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.35.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.99360627611805,
+      "dot_sum": 32093.3671875,
+      "element_count": 3276800,
+      "error_squared_sum": 412.5802001953125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2177734375,
+      "normalized_rmse": 0.11340232368702818,
+      "reconstructed_squared_sum": 32519.01953125,
+      "reference_squared_sum": 32082.224609375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.35.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9781906828166707,
+      "dot_sum": 16578.650390625,
+      "element_count": 3276800,
+      "error_squared_sum": 745.0299072265625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.21142578125,
+      "normalized_rmse": 0.21168383015048806,
+      "reconstructed_squared_sum": 17276.388671875,
+      "reference_squared_sum": 16626.404296875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.36.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9893171953105069,
+      "dot_sum": 16614.46484375,
+      "element_count": 3276800,
+      "error_squared_sum": 359.78448486328125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2041015625,
+      "normalized_rmse": 0.14710317524925948,
+      "reconstructed_squared_sum": 16963.0234375,
+      "reference_squared_sum": 16626.404296875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.36.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9924833101432102,
+      "dot_sum": 16623.921875,
+      "element_count": 3276800,
+      "error_squared_sum": 251.9423828125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.19580078125,
+      "normalized_rmse": 0.12309812780961552,
+      "reconstructed_squared_sum": 16874.162109375,
+      "reference_squared_sum": 16626.404296875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.36.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9866811733318422,
+      "dot_sum": 39412.8125,
+      "element_count": 3276800,
+      "error_squared_sum": 1068.319091796875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.423828125,
+      "normalized_rmse": 0.1645977188624845,
+      "reconstructed_squared_sum": 40463.90625,
+      "reference_squared_sum": 39432.4140625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.36.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9923418813602761,
+      "dot_sum": 39434.28125,
+      "element_count": 3276800,
+      "error_squared_sum": 608.3505859375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.42041015625,
+      "normalized_rmse": 0.12420820413769491,
+      "reconstructed_squared_sum": 40047.171875,
+      "reference_squared_sum": 39432.4140625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.36.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9942567509688441,
+      "dot_sum": 39449.3984375,
+      "element_count": 3276800,
+      "error_squared_sum": 454.7420959472656,
+      "group_size": 32,
+      "maximum_absolute_error": 0.42041015625,
+      "normalized_rmse": 0.1073880352843393,
+      "reconstructed_squared_sum": 39923.65625,
+      "reference_squared_sum": 39432.4140625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.36.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.981737067995267,
+      "dot_sum": 17274.873046875,
+      "element_count": 3276800,
+      "error_squared_sum": 646.8817138671875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.142578125,
+      "normalized_rmse": 0.1932793100955956,
+      "reconstructed_squared_sum": 17880.728515625,
+      "reference_squared_sum": 17316.26171875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.37.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9902723378115786,
+      "dot_sum": 17307.166015625,
+      "element_count": 3276800,
+      "error_squared_sum": 340.73541259765625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.14111328125,
+      "normalized_rmse": 0.14027541605195407,
+      "reconstructed_squared_sum": 17639.58984375,
+      "reference_squared_sum": 17316.26171875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.37.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9931495725126189,
+      "dot_sum": 17313.67578125,
+      "element_count": 3276800,
+      "error_squared_sum": 238.8188018798828,
+      "group_size": 32,
+      "maximum_absolute_error": 0.13916015625,
+      "normalized_rmse": 0.11743760535062903,
+      "reconstructed_squared_sum": 17550.7265625,
+      "reference_squared_sum": 17316.26171875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.37.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9854813741167106,
+      "dot_sum": 43849.453125,
+      "element_count": 3276800,
+      "error_squared_sum": 1297.9669189453125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.267578125,
+      "normalized_rmse": 0.17196498847916994,
+      "reconstructed_squared_sum": 45107.41796875,
+      "reference_squared_sum": 43891.81640625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.37.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9916698708630325,
+      "dot_sum": 43882.953125,
+      "element_count": 3276800,
+      "error_squared_sum": 737.2872924804688,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2529296875,
+      "normalized_rmse": 0.12960644468329485,
+      "reconstructed_squared_sum": 44614.28125,
+      "reference_squared_sum": 43891.81640625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.37.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937701467650133,
+      "dot_sum": 43891.3046875,
+      "element_count": 3276800,
+      "error_squared_sum": 548.9735107421875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2529296875,
+      "normalized_rmse": 0.11183659027824033,
+      "reconstructed_squared_sum": 44442.8125,
+      "reference_squared_sum": 43891.81640625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00012-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.37.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9818614425330807,
+      "dot_sum": 16479.23828125,
+      "element_count": 3276800,
+      "error_squared_sum": 612.7100219726562,
+      "group_size": -1,
+      "maximum_absolute_error": 0.29296875,
+      "normalized_rmse": 0.19259150645363543,
+      "reconstructed_squared_sum": 17052.69921875,
+      "reference_squared_sum": 16518.884765625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.38.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.990713270592197,
+      "dot_sum": 16512.66015625,
+      "element_count": 3276800,
+      "error_squared_sum": 309.98638916015625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.291015625,
+      "normalized_rmse": 0.13698750344547259,
+      "reconstructed_squared_sum": 16817.34375,
+      "reference_squared_sum": 16518.884765625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.38.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9934059938365413,
+      "dot_sum": 16518.380859375,
+      "element_count": 3276800,
+      "error_squared_sum": 218.96710205078125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.291015625,
+      "normalized_rmse": 0.11513280180998624,
+      "reconstructed_squared_sum": 16737.888671875,
+      "reference_squared_sum": 16518.884765625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.38.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9857210239790174,
+      "dot_sum": 37432.5546875,
+      "element_count": 3276800,
+      "error_squared_sum": 1088.672607421875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.27294921875,
+      "normalized_rmse": 0.17040002753765532,
+      "reconstructed_squared_sum": 38462.09375,
+      "reference_squared_sum": 37493.671875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.38.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9919573216387758,
+      "dot_sum": 37478.8359375,
+      "element_count": 3276800,
+      "error_squared_sum": 607.6616821289062,
+      "group_size": 64,
+      "maximum_absolute_error": 0.267578125,
+      "normalized_rmse": 0.12730689872323517,
+      "reconstructed_squared_sum": 38073.9765625,
+      "reference_squared_sum": 37493.671875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.38.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9939768496614114,
+      "dot_sum": 37491.890625,
+      "element_count": 3276800,
+      "error_squared_sum": 453.3133850097656,
+      "group_size": 32,
+      "maximum_absolute_error": 0.26611328125,
+      "normalized_rmse": 0.1099563421914318,
+      "reconstructed_squared_sum": 37945.83984375,
+      "reference_squared_sum": 37493.671875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.38.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.981059375373129,
+      "dot_sum": 18083.2578125,
+      "element_count": 3276800,
+      "error_squared_sum": 703.06103515625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2265625,
+      "normalized_rmse": 0.1969912707179804,
+      "reconstructed_squared_sum": 18752.6953125,
+      "reference_squared_sum": 18117.533203125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.39.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9898128651510875,
+      "dot_sum": 18111.0546875,
+      "element_count": 3276800,
+      "error_squared_sum": 373.78167724609375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2265625,
+      "normalized_rmse": 0.14363473295413656,
+      "reconstructed_squared_sum": 18479.16015625,
+      "reference_squared_sum": 18117.533203125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.39.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9927435198728203,
+      "dot_sum": 18118.43359375,
+      "element_count": 3276800,
+      "error_squared_sum": 264.9169921875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.225830078125,
+      "normalized_rmse": 0.12092201480965076,
+      "reconstructed_squared_sum": 18385.189453125,
+      "reference_squared_sum": 18117.533203125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.39.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9827496011524203,
+      "dot_sum": 26604.62890625,
+      "element_count": 3276800,
+      "error_squared_sum": 939.7570190429688,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2197265625,
+      "normalized_rmse": 0.18777527181935005,
+      "reconstructed_squared_sum": 27497.2890625,
+      "reference_squared_sum": 26652.55078125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.39.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.990513709893506,
+      "dot_sum": 26644.416015625,
+      "element_count": 3276800,
+      "error_squared_sum": 511.82916259765625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.21875,
+      "normalized_rmse": 0.13857762815381025,
+      "reconstructed_squared_sum": 27148.92578125,
+      "reference_squared_sum": 26652.55078125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.39.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9930901084848165,
+      "dot_sum": 26653.17578125,
+      "element_count": 3276800,
+      "error_squared_sum": 371.35198974609375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2099609375,
+      "normalized_rmse": 0.11803844724866712,
+      "reconstructed_squared_sum": 27026.00390625,
+      "reference_squared_sum": 26652.55078125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.39.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9845733309980436,
+      "dot_sum": 16517.501953125,
+      "element_count": 3276800,
+      "error_squared_sum": 520.710205078125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.22265625,
+      "normalized_rmse": 0.17746923773783213,
+      "reconstructed_squared_sum": 17023.2578125,
+      "reference_squared_sum": 16532.93359375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.4.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9920646078268999,
+      "dot_sum": 16531.3359375,
+      "element_count": 3276800,
+      "error_squared_sum": 264.58135986328125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.14453125,
+      "normalized_rmse": 0.12650411754083676,
+      "reconstructed_squared_sum": 16795.234375,
+      "reference_squared_sum": 16532.93359375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.4.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9942531383483164,
+      "dot_sum": 16536.443359375,
+      "element_count": 3276800,
+      "error_squared_sum": 190.58004760742188,
+      "group_size": 32,
+      "maximum_absolute_error": 0.13671875,
+      "normalized_rmse": 0.1073652537517695,
+      "reconstructed_squared_sum": 16731.7109375,
+      "reference_squared_sum": 16532.93359375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.4.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9841887094253114,
+      "dot_sum": 39338.04296875,
+      "element_count": 3276800,
+      "error_squared_sum": 1270.068359375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.33984375,
+      "normalized_rmse": 0.17952368742919284,
+      "reconstructed_squared_sum": 40540.1328125,
+      "reference_squared_sum": 39407.92578125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.4.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9913851829949686,
+      "dot_sum": 39402.40234375,
+      "element_count": 3276800,
+      "error_squared_sum": 685.3004760742188,
+      "group_size": 64,
+      "maximum_absolute_error": 0.33984375,
+      "normalized_rmse": 0.131870826602974,
+      "reconstructed_squared_sum": 40084.546875,
+      "reference_squared_sum": 39407.92578125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.4.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9935913985746722,
+      "dot_sum": 39413.45703125,
+      "element_count": 3276800,
+      "error_squared_sum": 507.8167419433594,
+      "group_size": 32,
+      "maximum_absolute_error": 0.3359375,
+      "normalized_rmse": 0.11351721275115241,
+      "reconstructed_squared_sum": 39929.12890625,
+      "reference_squared_sum": 39407.92578125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00003-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.4.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9815177618581901,
+      "dot_sum": 12390.34765625,
+      "element_count": 3276800,
+      "error_squared_sum": 470.2319030761719,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2001953125,
+      "normalized_rmse": 0.19467789334587238,
+      "reconstructed_squared_sum": 12843.75,
+      "reference_squared_sum": 12407.34375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.40.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9902974061391053,
+      "dot_sum": 12404.3388671875,
+      "element_count": 3276800,
+      "error_squared_sum": 243.5643768310547,
+      "group_size": 64,
+      "maximum_absolute_error": 0.19287109375,
+      "normalized_rmse": 0.14010946588921033,
+      "reconstructed_squared_sum": 12645.533203125,
+      "reference_squared_sum": 12407.34375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.40.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.993226339586261,
+      "dot_sum": 12408.513671875,
+      "element_count": 3276800,
+      "error_squared_sum": 169.0721435546875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.12255859375,
+      "normalized_rmse": 0.11673379969425618,
+      "reconstructed_squared_sum": 12579.525390625,
+      "reference_squared_sum": 12407.34375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.40.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9841720737799896,
+      "dot_sum": 35950.296875,
+      "element_count": 3276800,
+      "error_squared_sum": 1162.1485595703125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.209716796875,
+      "normalized_rmse": 0.1796743087510561,
+      "reconstructed_squared_sum": 37065.78515625,
+      "reference_squared_sum": 35998.9375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.40.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9913998096931247,
+      "dot_sum": 35990.0625,
+      "element_count": 3276800,
+      "error_squared_sum": 624.9714965820312,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2080078125,
+      "normalized_rmse": 0.13176050901222155,
+      "reconstructed_squared_sum": 36608.15625,
+      "reference_squared_sum": 35998.9375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.40.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937408753872243,
+      "dot_sum": 35999.08984375,
+      "element_count": 3276800,
+      "error_squared_sum": 452.89068603515625,
+      "group_size": 32,
+      "maximum_absolute_error": 0.205078125,
+      "normalized_rmse": 0.11216357759429525,
+      "reconstructed_squared_sum": 36454.15625,
+      "reference_squared_sum": 35998.9375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.40.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9831226406790157,
+      "dot_sum": 12515.1279296875,
+      "element_count": 3276800,
+      "error_squared_sum": 432.8387145996094,
+      "group_size": -1,
+      "maximum_absolute_error": 0.1533203125,
+      "normalized_rmse": 0.18590619984016554,
+      "reconstructed_squared_sum": 12939.48046875,
+      "reference_squared_sum": 12523.8642578125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.41.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.991600789793093,
+      "dot_sum": 12524.947265625,
+      "element_count": 3276800,
+      "error_squared_sum": 212.35345458984375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.14453125,
+      "normalized_rmse": 0.13021484231766076,
+      "reconstructed_squared_sum": 12739.12890625,
+      "reference_squared_sum": 12523.8642578125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.41.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9938960436122162,
+      "dot_sum": 12525.60546875,
+      "element_count": 3276800,
+      "error_squared_sum": 153.4659881591797,
+      "group_size": 32,
+      "maximum_absolute_error": 0.14453125,
+      "normalized_rmse": 0.11069726583664487,
+      "reconstructed_squared_sum": 12681.69140625,
+      "reference_squared_sum": 12523.8642578125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.41.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9844690195145309,
+      "dot_sum": 41967.4921875,
+      "element_count": 3276800,
+      "error_squared_sum": 1330.2864990234375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2578125,
+      "normalized_rmse": 0.1779152437581994,
+      "reconstructed_squared_sum": 43241.73046875,
+      "reference_squared_sum": 42026.078125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.41.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9915844722138224,
+      "dot_sum": 42012.8203125,
+      "element_count": 3276800,
+      "error_squared_sum": 713.5545043945312,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2578125,
+      "normalized_rmse": 0.13030291885454656,
+      "reconstructed_squared_sum": 42715.48828125,
+      "reference_squared_sum": 42026.078125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.41.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9938479910023159,
+      "dot_sum": 42023.4609375,
+      "element_count": 3276800,
+      "error_squared_sum": 519.4151000976562,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2578125,
+      "normalized_rmse": 0.11117262331796345,
+      "reconstructed_squared_sum": 42542.6796875,
+      "reference_squared_sum": 42026.078125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00013-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.41.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9786497202830226,
+      "dot_sum": 11323.8447265625,
+      "element_count": 3276800,
+      "error_squared_sum": 497.91827392578125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2236328125,
+      "normalized_rmse": 0.2093843478562507,
+      "reconstructed_squared_sum": 11788.6376953125,
+      "reference_squared_sum": 11357.1572265625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.42.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9899060526043165,
+      "dot_sum": 11349.994140625,
+      "element_count": 3276800,
+      "error_squared_sum": 231.83847045898438,
+      "group_size": 64,
+      "maximum_absolute_error": 0.22265625,
+      "normalized_rmse": 0.14287555564678253,
+      "reconstructed_squared_sum": 11575.337890625,
+      "reference_squared_sum": 11357.1572265625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.42.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.993030477540917,
+      "dot_sum": 11354.85546875,
+      "element_count": 3276800,
+      "error_squared_sum": 159.19956970214844,
+      "group_size": 32,
+      "maximum_absolute_error": 0.220703125,
+      "normalized_rmse": 0.11839575346934807,
+      "reconstructed_squared_sum": 11512.4677734375,
+      "reference_squared_sum": 11357.1572265625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.42.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9837242096416999,
+      "dot_sum": 37899.640625,
+      "element_count": 3276800,
+      "error_squared_sum": 1260.492919921875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.474609375,
+      "normalized_rmse": 0.1822222783869539,
+      "reconstructed_squared_sum": 39100.83203125,
+      "reference_squared_sum": 37960.984375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.42.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9912504686155109,
+      "dot_sum": 37947.7109375,
+      "element_count": 3276800,
+      "error_squared_sum": 670.0773315429688,
+      "group_size": 64,
+      "maximum_absolute_error": 0.474609375,
+      "normalized_rmse": 0.1328598415737411,
+      "reconstructed_squared_sum": 38607.07421875,
+      "reference_squared_sum": 37960.984375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.42.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9936344968923376,
+      "dot_sum": 37963.7890625,
+      "element_count": 3276800,
+      "error_squared_sum": 485.51190185546875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.474609375,
+      "normalized_rmse": 0.1130918237025984,
+      "reconstructed_squared_sum": 38454.6015625,
+      "reference_squared_sum": 37960.984375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.42.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9821220446365192,
+      "dot_sum": 15106.658203125,
+      "element_count": 3276800,
+      "error_squared_sum": 553.2109375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2158203125,
+      "normalized_rmse": 0.19116253441431463,
+      "reconstructed_squared_sum": 15628.6220703125,
+      "reference_squared_sum": 15138.58203125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.43.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9907818618327776,
+      "dot_sum": 15132.337890625,
+      "element_count": 3276800,
+      "error_squared_sum": 281.9273681640625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.20703125,
+      "normalized_rmse": 0.13646648935698585,
+      "reconstructed_squared_sum": 15408.869140625,
+      "reference_squared_sum": 15138.58203125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.43.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9934436746279806,
+      "dot_sum": 15137.48046875,
+      "element_count": 3276800,
+      "error_squared_sum": 199.47735595703125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.1787109375,
+      "normalized_rmse": 0.11479003869767314,
+      "reconstructed_squared_sum": 15336.826171875,
+      "reference_squared_sum": 15138.58203125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.43.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9817950110612662,
+      "dot_sum": 41023.91015625,
+      "element_count": 3276800,
+      "error_squared_sum": 1530.3134765625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.27734375,
+      "normalized_rmse": 0.19296182394706252,
+      "reconstructed_squared_sum": 42481.01171875,
+      "reference_squared_sum": 41099.6015625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.43.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9909302821098599,
+      "dot_sum": 41089.734375,
+      "element_count": 3276800,
+      "error_squared_sum": 752.9483642578125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2724609375,
+      "normalized_rmse": 0.13535172381742558,
+      "reconstructed_squared_sum": 41835.296875,
+      "reference_squared_sum": 41099.6015625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.43.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9935419028771241,
+      "dot_sum": 41102.9453125,
+      "element_count": 3276800,
+      "error_squared_sum": 533.7339477539062,
+      "group_size": 32,
+      "maximum_absolute_error": 0.263671875,
+      "normalized_rmse": 0.11395768220454547,
+      "reconstructed_squared_sum": 41642.4140625,
+      "reference_squared_sum": 41099.6015625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.43.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9632425469698529,
+      "dot_sum": 11901.5244140625,
+      "element_count": 3276800,
+      "error_squared_sum": 916.5798950195312,
+      "group_size": -1,
+      "maximum_absolute_error": 0.1767578125,
+      "normalized_rmse": 0.27592271517892886,
+      "reconstructed_squared_sum": 12680.560546875,
+      "reference_squared_sum": 12039.138671875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.44.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9853979308821934,
+      "dot_sum": 12009.451171875,
+      "element_count": 3276800,
+      "error_squared_sum": 357.29736328125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.13720703125,
+      "normalized_rmse": 0.17227299227504014,
+      "reconstructed_squared_sum": 12337.5126953125,
+      "reference_squared_sum": 12039.138671875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.44.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9905959277982775,
+      "dot_sum": 12022.3212890625,
+      "element_count": 3276800,
+      "error_squared_sum": 228.5449676513672,
+      "group_size": 32,
+      "maximum_absolute_error": 0.13037109375,
+      "normalized_rmse": 0.13778061630213642,
+      "reconstructed_squared_sum": 12234.5546875,
+      "reference_squared_sum": 12039.138671875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.44.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9852351403594058,
+      "dot_sum": 47586.03515625,
+      "element_count": 3276800,
+      "error_squared_sum": 1432.135498046875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.306640625,
+      "normalized_rmse": 0.17339792365526285,
+      "reconstructed_squared_sum": 48975.95703125,
+      "reference_squared_sum": 47631.7265625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.44.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9915882303379029,
+      "dot_sum": 47623.046875,
+      "element_count": 3276800,
+      "error_squared_sum": 807.5772705078125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.306640625,
+      "normalized_rmse": 0.1302098628511835,
+      "reconstructed_squared_sum": 48425.6328125,
+      "reference_squared_sum": 47631.7265625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.44.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937505287923858,
+      "dot_sum": 47637.375,
+      "element_count": 3276800,
+      "error_squared_sum": 597.34326171875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.306640625,
+      "normalized_rmse": 0.11198602319773072,
+      "reconstructed_squared_sum": 48244.140625,
+      "reference_squared_sum": 47631.7265625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.44.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9831363483604777,
+      "dot_sum": 13585.556640625,
+      "element_count": 3276800,
+      "error_squared_sum": 469.3369140625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.234619140625,
+      "normalized_rmse": 0.18581169498893976,
+      "reconstructed_squared_sum": 14047.1669921875,
+      "reference_squared_sum": 13593.7294921875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.45.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9913684990921766,
+      "dot_sum": 13596.14453125,
+      "element_count": 3276800,
+      "error_squared_sum": 236.9420623779297,
+      "group_size": 64,
+      "maximum_absolute_error": 0.234619140625,
+      "normalized_rmse": 0.13202366066848206,
+      "reconstructed_squared_sum": 13836.38671875,
+      "reference_squared_sum": 13593.7294921875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.45.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9937349182034333,
+      "dot_sum": 13598.392578125,
+      "element_count": 3276800,
+      "error_squared_sum": 171.05300903320312,
+      "group_size": 32,
+      "maximum_absolute_error": 0.234619140625,
+      "normalized_rmse": 0.11217499205809274,
+      "reconstructed_squared_sum": 13775.12109375,
+      "reference_squared_sum": 13593.7294921875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.45.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9851276927523485,
+      "dot_sum": 47540.7265625,
+      "element_count": 3276800,
+      "error_squared_sum": 1441.2945556640625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.3857421875,
+      "normalized_rmse": 0.1740302060124083,
+      "reconstructed_squared_sum": 48937.6484375,
+      "reference_squared_sum": 47588.66015625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.45.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9918438471268667,
+      "dot_sum": 47588.3203125,
+      "element_count": 3276800,
+      "error_squared_sum": 782.07958984375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.3671875,
+      "normalized_rmse": 0.1281957824063657,
+      "reconstructed_squared_sum": 48373.8515625,
+      "reference_squared_sum": 47588.66015625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.45.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9940118661174427,
+      "dot_sum": 47591.671875,
+      "element_count": 3276800,
+      "error_squared_sum": 571.649658203125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.3671875,
+      "normalized_rmse": 0.1096006766278376,
+      "reconstructed_squared_sum": 48169.8515625,
+      "reference_squared_sum": 47588.66015625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00014-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.45.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9788384656454302,
+      "dot_sum": 11003.896484375,
+      "element_count": 3276800,
+      "error_squared_sum": 479.5076904296875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.177734375,
+      "normalized_rmse": 0.2084951881935394,
+      "reconstructed_squared_sum": 11456.908203125,
+      "reference_squared_sum": 11030.7109375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.46.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9901750746513714,
+      "dot_sum": 11026.67578125,
+      "element_count": 3276800,
+      "error_squared_sum": 219.20797729492188,
+      "group_size": 64,
+      "maximum_absolute_error": 0.171630859375,
+      "normalized_rmse": 0.14096991094314062,
+      "reconstructed_squared_sum": 11242.4697265625,
+      "reference_squared_sum": 11030.7109375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.46.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9931260277908674,
+      "dot_sum": 11032.3828125,
+      "element_count": 3276800,
+      "error_squared_sum": 152.58921813964844,
+      "group_size": 32,
+      "maximum_absolute_error": 0.171630859375,
+      "normalized_rmse": 0.11761431184590887,
+      "reconstructed_squared_sum": 11187.3291015625,
+      "reference_squared_sum": 11030.7109375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.46.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9868632272830737,
+      "dot_sum": 45529.859375,
+      "element_count": 3276800,
+      "error_squared_sum": 1215.66845703125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.310546875,
+      "normalized_rmse": 0.16336091271328007,
+      "reconstructed_squared_sum": 46726.1328125,
+      "reference_squared_sum": 45553.1953125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.46.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9923475399687356,
+      "dot_sum": 45557.3515625,
+      "element_count": 3276800,
+      "error_squared_sum": 701.3360595703125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.310546875,
+      "normalized_rmse": 0.12408053620301479,
+      "reconstructed_squared_sum": 46266.91015625,
+      "reference_squared_sum": 45553.1953125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.46.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9943981917201408,
+      "dot_sum": 45567.28125,
+      "element_count": 3276800,
+      "error_squared_sum": 511.156982421875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.306640625,
+      "normalized_rmse": 0.10592969599666176,
+      "reconstructed_squared_sum": 46096.37109375,
+      "reference_squared_sum": 45553.1953125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.46.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9765204482994063,
+      "dot_sum": 12925.6435546875,
+      "element_count": 3276800,
+      "error_squared_sum": 627.049560546875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.173828125,
+      "normalized_rmse": 0.21998494489574852,
+      "reconstructed_squared_sum": 13521.5263671875,
+      "reference_squared_sum": 12957.3427734375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.47.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9889177187936231,
+      "dot_sum": 12952.1953125,
+      "element_count": 3276800,
+      "error_squared_sum": 291.0515441894531,
+      "group_size": 64,
+      "maximum_absolute_error": 0.173828125,
+      "normalized_rmse": 0.1498742352335575,
+      "reconstructed_squared_sum": 13238.857421875,
+      "reference_squared_sum": 12957.3427734375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.47.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9924809864372369,
+      "dot_sum": 12955.29296875,
+      "element_count": 3276800,
+      "error_squared_sum": 196.20999145507812,
+      "group_size": 32,
+      "maximum_absolute_error": 0.1435546875,
+      "normalized_rmse": 0.12305594093600364,
+      "reconstructed_squared_sum": 13150.25390625,
+      "reference_squared_sum": 12957.3427734375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.47.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9818353493953305,
+      "dot_sum": 24255.60546875,
+      "element_count": 3276800,
+      "error_squared_sum": 903.7196655273438,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2109375,
+      "normalized_rmse": 0.1929412265573434,
+      "reconstructed_squared_sum": 25139.8828125,
+      "reference_squared_sum": 24276.365234375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.47.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9906817605934851,
+      "dot_sum": 24280.09375,
+      "element_count": 3276800,
+      "error_squared_sum": 457.499267578125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.1953125,
+      "normalized_rmse": 0.13727876711815687,
+      "reconstructed_squared_sum": 24742.79296875,
+      "reference_squared_sum": 24276.365234375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.47.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9934274524173554,
+      "dot_sum": 24281.474609375,
+      "element_count": 3276800,
+      "error_squared_sum": 320.8088073730469,
+      "group_size": 32,
+      "maximum_absolute_error": 0.193359375,
+      "normalized_rmse": 0.11495591166514177,
+      "reconstructed_squared_sum": 24609.009765625,
+      "reference_squared_sum": 24276.365234375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00015-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.47.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9812373713830512,
+      "dot_sum": 18363.736328125,
+      "element_count": 3276800,
+      "error_squared_sum": 706.2593994140625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.31201171875,
+      "normalized_rmse": 0.1957757824624273,
+      "reconstructed_squared_sum": 19007.615234375,
+      "reference_squared_sum": 18426.646484375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.5.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9908179194747065,
+      "dot_sum": 18412.259765625,
+      "element_count": 3276800,
+      "error_squared_sum": 341.60260009765625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.28076171875,
+      "normalized_rmse": 0.13615620304277185,
+      "reconstructed_squared_sum": 18740.45703125,
+      "reference_squared_sum": 18426.646484375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.5.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9935718692607703,
+      "dot_sum": 18419.1328125,
+      "element_count": 3276800,
+      "error_squared_sum": 237.9095916748047,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2802734375,
+      "normalized_rmse": 0.11362733575993575,
+      "reconstructed_squared_sum": 18650.62890625,
+      "reference_squared_sum": 18426.646484375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.5.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9832569645707007,
+      "dot_sum": 37236.2734375,
+      "element_count": 3276800,
+      "error_squared_sum": 1275.230224609375,
+      "group_size": -1,
+      "maximum_absolute_error": 0.296875,
+      "normalized_rmse": 0.18493464778312912,
+      "reconstructed_squared_sum": 38463.28125,
+      "reference_squared_sum": 37286.53515625,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.5.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9909734545238018,
+      "dot_sum": 37277.64453125,
+      "element_count": 3276800,
+      "error_squared_sum": 679.63916015625,
+      "group_size": 64,
+      "maximum_absolute_error": 0.296875,
+      "normalized_rmse": 0.135009143784968,
+      "reconstructed_squared_sum": 37950.79296875,
+      "reference_squared_sum": 37286.53515625,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.5.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.993372414747017,
+      "dot_sum": 37289.83203125,
+      "element_count": 3276800,
+      "error_squared_sum": 496.87548828125,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2802734375,
+      "normalized_rmse": 0.11543772842020694,
+      "reconstructed_squared_sum": 37792.4140625,
+      "reference_squared_sum": 37286.53515625,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.5.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9822846337204933,
+      "dot_sum": 16911.765625,
+      "element_count": 3276800,
+      "error_squared_sum": 613.645263671875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2314453125,
+      "normalized_rmse": 0.19027430641136564,
+      "reconstructed_squared_sum": 17488.240234375,
+      "reference_squared_sum": 16949.5078125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.6.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9906853901642801,
+      "dot_sum": 16939.83203125,
+      "element_count": 3276800,
+      "error_squared_sum": 319.0906066894531,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2294921875,
+      "normalized_rmse": 0.13720769360750718,
+      "reconstructed_squared_sum": 17250.01953125,
+      "reference_squared_sum": 16949.5078125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.6.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9933029652848533,
+      "dot_sum": 16947.77734375,
+      "element_count": 3276800,
+      "error_squared_sum": 228.39364624023438,
+      "group_size": 32,
+      "maximum_absolute_error": 0.2294921875,
+      "normalized_rmse": 0.11608162077065638,
+      "reconstructed_squared_sum": 17175.32421875,
+      "reference_squared_sum": 16949.5078125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.6.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9866528066089983,
+      "dot_sum": 35453.20703125,
+      "element_count": 3276800,
+      "error_squared_sum": 962.62890625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.302734375,
+      "normalized_rmse": 0.16469721263164872,
+      "reconstructed_squared_sum": 36382.78515625,
+      "reference_squared_sum": 35488.3984375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.6.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9921822464701611,
+      "dot_sum": 35481.8984375,
+      "element_count": 3276800,
+      "error_squared_sum": 559.052490234375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.30078125,
+      "normalized_rmse": 0.12551137660956996,
+      "reconstructed_squared_sum": 36036.6484375,
+      "reference_squared_sum": 35488.3984375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.6.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9941207101144474,
+      "dot_sum": 35497.90625,
+      "element_count": 3276800,
+      "error_squared_sum": 419.046875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.30078125,
+      "normalized_rmse": 0.10866460431604531,
+      "reconstructed_squared_sum": 35928.64453125,
+      "reference_squared_sum": 35488.3984375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.6.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9836676594386137,
+      "dot_sum": 23740.37890625,
+      "element_count": 3276800,
+      "error_squared_sum": 792.9658203125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.1748046875,
+      "normalized_rmse": 0.18261995168065678,
+      "reconstructed_squared_sum": 24497.427734375,
+      "reference_squared_sum": 23777.052734375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.7.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9913460647010939,
+      "dot_sum": 23768.642578125,
+      "element_count": 3276800,
+      "error_squared_sum": 415.4241943359375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.171875,
+      "normalized_rmse": 0.13218034547724672,
+      "reconstructed_squared_sum": 24176.875,
+      "reference_squared_sum": 23777.052734375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.7.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9936967602334044,
+      "dot_sum": 23778.298828125,
+      "element_count": 3276800,
+      "error_squared_sum": 301.42486572265625,
+      "group_size": 32,
+      "maximum_absolute_error": 0.171875,
+      "normalized_rmse": 0.11259277617368238,
+      "reconstructed_squared_sum": 24082.1796875,
+      "reference_squared_sum": 23777.052734375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.7.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9850063324837189,
+      "dot_sum": 34027.87890625,
+      "element_count": 3276800,
+      "error_squared_sum": 1040.51171875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.30859375,
+      "normalized_rmse": 0.1747749461310999,
+      "reconstructed_squared_sum": 35035.078125,
+      "reference_squared_sum": 34063.44921875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.7.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9916296655885991,
+      "dot_sum": 34050.01171875,
+      "element_count": 3276800,
+      "error_squared_sum": 574.648193359375,
+      "group_size": 64,
+      "maximum_absolute_error": 0.306640625,
+      "normalized_rmse": 0.12988431607617407,
+      "reconstructed_squared_sum": 34613.609375,
+      "reference_squared_sum": 34063.44921875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.7.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9939051447779322,
+      "dot_sum": 34066.61328125,
+      "element_count": 3276800,
+      "error_squared_sum": 416.88787841796875,
+      "group_size": 32,
+      "maximum_absolute_error": 0.26953125,
+      "normalized_rmse": 0.11062806669294084,
+      "reconstructed_squared_sum": 34488.90625,
+      "reference_squared_sum": 34063.44921875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.7.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.982711899228783,
+      "dot_sum": 16995.34765625,
+      "element_count": 3276800,
+      "error_squared_sum": 602.0028076171875,
+      "group_size": -1,
+      "maximum_absolute_error": 0.228515625,
+      "normalized_rmse": 0.18808260760627718,
+      "reconstructed_squared_sum": 17575.44921875,
+      "reference_squared_sum": 17017.71484375,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.8.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9907520465374569,
+      "dot_sum": 17011.638671875,
+      "element_count": 3276800,
+      "error_squared_sum": 318.0877990722656,
+      "group_size": 64,
+      "maximum_absolute_error": 0.193359375,
+      "normalized_rmse": 0.13671711473391257,
+      "reconstructed_squared_sum": 17324.515625,
+      "reference_squared_sum": 17017.71484375,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.8.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9933454790296714,
+      "dot_sum": 17017.6796875,
+      "element_count": 3276800,
+      "error_squared_sum": 227.7669677734375,
+      "group_size": 32,
+      "maximum_absolute_error": 0.193115234375,
+      "normalized_rmse": 0.11568971441283184,
+      "reconstructed_squared_sum": 17246.4140625,
+      "reference_squared_sum": 17017.71484375,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.8.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9860029108129592,
+      "dot_sum": 38546.3984375,
+      "element_count": 3276800,
+      "error_squared_sum": 1099.41064453125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2841796875,
+      "normalized_rmse": 0.16880196095262784,
+      "reconstructed_squared_sum": 39610.12890625,
+      "reference_squared_sum": 38583.796875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.8.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9920578819688253,
+      "dot_sum": 38580.03125,
+      "element_count": 3276800,
+      "error_squared_sum": 618.100341796875,
+      "group_size": 64,
+      "maximum_absolute_error": 0.2841796875,
+      "normalized_rmse": 0.12656890142484992,
+      "reconstructed_squared_sum": 39196.3984375,
+      "reference_squared_sum": 38583.796875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.8.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9942100502820715,
+      "dot_sum": 38587.625,
+      "element_count": 3276800,
+      "error_squared_sum": 448.7372741699219,
+      "group_size": 32,
+      "maximum_absolute_error": 0.26953125,
+      "normalized_rmse": 0.10784340496123053,
+      "reconstructed_squared_sum": 39042.25,
+      "reference_squared_sum": 38583.796875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00004-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.8.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9856245510596267,
+      "dot_sum": 15754.9287109375,
+      "element_count": 3276800,
+      "error_squared_sum": 461.8482666015625,
+      "group_size": -1,
+      "maximum_absolute_error": 0.2080078125,
+      "normalized_rmse": 0.17110199820864774,
+      "reconstructed_squared_sum": 16196.482421875,
+      "reference_squared_sum": 15775.71875,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.9.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9918656253593625,
+      "dot_sum": 15771.12109375,
+      "element_count": 3276800,
+      "error_squared_sum": 258.85821533203125,
+      "group_size": 64,
+      "maximum_absolute_error": 0.20751953125,
+      "normalized_rmse": 0.128096244921539,
+      "reconstructed_squared_sum": 16026.1904296875,
+      "reference_squared_sum": 15775.71875,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.9.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9939414281590923,
+      "dot_sum": 15773.921875,
+      "element_count": 3276800,
+      "error_squared_sum": 191.91458129882812,
+      "group_size": 32,
+      "maximum_absolute_error": 0.20751953125,
+      "normalized_rmse": 0.11029591017617496,
+      "reconstructed_squared_sum": 15964.9892578125,
+      "reference_squared_sum": 15775.71875,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.9.attn_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9860145530184294,
+      "dot_sum": 37116.5234375,
+      "element_count": 3276800,
+      "error_squared_sum": 1057.720703125,
+      "group_size": -1,
+      "maximum_absolute_error": 0.333984375,
+      "normalized_rmse": 0.16876515355904395,
+      "reconstructed_squared_sum": 38155.96875,
+      "reference_squared_sum": 37136.8828125,
+      "scheme": "per_channel",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.9.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.991874659417639,
+      "dot_sum": 37138.0078125,
+      "element_count": 3276800,
+      "error_squared_sum": 608.7990112304688,
+      "group_size": 64,
+      "maximum_absolute_error": 0.330078125,
+      "normalized_rmse": 0.12803663320232384,
+      "reconstructed_squared_sum": 37750.10546875,
+      "reference_squared_sum": 37136.8828125,
+      "scheme": "group_64",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.9.mlp_hyper_connection.input_mix_weight_up.weight"
+    },
+    {
+      "cosine_similarity": 0.9939634234517594,
+      "dot_sum": 37139.64453125,
+      "element_count": 3276800,
+      "error_squared_sum": 450.3205261230469,
+      "group_size": 32,
+      "maximum_absolute_error": 0.330078125,
+      "normalized_rmse": 0.11011795763721914,
+      "reconstructed_squared_sum": 37594.92578125,
+      "reference_squared_sum": 37136.8828125,
+      "scheme": "group_32",
+      "shape": [
+        10240,
+        320
+      ],
+      "source_shard": "model-00005-of-00017.safetensors",
+      "tensor_name": "model.language_model.layers.9.mlp_hyper_connection.input_mix_weight_up.weight"
+    }
+  ],
+  "up_tensor_count": 97
+}

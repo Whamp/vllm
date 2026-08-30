@@ -1,0 +1,19 @@
+2026-08-29T20:45:06+00:00
+0, 230.00 W, 1650 MHz, 23291 MiB, 836 MiB
+1, 230.00 W, 1650 MHz, 23267 MiB, 860 MiB
+2, 230.00 W, 1650 MHz, 23267 MiB, 860 MiB
+3, 230.00 W, 1650 MHz, 23267 MiB, 860 MiB
+vm_overcommit=0
+swap_lines=0
+pid=3691842 VmSwap:	       0 kB
+pid=3693074 VmSwap:	       0 kB
+pid=3693075 VmSwap:	       0 kB
+pid=3693271 VmSwap:	       0 kB
+pid=3693387 VmSwap:	       0 kB
+pid=3693522 VmSwap:	       0 kB
+pid=3693690 VmSwap:	       0 kB
+pid=3694131 VmSwap:	       0 kB
+pid=3695434 VmSwap:	       0 kB
+pid=3695447 VmSwap:	       0 kB
+pid=3695450 VmSwap:	       0 kB
+pid=3695556 VmSwap:	       0 kB

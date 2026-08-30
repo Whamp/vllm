@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RUNTIME=/home/will/inference/runtime/qwen38-capacity-gpu-gates-20260829
+IMAGE=vllm/vllm-openai@sha256:1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b
+CONTAINER=qwen38-flash-next-intel-autoround-vllm
+RESTORE=/home/will/inference/runtime/qwen38-util-0968/rollback.sh
+MODEL=/home/will/inference/runtime/qwen38-intel-autoround/model
+TIMER=qwen38-capacity-gates-restore
+GATE_SELECTION=${GATE_SELECTION:-both}
+case "$GATE_SELECTION" in
+  both | hyper | qsa) ;;
+  *)
+    echo "GATE_SELECTION must be both, hyper, or qsa" >&2
+    exit 2
+    ;;
+esac
+restored=0
+
+restore_production() {
+  if [[ "$restored" == 1 ]]; then
+    return
+  fi
+  restored=1
+  docker rm -f qwen38-capacity-hyper-gate qwen38-capacity-qsa-gate \
+    >/dev/null 2>&1 || true
+  "$RESTORE"
+  sudo -n systemctl stop "$TIMER.timer" "$TIMER.service" 2>/dev/null || true
+}
+trap restore_production EXIT INT TERM
+
+[[ "$(docker inspect "$CONTAINER" --format '{{.State.Health.Status}}')" == healthy ]]
+[[ "$(docker inspect "$CONTAINER" --format '{{.Image}}')" == \
+  sha256:1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b ]]
+[[ "$(docker inspect "$CONTAINER" --format '{{.RestartCount}}')" == 0 ]]
+[[ "$(cat /proc/swaps | wc -l)" == 1 ]]
+for pid in $(docker top "$CONTAINER" -o pid | tail -n +2); do
+  [[ "$(awk '/^VmSwap:/{print $2}' "/proc/$pid/status")" == 0 ]]
+done
+[[ "$(systemctl is-active gpu-power-limit.service)" == active ]]
+(
+  cd "$RUNTIME"
+  sha256sum -c SHA256SUMS
+)
+
+sudo -n systemctl stop "$TIMER.timer" "$TIMER.service" 2>/dev/null || true
+sudo -n systemd-run \
+  --unit="$TIMER" \
+  --on-active=2h \
+  "$RESTORE" >/dev/null
+[[ "$(systemctl is-active "$TIMER.timer")" == active ]]
+
+docker stop --time 60 "$CONTAINER" >/dev/null
+for poll in $(seq 1 60); do
+  if [[ -z "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader | sed '/^$/d')" ]]; then
+    break
+  fi
+  sleep 2
+  [[ "$poll" != 60 ]]
+done
+
+result_files=()
+if [[ "$GATE_SELECTION" == both || "$GATE_SELECTION" == hyper ]]; then
+  rm -f "$RUNTIME/hyper-result.json"
+  install -m 0666 /dev/null "$RUNTIME/hyper-result.json"
+  docker run --rm \
+    --name qwen38-capacity-hyper-gate \
+    --network none \
+    --gpus device=0 \
+    --cap-drop ALL \
+    --security-opt no-new-privileges:true \
+    --entrypoint /usr/bin/python3 \
+    -v "$RUNTIME:/gate" \
+    -v "$MODEL:/model:ro" \
+    -v /mnt/models/huggingface:/mnt/models/huggingface:ro \
+    "$IMAGE" \
+    /gate/hyper-gate.py \
+    --module /gate/hc_int8.py \
+    --model /model \
+    --output /gate/hyper-result.json
+  python3 -m json.tool "$RUNTIME/hyper-result.json" >/dev/null
+  result_files+=("$RUNTIME/hyper-result.json")
+fi
+
+if [[ "$GATE_SELECTION" == both || "$GATE_SELECTION" == qsa ]]; then
+  rm -f "$RUNTIME/qsa-result.json"
+  install -m 0666 /dev/null "$RUNTIME/qsa-result.json"
+  docker run --rm \
+    --name qwen38-capacity-qsa-gate \
+    --network none \
+    --gpus device=0 \
+    --cap-drop ALL \
+    --security-opt no-new-privileges:true \
+    --entrypoint /usr/bin/python3 \
+    -v "$RUNTIME:/gate" \
+    "$IMAGE" \
+    /gate/qsa-gate.py \
+    --module /gate/qsa_q8k_q4v.py \
+    --output /gate/qsa-result.json
+  python3 -m json.tool "$RUNTIME/qsa-result.json" >/dev/null
+  result_files+=("$RUNTIME/qsa-result.json")
+fi
+
+sha256sum "${result_files[@]}" > "$RUNTIME/RESULT-SHA256SUMS"
+restore_production
+trap - EXIT INT TERM
+
+[[ "$(docker inspect "$CONTAINER" --format '{{.State.Health.Status}}')" == healthy ]]
+[[ "$(docker inspect "$CONTAINER" --format '{{.RestartCount}}')" == 0 ]]
+[[ "$(cat /proc/swaps | wc -l)" == 1 ]]
+for pid in $(docker top "$CONTAINER" -o pid | tail -n +2); do
+  [[ "$(awk '/^VmSwap:/{print $2}' "/proc/$pid/status")" == 0 ]]
+done
+[[ "$(systemctl is-active "$TIMER.timer" 2>/dev/null || true)" != active ]]
+echo qwen38_capacity_gpu_gates=passed

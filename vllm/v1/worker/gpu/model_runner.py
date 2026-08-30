@@ -64,13 +64,19 @@ from vllm.tasks import SupportedTask
 from vllm.utils.mem_utils import DeviceMemoryProfiler, format_gib
 from vllm.utils.torch_utils import STR_DTYPE_TO_TORCH_DTYPE
 from vllm.v1.core.sched.output import GrammarOutput, SchedulerOutput
-from vllm.v1.kv_cache_interface import KVCacheConfig, MambaSpec
+from vllm.v1.kv_cache_interface import (
+    CircularBufferSpec,
+    KVCacheConfig,
+    MambaSpec,
+    UniformTypeKVCacheSpecs,
+)
 from vllm.v1.outputs import (
     DraftTokenIds,
     ECConnectorOutput,
     ModelRunnerOutput,
     RoutedExpertsTensors,
 )
+from vllm.v1.ple_offload.connector import PleOffloadConnector
 from vllm.v1.worker.block_table import get_block_table_width
 from vllm.v1.worker.cp_utils import check_attention_cp_compatibility
 from vllm.v1.worker.gpu import pcp_manager as pcp
@@ -346,6 +352,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
 
         # For transferring state from execute_model to subsequent sample_tokens call.
         self.execute_model_state: ExecuteModelState | None = None
+        self._ple_offload_connector: PleOffloadConnector | None = None
 
         # Expert parallelism load balancer.
         self.eplb = EPLBController(self.parallel_config, self.device)
@@ -376,6 +383,26 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             # on the last PP rank.
             tasks.extend(PoolingRunner.get_supported_tasks(self.model))
         return tuple(tasks)
+
+    def _setup_ple_offload(self, ipc_addr: str) -> None:
+        """Initialize PLE offload after the model state is available."""
+        # PLE placeholders are created by model loading, so CUDA output
+        # registration cannot happen in the runner constructor.
+        query_start_loc_source = getattr(self.model_state, "ple_query_start_loc", None)
+        ngram_context_source = getattr(self.model_state, "ngram_context", None)
+        if not isinstance(query_start_loc_source, torch.Tensor):
+            raise RuntimeError("PLE offload requires a query_start_loc source")
+        if not isinstance(ngram_context_source, torch.Tensor):
+            raise RuntimeError("PLE offload requires an ngram_context source")
+        self._ple_offload_connector = PleOffloadConnector(
+            self.vllm_config,
+            self.model,
+            self.device,
+            ipc_addr,
+            input_ids_source=self.input_buffers.input_ids,
+            query_start_loc_source=query_start_loc_source,
+            ngram_context_source=ngram_context_source,
+        )
 
     def load_model(self, load_dummy_weights: bool = False, *args, **kwargs) -> None:
         time_before_load = time.perf_counter()
@@ -557,17 +584,24 @@ class GPUModelRunner(LoRAModelRunnerMixin):
 
         block_sizes = []
         max_num_blocks_per_group = []
+        slot_mapping_enabled = []
         for kv_cache_group in kv_cache_config.kv_cache_groups:
-            spec = kv_cache_group.kv_cache_spec
-            block_sizes.append(spec.block_size)
+            group_spec = kv_cache_group.kv_cache_spec
+            spec = (
+                group_spec.first_spec
+                if isinstance(group_spec, UniformTypeKVCacheSpecs)
+                else group_spec
+            )
+            block_sizes.append(group_spec.block_size)
+            slot_mapping_enabled.append(not isinstance(spec, CircularBufferSpec))
             # Let each cache type account for CP. Attention KV is DCP-sharded,
             # while Mamba/GDN recurrent state is replicated across DCP ranks.
-            max_num_blocks = spec.max_num_blocks_per_req(
+            max_num_blocks = group_spec.max_num_blocks_per_req(
                 self.vllm_config, block_table_max_model_len
             )
             # Preserve each cache type's alignment requirements after applying
             # its topology-aware block-table width.
-            if isinstance(spec, MambaSpec):
+            if isinstance(spec, (CircularBufferSpec, MambaSpec)):
                 max_num_blocks = get_block_table_width(
                     max_num_blocks, spec.block_size, token_alignment=None
                 )
@@ -614,6 +648,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             max_num_blocks_per_group=max_num_blocks_per_group,
             device=self.device,
             kernel_block_sizes=self.kernel_block_sizes,
+            slot_mapping_enabled=slot_mapping_enabled,
             cp_size=self.dcp_size,
             cp_rank=self.dcp_rank,
             cp_interleave=self.cp_interleave,
@@ -925,6 +960,10 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         torch.accelerator.empty_cache()
         start_free_gpu_memory = torch.accelerator.get_memory_info()[0]
 
+        # Decoder capture calls the model outside execute_model. Keep dummy PLE
+        # outputs signaled until every graph has captured its semaphore wait.
+        if self._ple_offload_connector is not None and capture_decoder:
+            self._ple_offload_connector.signal_dummy_outputs(self.max_num_tokens)
         with self.maybe_setup_dummy_loras(self.lora_config):
             if capture_encoder:
                 self.model_state.encoder_runner.capture()
@@ -956,6 +995,8 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                         ):
                             self._dummy_run(**batch)
                     self.adaptive_verification.set_initial_cost_curves(timings)
+        if self._ple_offload_connector is not None and capture_decoder:
+            self._ple_offload_connector.release_outputs()
 
         end_time = time.perf_counter()
         end_free_gpu_memory = torch.accelerator.get_memory_info()[0]
@@ -1213,6 +1254,10 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             total_num_draft_tokens = int(num_draft_tokens_per_req.sum())
             total_num_logits = num_reqs * num_bonus_tokens + total_num_draft_tokens
             num_logits = num_draft_tokens_per_req + num_bonus_tokens
+            # combine_sampled_and_draft_tokens places a request's logits rows
+            # at [query_end - num_logits, query_end). Fewer query rows than
+            # that would silently select the preceding request's hidden states.
+            assert (num_scheduled_tokens_np >= num_logits).all()
             cu_num_logits_np = np.empty(num_reqs + 1, dtype=np.int32)
             cu_num_logits_np[0] = 0
             np.cumsum(num_logits, out=cu_num_logits_np[1:])
@@ -1744,6 +1789,15 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         )
         self.step_timing.forward_start()
 
+        # prepare_inputs has finalized MRV2's GPU buffers. Record readiness so
+        # the request thread can stage them before the PLE placeholder runs.
+        if self._ple_offload_connector is not None:
+            self._ple_offload_connector.prepare_forward(
+                input_batch.num_reqs,
+                input_batch.num_tokens_after_padding,
+                dummy_run,
+            )
+
         # Run model.
         if batch_desc.cg_mode == CUDAGraphMode.FULL:
             # Use explicit cudagraph replay for FULL mode.
@@ -1785,6 +1839,11 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                 else:
                     # Eager (NONE): call the raw model directly.
                     model_output = self.model(**model_inputs)
+
+        # The model has consumed every PLE output, so the CPU worker may reuse
+        # the registered buffers for the next request.
+        if self._ple_offload_connector is not None:
+            self._ple_offload_connector.release_outputs()
 
         if self.is_last_pp_rank:
             if self.use_aux_hidden_state_outputs:
@@ -2043,6 +2102,9 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         """Release GPU tensors (model weights, KV caches, workspace) so that
         memory is reclaimable when running in the same process."""
         torch.accelerator.synchronize()
+        if self._ple_offload_connector is not None:
+            self._ple_offload_connector.close()
+            self._ple_offload_connector = None
         self.cudagraph_manager = None
         if hasattr(self, "kv_caches"):
             self.kv_caches.clear()

@@ -1,0 +1,4 @@
+10553c405fe97cd911ea87851e5a70c1175af8d041e55918a4188a677a6ca514  ./vllm/models/qwen3_8_flash_next/common/qsa_fp8_calibration.py
+8b0fce58df8d958a0f0ef8e46900a9b35b08cb6a7a1443425d4d4c0c737a1b6d  ./vllm/models/qwen3_8_flash_next/common/qsa_fp8.py
+8f608f7300c8660cc8cc85f093f134fe5aee0d596c5d9c9d64fd0d7ccb501df6  ./vllm/models/qwen3_8_flash_next/nvidia/ops/qsa.py
+c024750392fac390b9c4d2bbba7e9a4ee28d64e8a4f3823b17ad265d0f4b3e22  ./vllm/models/qwen3_8_flash_next/nvidia/qsa.py

@@ -1,0 +1,24 @@
+=== benchlocal-cli --quick  (endpoint: http://127.0.0.1:30002, model: qwen3.8-flash-next-intel-qsa-1024, thinking=mixed(pack-defaults), 2026-08-29T04:37:29.274864Z) ===
+
+Pack | Pass / Total | Score | p50 latency | p95 latency | Status
+---|---:|---:|---:|---:|---
+toolcall-15 (v1.0.1) | 12 / 15 | 80% | 1.22s | 3.80s | ok
+instructfollow-15 (v1.0.0) | 14 / 15 | 93% | 6.23s | 21.65s | ok
+
+TOTAL | 26 / 30 | 87% |  |  |
+
+Completion and extraction diagnostics:
+
+Pack | finish_reason=length | extraction_method | extraction_issue | response_field_used
+---|---:|---|---|---
+toolcall-15 | 0 / 15 (0.0%) | — | — | message.content=6
+instructfollow-15 | 0 / 15 (0.0%) | — | — | message.content=15
+
+Failure breakdown:
+- toolcall-15 TC-03: wrong_answer [fail] (response did not include tool_calls)
+- toolcall-15 TC-05: verifier_fail [fail] (expected first tool create_calendar_event, got ['run_code'])
+- toolcall-15 TC-09: verifier_fail [fail] (expected 2 tool calls, got 1)
+- instructfollow-15 IF-04: verifier_fail [fail] (bullet count mismatch)
+
+Warnings:
+- timeout scaling active: measured_decode_tps=45.9, reference_tps=100.0, scale=2.18, token-budget-multiplier=16384/1024=16.00

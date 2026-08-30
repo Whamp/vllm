@@ -1,0 +1,140 @@
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+import importlib.util
+import itertools
+import json
+import statistics
+from pathlib import Path
+
+import torch
+
+from gpu_gate import make_case, output_metrics
+
+
+def load_module(name: str, path: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def time_cuda(operation, iterations: int = 12, repeats: int = 3) -> dict[str, object]:
+    for _ in range(8):
+        operation()
+    torch.cuda.synchronize()
+    samples = []
+    for _ in range(repeats):
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
+        for _ in range(iterations):
+            operation()
+        end.record()
+        end.synchronize()
+        samples.append(start.elapsed_time(end) * 1000.0 / iterations)
+    return {"median_us": statistics.median(samples), "samples_us": samples}
+
+
+def main() -> None:
+    vendor = load_module(
+        "qsa_vendor_sweep",
+        "/usr/local/lib/python3.12/dist-packages/vllm/models/"
+        "qwen3_8_flash_next/nvidia/ops/qsa.py",
+    )
+    candidate = load_module("qsa_candidate_sweep", "/work_overlay/ops_qsa.py")
+    profiles = []
+    for block_n in (8, 16, 32):
+        split_targets = (16, 32, 64) if block_n == 8 else (8, 16, 32)
+        for splits, warps, stages in itertools.product(
+            split_targets, (2, 4, 8), (1, 2)
+        ):
+            profiles.append((block_n, splits, warps, stages))
+
+    output_path = Path("/output/profile-sweep.json")
+    result: dict[str, object] = {
+        "schema_version": 1,
+        "device": torch.cuda.get_device_name(),
+        "rows": {},
+    }
+    for rows in (256, 512):
+        case = make_case(rows)
+        bf16_out = torch.empty_like(case["q"])
+        bf16_operation = lambda: vendor.qsa_sparse_paged_attention(
+            case["q"],
+            case["key"],
+            case["value"],
+            case["indices"],
+            case["block_table"],
+            case["token_to_req"],
+            bf16_out,
+        )
+        bf16_timing = time_cuda(bf16_operation)
+        row_results = []
+        for profile in profiles:
+            fp8_out = torch.empty_like(case["q"])
+
+            def fp8_operation():
+                return candidate.qsa_sparse_paged_attention(
+                    case["q"],
+                    case["key_bytes"],
+                    case["value_bytes"],
+                    case["indices"],
+                    case["block_table"],
+                    case["token_to_req"],
+                    fp8_out,
+                    k_scale=case["k_scale"],
+                    v_scale=case["v_scale"],
+                    _profile_override=profile,
+                )
+
+            record: dict[str, object] = {"profile": list(profile)}
+            try:
+                timing = time_cuda(fp8_operation)
+                metrics = output_metrics(bf16_out, fp8_out)
+                ratio = timing["median_us"] / bf16_timing["median_us"]
+                record.update(
+                    {
+                        "timing": timing,
+                        "fp8_to_bf16_ratio": ratio,
+                        "numerical": metrics,
+                        "passed": ratio <= 1.25
+                        and metrics["normalized_rmse"] <= 0.05
+                        and metrics["cosine_similarity"] >= 0.995,
+                    }
+                )
+                print(
+                    f"M={rows} profile={profile} us={timing['median_us']:.3f} "
+                    f"ratio={ratio:.3f} nrmse={metrics['normalized_rmse']:.5f}",
+                    flush=True,
+                )
+            except Exception as error:
+                record.update({"passed": False, "error": repr(error)})
+                print(f"M={rows} profile={profile} ERROR {error!r}", flush=True)
+            row_results.append(record)
+            result["rows"] = {
+                **result["rows"],
+                f"m{rows}": {
+                    "bf16": bf16_timing,
+                    "profiles": row_results,
+                },
+            }
+            output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+        row_results.sort(key=lambda item: item.get("fp8_to_bf16_ratio", float("inf")))
+        print(f"M={rows} best={row_results[:8]}", flush=True)
+
+    passed = all(
+        any(profile.get("passed") for profile in row_result["profiles"])
+        for row_result in result["rows"].values()
+    )
+    result["profile_gate_passed"] = passed
+    output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    if not passed:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

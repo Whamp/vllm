@@ -1,0 +1,20 @@
+{"object":"list","data":[{"id":"qwen3.8-flash-next-intel-autoround-w4a16","object":"model","created":1787985388,"owned_by":"vllm","root":"/model","parent":null,"max_model_len":156400,"permission":[{"id":"modelperm-8089930c7ebd131e","object":"model_permission","created":1787985388,"allow_create_engine":false,"allow_sampling":true,"allow_logprobs":true,"allow_search_indices":false,"allow_view":true,"allow_fine_tuning":false,"organization":"*","group":null,"is_blocking":false}]}]}
+container=sha256:0aea30240f3e3d9ffae8526643950e170eb5fa07fc427016a9dd90892afa2aa3 healthy 0
+swap_lines=1
+pid=3218208 swap_kib=0
+pid=3218932 swap_kib=0
+pid=3218933 swap_kib=0
+pid=3219114 swap_kib=0
+pid=3219237 swap_kib=0
+pid=3219405 swap_kib=0
+pid=3219544 swap_kib=0
+pid=3219990 swap_kib=0
+pid=3221217 swap_kib=0
+pid=3221220 swap_kib=0
+pid=3221243 swap_kib=0
+pid=3221408 swap_kib=0
+safety=active
+0, 230.00 W, 210 MHz, 1976 MiB
+1, 230.00 W, 210 MHz, 2000 MiB
+2, 230.00 W, 210 MHz, 2000 MiB
+3, 230.00 W, 210 MHz, 2000 MiB
