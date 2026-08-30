@@ -2,7 +2,7 @@
 
 This experiment targets the PLE worker that the accepted server60 Compose profile bind-mounts over the vLLM image. It does not target the newer in-tree `qwen4_exp` sidecar path.
 
-The completed server60 campaign and promotion decision are recorded in [RESULTS.md](RESULTS.md).
+The completed server60 campaign and promotion decision are recorded in [RESULTS.md](RESULTS.md). The separate, unvalidated concurrent-delivery candidate is documented in [FANOUT.md](FANOUT.md).
 
 The production worker source must have SHA-256:
 
