@@ -139,7 +139,9 @@ decode interference workload.
 The matched c=1/c=2 trace separated mixed concurrent prefill from steady decode
 and identified BF16 ring all-reduce as the first measured critical segment.
 Island-aware hierarchical all-reduce shortened that segment and raised
-single-stream decode by 15.0%.
+single-stream decode by 15.0%. The next trace-grounded target is the repeated
+BF16 hyperconnection projection family documented in
+[`KERNEL2-HYPERCONNECTION.md`](KERNEL2-HYPERCONNECTION.md).
 
 Mixed concurrent-prefill starvation remains separate. The current exact-final
 service costs 19.865 ms/token at 50.34 tokens/s. Alesha's 64.31-token/s
