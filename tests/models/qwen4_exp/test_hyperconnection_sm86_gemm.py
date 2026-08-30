@@ -172,6 +172,30 @@ def test_sm86_selector_replaces_only_hyperconnection_linears(monkeypatch) -> Non
     assert type(model.unrelated.quant_method) is UnquantizedLinearMethod
 
 
+def test_sm86_selector_fails_when_no_linears_are_eligible(monkeypatch) -> None:
+    monkeypatch.setattr(low_latency_gemm, "_is_sm86", lambda: True)
+    monkeypatch.setattr(
+        low_latency_gemm,
+        "_sm86_hyperconnection_op_available",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        low_latency_gemm.envs,
+        "VLLM_QWEN4_EXP_HYPERCONNECTION_BF16_SM86",
+        True,
+        raising=False,
+    )
+
+    try:
+        low_latency_gemm.enable_qwen4_exp_low_latency_gemm(nn.Module(), torch.bfloat16)
+    except RuntimeError as error:
+        assert str(error).startswith(
+            "Qwen4Exp SM86 hyperconnection selector found no eligible linears"
+        )
+    else:
+        raise AssertionError("empty native SM86 selector must fail closed")
+
+
 def test_sm86_selector_is_default_off(monkeypatch) -> None:
     model = _FakeQwenModel()
     monkeypatch.setattr(low_latency_gemm, "LinearBase", _FakeLinear)

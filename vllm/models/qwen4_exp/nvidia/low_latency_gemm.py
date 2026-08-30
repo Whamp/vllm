@@ -11,6 +11,7 @@ import torch
 from torch import nn
 
 import vllm.envs as envs
+from vllm.logger import init_logger
 from vllm.model_executor.kernels.linear.cute_dsl.skinny_gemm import (
     SkinnyGemmConfig,
     shape_dynamic_skinny_gemm,
@@ -22,6 +23,8 @@ from vllm.model_executor.layers.vocab_parallel_embedding import (
 )
 from vllm.platforms import current_platform
 from vllm.utils.torch_utils import direct_register_custom_op
+
+logger = init_logger(__name__)
 
 QWEN4_EXP_SM86_HYPERCONNECTION_PLANS: dict[tuple[int, int, int], tuple[int, int]] = {
     # (M, N, K): (block threads, output rows per block)
@@ -219,6 +222,7 @@ def enable_qwen4_exp_low_latency_gemm(
                 QWEN4_EXP_SM86_HYPERCONNECTION_PLANS
             )
         }
+        enabled_linears = 0
         for child in module.modules():
             is_linear = (
                 isinstance(child, LinearBase)
@@ -231,6 +235,15 @@ def enable_qwen4_exp_low_latency_gemm(
                 continue
             if (weight.shape[0], weight.shape[1]) in supported_shapes:
                 child.quant_method = Qwen4ExpSm86HyperconnectionLinearMethod()
+                enabled_linears += 1
+        if enabled_linears == 0:
+            raise RuntimeError(
+                "Qwen4Exp SM86 hyperconnection selector found no eligible linears"
+            )
+        logger.info(
+            "Enabled native SM86 BF16 hyperconnection GEMM for %d Qwen4Exp linears",
+            enabled_linears,
+        )
         return
 
     if not _is_sm103() or not shape_dynamic_skinny_gemm.is_available():
