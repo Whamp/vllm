@@ -1,18 +1,19 @@
 # Qwen3.8 hyperconnection `Kernel2` investigation
 
-Status: source and preserved-trace investigation. No GPU work has run for this
-study.
+Status: complete. The RTX 3090 mechanism gate returned NO-GO. Production did
+not change.
 
 ## Decision
 
-Investigate the repeated BF16 hyperconnection projections as the next Qwen3.8
-decode target. Do not change production until an RTX 3090 gate proves numerical
-correctness, CUDA Graph replay, runtime dispatch, and a trace-weighted projection
-saving of at least 0.8 ms per generated token. The end-to-end threshold is at
-least 5% higher concurrency-2 aggregate decode throughput.
+Do not integrate a hyperconnection replacement from this experiment. W8A16 was
+a net loss. Every real W4 up tensor failed the numerical gate. The native BF16
+kernel passed numerical, CUDA Graph, and SM86 build gates, but its best combined
+saving was 0.614 ms at M=1 and 0.350 ms at M=2. Both miss the preregistered
+0.8 ms per generated token threshold.
 
-Collective elimination and overlap are tracked separately as a deferred
-long-shot. The promoted hierarchical all-reduce remains unchanged.
+The serving A/B did not run because the mechanism gate failed. The promoted
+hierarchical all-reduce remains unchanged. Collective elimination and overlap
+remain a separate deferred investigation.
 
 ## Production path
 
@@ -96,30 +97,44 @@ weights per rank:
 
 This is a weight-streaming problem at M=1 and M=2. The c=1 kernels already move
 weights at roughly 500-590 GB/s, so a replacement must improve M=2 reuse or
-remove surrounding work. Launch reduction alone is unlikely to meet the gate.
+remove surrounding work. Launch reduction alone cannot meet the gate.
+
+## Server60 mechanism gate
+
+The complete evidence is in
+[`evidence/qwen38-kernel2-sm86-20260830/`](evidence/qwen38-kernel2-sm86-20260830/README.md).
+All timed runs used GPU 0 under the fixed 230 W and 210-1650 MHz safety policy,
+Torch 2.13.0+cu130, pointer-distinct weights, and alternating CUDA Graph timing.
+Production remained unchanged and was restored healthy with zero swap.
+
+| Candidate | M=1 combined saving | M=2 combined saving | Result |
+| --- | ---: | ---: | --- |
+| W8A16 Marlin | -0.033 ms | -0.252 ms | Reject |
+| BF16 down plus W4A16 up | 0.500 ms | 0.503 ms | Reject on quality and timing |
+| Native BF16 | 0.614 ms | 0.350 ms | Reject below 0.8 ms gate |
+
+The real-weight W4 screen covered all 97 up tensors. Group-32 was the least
+inaccurate format at 0.112371 aggregate NRMSE and 0.993717 cosine. Zero tensors
+met the required 0.02 NRMSE and 0.9999 cosine bounds. Group-64 and per-channel
+formats were worse.
+
+The native BF16 CUDA extension passed every numerical and deterministic graph
+case. The best merged-down plan used 256 threads and reached 718.7 GB/s at M=1.
+The best up plan used 32 threads and four rows per block. M=2 up remained slower
+than CUTLASS, which reduced the combined gain to 0.350 ms.
 
 ## Existing implementation candidates
 
 ### Qwen CuTe skinny GEMM
 
-`QWEN4_EXP_GEMM_PLANS` already contains measured M=1 and M=2 plans for the
-`(N=336,K=10240)` down/injection projection. Production enables the selector
-only on SM103. The underlying CuTe kernel uses register loads, FP32 accumulation,
-and a block reduction. Its PDL path disables itself on architectures without
-PDL.
+`QWEN4_EXP_GEMM_PLANS` contains M=1 and M=2 plans for the
+`(N=336,K=10240)` projection, but CuTe DSL rejected the RTX 3090 build with
+`CONFIG_UNSUPPORTED_ARCH`. The implementation accepts SM90 and newer. The
+experiment preserved the architecture guard and moved the row-wise idea into a
+standalone native CUDA benchmark instead.
 
-This makes an SM86 experiment source-feasible, not supported. Required evidence
-is still missing:
-
-- successful SM86 compilation and packaged cubin;
-- numerical agreement and deterministic CUDA Graph replay;
-- register and spill counts;
-- comparison with Torch/CUTLASS using pointer-distinct weights;
-- end-to-end dispatch and serving gains.
-
-The table has no `(N=10240,K=320)` up-projection plan. K=320 is not divisible by
-the kernel's usual 32-thread by four- or eight-element vector tiles. Any CuTe
-candidate needs a narrower vector width or a separate exact-shape kernel.
+The table has no `(N=10240,K=320)` up-projection plan. The native SM86 sweep
+covered 32, 64, and 128-thread blocks with one, four, and eight rows per block.
 
 ### Projection epilogues
 
@@ -152,7 +167,7 @@ The portable and nonportable parts are therefore:
 
 | Mechanism | SM86 status |
 | --- | --- |
-| Global-to-register BF16 loads and cache hints | Source-supported by CuTe DSL on Ampere; runtime build and SASS remain unproven |
+| Global-to-register BF16 loads and cache hints | The CuTe implementation rejects SM86; the native CUDA replacement reached 718.7 GB/s |
 | FP32 accumulation and warp reductions | Native and structurally portable |
 | Static-K loop specialization and two-tile register prefetch | Structurally portable, but register count and spills must be measured |
 | Tiny cross-warp shared-memory reduction | Fits SM86 easily |
@@ -235,30 +250,19 @@ For the exact hyperconnection shapes:
   shape padding and can use group 32, group 64, or per-channel scaling;
 - W8A16 matches the existing high-quality INT8 representation more closely and
   approximately halves weight traffic;
-- W4A16 approximately quarters logical weight traffic, but its quality on these
-  sensitive projections is unknown.
+- W4A16 approximately quarters logical weight traffic, but the measured real
+  up projections fail the numerical gate.
 
-The narrowest worthwhile compressed-weight screen is therefore:
+The experiment ran exact W8A16 Marlin for both projections, W4A16 Marlin for
+the up projection, W4A16 for merged down, and a native BF16 sweep. W8A16 down
+was slower than BF16. W8A16 up saved about 0.29 ms, leaving the pair at a net
+loss. W4A16 up saved about 0.50 ms but failed every real-weight numerical case.
+W4A16 down was slower and inaccurate.
 
-1. W8A16 Marlin for both projections, using group-128 merged-down and the
-   already screened per-output-row up scales;
-2. W4A16 Marlin for the up projection only, leaving merged down in BF16;
-3. all-W4 only if a complete 97-group CPU reconstruction screen meets the fixed
-   numerical gate before GPU work.
-
-The up-only W4 candidate is intentional. Up weights account for about 0.592 GiB
-per rank and about 1.071 ms of the preserved M=1 component timing, while it
-avoids the 80-group merged-down failure that killed native W8A8. Even its ideal
-fourfold weight-traffic reduction saves only about 0.8 ms before dequantization,
-so it has almost no room to miss the trace-weighted service gate. It is a cheap
-falsifiable experiment, not a recommendation.
-
-The revised implementation order is BF16 decomposition, exact W8A16 Marlin,
-up-only W4A16 Marlin, and only then purpose-built FP8. BF16 isolates scheduling
-without changing weights; W8A16 tests mature Ampere weight-only execution with
-the already screened quality contract; W4A16 tests whether additional traffic
-reduction survives quality and dequantization; FP8 remains last because SM86
-must decode it in software.
+The experiment stopped before a purpose-built FP8 kernel. SM86 would have to
+decode FP8 in software, while the native BF16 and hardware-supported integer
+paths already failed the target-scope gate. FP8 no longer has a credible path
+to the required result under this work boundary.
 
 ## Gated hypothesis
 
@@ -304,22 +308,20 @@ Falsifier: the best correct exact-shape candidate projects less than
 0.8 ms/token of trace-weighted savings, or a measured kernel gain produces less
 than 5% end-to-end concurrency-2 improvement.
 
-## Validation plan
+## Validation outcome
 
-GPU execution is deferred while server60 runs the long evaluation.
+The experiment completed the bounded mechanism gate:
 
-The later maintenance-window gate must run in this order:
+1. Reused the preserved c=1 and c=2 trace attribution.
+2. Timed exact M=1 and M=2 shapes with 16 pointer-distinct weights.
+3. Compared candidate output with FP32 and BF16 references.
+4. Required deterministic CUDA Graph replay.
+5. Verified an SM86 cubin, 33-48 registers, 512 bytes shared memory, and no
+   local-memory spills for the native BF16 extension.
+6. Streamed all 97 real up tensors through the W4 numerical screen.
+7. Recomputed the decision from archived raw JSON with a deterministic analyzer.
+8. Restored the exact production service healthy with zero swap.
 
-1. regenerate the c=1 versus c=2 `Kernel2` breakdown from the preserved trace;
-2. compare Torch/CUTLASS and each exact-shape candidate on M=1 and M=2 with
-   pointer-distinct weights and CUDA Graph replay;
-3. compare against an independent FP32 reference and the existing BF16 result;
-4. require deterministic graph replay;
-5. run Compute Sanitizer memcheck and racecheck;
-6. inspect the SM86 cubin, register count, spills, and relevant SASS;
-7. run the two projections inside the full hyperconnection chain;
-8. run a matched production serving A/B with zero swap and unchanged GPU safety
-   controls.
-
-No production selector or CUDA kernel should change before steps 1-3 establish
-the mechanism.
+Compute Sanitizer, full-chain integration, and serving A/B did not run. The
+pre-registered mechanism gate failed first, so those stages could not change the
+decision.

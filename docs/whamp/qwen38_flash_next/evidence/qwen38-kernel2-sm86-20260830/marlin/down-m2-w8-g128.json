@@ -1,0 +1,123 @@
+{
+  "arguments": {
+    "repeats": 21,
+    "replays": 20,
+    "seed": 8421,
+    "warmups": 20
+  },
+  "bf16_error": {
+    "cosine": 0.9999974370002747,
+    "max_abs_error": 0.010274410247802734,
+    "normalized_rmse": 0.002333668991923332
+  },
+  "calls": 16,
+  "candidate_graph_bitwise_deterministic": true,
+  "candidate_speedup": 0.719747360053578,
+  "compute_capability": [
+    8,
+    6
+  ],
+  "decision_contract": {
+    "note": "Random-weight numerical error is not a model-quality result. A candidate must also pass the complete real-weight screen.",
+    "required_combined_trace_weighted_savings_ms_per_generated_token": 0.8,
+    "status": "screening_only"
+  },
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "marlin_execution_error": {
+    "cosine": 0.9999986290931702,
+    "max_abs_error": 0.007803201675415039,
+    "normalized_rmse": 0.0016524645034223795
+  },
+  "marlin_quantization_error": {
+    "cosine": 0.9999759793281555,
+    "max_abs_error": 0.022037595510482788,
+    "normalized_rmse": 0.0069409641437232494
+  },
+  "padded_shape": {
+    "input_features": 10240,
+    "output_features": 384
+  },
+  "plan": {
+    "bits": 8,
+    "group_size": 128
+  },
+  "projected_projection_savings_ms_per_decode_step": -0.5418624401092529,
+  "projection": {
+    "input_features": 10240,
+    "name": "merged_down_injection",
+    "output_features": 336,
+    "production_calls": 96
+  },
+  "schema_version": 1,
+  "timing": {
+    "bf16_cutlass": {
+      "cv_pct": 0.062425691392767164,
+      "logical_weight_gb_per_s": 474.70198311666377,
+      "mean_us": 14.496299695400964,
+      "median_us": 14.496000111103058,
+      "p10_us": 14.486399292945862,
+      "p90_us": 14.508800208568573,
+      "samples_us": [
+        14.51839953660965,
+        14.496000111103058,
+        14.499199390411377,
+        14.486399292945862,
+        14.49279934167862,
+        14.4896000623703,
+        14.476799964904785,
+        14.511999487876892,
+        14.502400159835815,
+        14.502400159835815,
+        14.489500224590302,
+        14.508800208568573,
+        14.49279934167862,
+        14.499199390411377,
+        14.496000111103058,
+        14.49279934167862,
+        14.49279934167862,
+        14.49279934167862,
+        14.499199390411377,
+        14.486399292945862,
+        14.496000111103058
+      ]
+    },
+    "w8a16_marlin": {
+      "cv_pct": 0.06393881230569856,
+      "mean_us": 20.13706685531707,
+      "median_us": 20.140400528907776,
+      "p10_us": 20.12760043144226,
+      "p90_us": 20.14719992876053,
+      "physical_weight_gb_per_s": 198.28801290559912,
+      "samples_us": [
+        20.140400528907776,
+        20.137600600719452,
+        20.134399831295013,
+        20.102399587631226,
+        20.14079988002777,
+        20.105600357055664,
+        20.131200551986694,
+        20.137600600719452,
+        20.14400064945221,
+        20.140500366687775,
+        20.159800350666046,
+        20.14400064945221,
+        20.134399831295013,
+        20.134399831295013,
+        20.14719992876053,
+        20.14719992876053,
+        20.130999386310577,
+        20.14719992876053,
+        20.14400064945221,
+        20.12760043144226,
+        20.14710009098053
+      ]
+    }
+  },
+  "tokens": 2,
+  "torch_version": "2.13.0+cu130",
+  "weight_storage": {
+    "bf16_logical_bytes": 6881280,
+    "compression_ratio": 1.7230769230769232,
+    "marlin_physical_bytes": 3993600
+  }
+}

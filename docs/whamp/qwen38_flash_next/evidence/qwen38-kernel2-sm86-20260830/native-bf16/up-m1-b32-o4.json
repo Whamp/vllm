@@ -1,0 +1,120 @@
+{
+  "arguments": {
+    "repeats": 21,
+    "replays": 20,
+    "seed": 8421,
+    "warmups": 20
+  },
+  "baseline_error": {
+    "cosine": 0.9999986886978149,
+    "max_abs_error": 0.007802248001098633,
+    "normalized_rmse": 0.001644263742491603
+  },
+  "calls": 16,
+  "candidate_error": {
+    "cosine": 0.9999986886978149,
+    "max_abs_error": 0.007802248001098633,
+    "normalized_rmse": 0.001644263742491603
+  },
+  "candidate_graph_bitwise_deterministic": true,
+  "candidate_speedup": 1.1146454875638114,
+  "candidate_vs_baseline": {
+    "cosine": 0.9999998807907104,
+    "max_abs_error": 0.0001220703125,
+    "normalized_rmse": 1.1827982007162063e-06
+  },
+  "compute_capability": [
+    8,
+    6
+  ],
+  "decision_contract": {
+    "required_candidate_vs_baseline_cosine": 0.9999,
+    "required_candidate_vs_baseline_normalized_rmse": 0.01,
+    "required_combined_trace_weighted_savings_ms_per_generated_token": 0.8,
+    "status": "screening_only"
+  },
+  "extension": {
+    "bytes": 1182352,
+    "path": "/work/native-build/qwen4_exp_hyperconnection_bf16_sm86.so"
+  },
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "multiprocessor_count": 82,
+  "plan": {
+    "block_threads": 32,
+    "outputs_per_block": 4
+  },
+  "projected_projection_savings_ms_per_decode_step": 0.10739842280745507,
+  "projection": {
+    "input_features": 320,
+    "name": "up",
+    "output_features": 10240,
+    "production_calls": 97
+  },
+  "schema_version": 1,
+  "timing": {
+    "bf16_cutlass": {
+      "cv_pct": 0.43540050247271744,
+      "logical_weight_gb_per_s": 608.799048066516,
+      "mean_us": 10.74633811201368,
+      "median_us": 10.764800012111664,
+      "p10_us": 10.675200074911118,
+      "p90_us": 10.80320030450821,
+      "samples_us": [
+        10.672000050544739,
+        10.678400099277496,
+        10.678400099277496,
+        10.662399977445602,
+        10.675200074911118,
+        10.726399719715118,
+        10.732799768447876,
+        10.735999792814255,
+        10.732799768447876,
+        10.7744000852108,
+        10.771200060844421,
+        10.768000036478043,
+        10.7744000852108,
+        10.7744000852108,
+        10.764800012111664,
+        10.768000036478043,
+        10.764600336551666,
+        10.80629974603653,
+        10.802999883890152,
+        10.806400328874588,
+        10.80320030450821
+      ]
+    },
+    "bf16_sm86_native": {
+      "cv_pct": 0.39825513736166895,
+      "logical_weight_gb_per_s": 678.5951117604859,
+      "mean_us": 9.640380882081532,
+      "median_us": 9.657599776983261,
+      "p10_us": 9.583999961614609,
+      "p90_us": 9.679999947547913,
+      "samples_us": [
+        9.583999961614609,
+        9.58079993724823,
+        9.583999961614609,
+        9.587199985980988,
+        9.583999961614609,
+        9.587199985980988,
+        9.628800302743912,
+        9.63200032711029,
+        9.66079980134964,
+        9.657599776983261,
+        9.651199728250504,
+        9.663999825716019,
+        9.654399752616882,
+        9.66079980134964,
+        9.657599776983261,
+        9.66079980134964,
+        9.679999947547913,
+        9.683199971914291,
+        9.673599898815155,
+        9.676799923181534,
+        9.699200093746185
+      ]
+    }
+  },
+  "tokens": 1,
+  "torch_version": "2.13.0+cu130"
+}
