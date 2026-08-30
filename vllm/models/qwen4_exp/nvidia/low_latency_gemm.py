@@ -23,6 +23,13 @@ from vllm.model_executor.layers.vocab_parallel_embedding import (
 from vllm.platforms import current_platform
 from vllm.utils.torch_utils import direct_register_custom_op
 
+QWEN4_EXP_SM86_HYPERCONNECTION_PLANS: dict[tuple[int, int, int], tuple[int, int]] = {
+    # (M, N, K): (block threads, output rows per block)
+    (1, 336, 10240): (256, 1),
+    (2, 336, 10240): (256, 1),
+    (1, 10240, 320): (32, 4),
+}
+
 QWEN4_EXP_GEMM_PLANS: dict[tuple[int, int], dict[int, SkinnyGemmConfig]] = {
     # GDN fused QKVZ projection, TP=4.
     (4096, 2560): {
@@ -83,6 +90,33 @@ def _is_sm103() -> bool:
     return current_platform.is_device_capability((10, 3))
 
 
+def _is_sm86() -> bool:
+    return current_platform.is_device_capability((8, 6))
+
+
+def qwen4_exp_sm86_hyperconnection_plan(
+    tokens: int,
+    output_features: int,
+    input_features: int,
+) -> tuple[int, int] | None:
+    """Return the native SM86 launch plan for an exact Qwen hyperconnection GEMM."""
+
+    return QWEN4_EXP_SM86_HYPERCONNECTION_PLANS.get(
+        (tokens, output_features, input_features)
+    )
+
+
+def _sm86_hyperconnection_op_available() -> bool:
+    return hasattr(torch.ops._C, "qwen4_exp_hyperconnection_bf16_sm86")
+
+
+def _run_qwen4_exp_sm86_hyperconnection(
+    x: torch.Tensor,
+    weight: torch.Tensor,
+) -> torch.Tensor:
+    return torch.ops._C.qwen4_exp_hyperconnection_bf16_sm86(x, weight)
+
+
 def _is_packed_row_major(tensor: torch.Tensor) -> bool:
     return tensor.dim() == 2 and tensor.stride() == (tensor.shape[1], 1)
 
@@ -117,6 +151,12 @@ class Qwen4ExpLowLatencyLinearMethod(_Qwen4ExpLowLatencyApply, UnquantizedLinear
     pass
 
 
+class Qwen4ExpSm86HyperconnectionLinearMethod(
+    _Qwen4ExpLowLatencyApply, UnquantizedLinearMethod
+):
+    """Apply the native SM86 BF16 kernel only to exact hyperconnection shapes."""
+
+
 class Qwen4ExpLowLatencyEmbeddingMethod(
     _Qwen4ExpLowLatencyApply, UnquantizedEmbeddingMethod
 ):
@@ -124,6 +164,17 @@ class Qwen4ExpLowLatencyEmbeddingMethod(
 
 
 def _qwen4_exp_low_latency_gemm(x: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
+    if (
+        envs.VLLM_QWEN4_EXP_HYPERCONNECTION_BF16_SM86
+        and _is_sm86()
+        and qwen4_exp_sm86_hyperconnection_plan(
+            x.shape[0], weight.shape[0], weight.shape[1]
+        )
+        is not None
+        and _runtime_ok(x, weight)
+    ):
+        return _run_qwen4_exp_sm86_hyperconnection(x, weight)
+
     plan = QWEN4_EXP_GEMM_PLANS.get((weight.shape[0], weight.shape[1]))
     config = None if plan is None else plan.get(x.shape[0])
     if (
@@ -152,9 +203,36 @@ def enable_qwen4_exp_low_latency_gemm(
     module: nn.Module,
     dtype: torch.dtype,
 ) -> None:
-    if dtype != torch.bfloat16 or not _is_sm103():
+    if dtype != torch.bfloat16:
         return
-    if not shape_dynamic_skinny_gemm.is_available():
+
+    if envs.VLLM_QWEN4_EXP_HYPERCONNECTION_BF16_SM86 and _is_sm86():
+        if not _sm86_hyperconnection_op_available():
+            raise RuntimeError(
+                "Qwen4Exp SM86 hyperconnection op unavailable: rebuild "
+                "vllm._C_stable_libtorch with the native kernel"
+            )
+        supported_shapes = {
+            (output_features, input_features)
+            for _, output_features, input_features in (
+                QWEN4_EXP_SM86_HYPERCONNECTION_PLANS
+            )
+        }
+        for child in module.modules():
+            is_linear = (
+                isinstance(child, LinearBase)
+                and type(child.quant_method) is UnquantizedLinearMethod
+            )
+            if not is_linear:
+                continue
+            weight = getattr(child, "weight", None)
+            if weight is None or weight.dim() != 2:
+                continue
+            if (weight.shape[0], weight.shape[1]) in supported_shapes:
+                child.quant_method = Qwen4ExpSm86HyperconnectionLinearMethod()
+        return
+
+    if not _is_sm103() or not shape_dynamic_skinny_gemm.is_available():
         return
 
     warmup_configs: set[SkinnyGemmConfig] = set()
