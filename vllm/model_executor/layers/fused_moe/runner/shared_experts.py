@@ -61,7 +61,21 @@ class SharedExperts(torch.nn.Module):
         # debug purposes.
         # TODO: Remove this after more extensive testings with TP/DP
         # and other execution modes
-        if envs.VLLM_DISABLE_SHARED_EXPERTS_STREAM:
+        in_ple_offload_process = False
+        if envs.VLLM_PLE_CPU_OFFLOAD:
+            from vllm.model_executor.layers.ple_offload_layer import (
+                is_offload_process,
+            )
+
+            in_ple_offload_process = is_offload_process()
+
+        if in_ple_offload_process:
+            # PLE discovery builds the non-PLE model only for module traversal;
+            # no MoE forward ever runs in this process.  Creating an auxiliary
+            # CUDA stream here defeats meta construction and initializes a CUDA
+            # context before the worker imports its actual IPC destinations.
+            self._stream = None
+        elif envs.VLLM_DISABLE_SHARED_EXPERTS_STREAM:
             logger.debug_once("Disabling MoE shared_experts cuda stream")
             self._stream = None
         else:

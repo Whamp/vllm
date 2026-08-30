@@ -1,0 +1,90 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+
+import importlib.util
+import os
+import subprocess
+import sys
+from pathlib import Path
+from types import ModuleType
+
+import pytest
+import torch
+
+
+@pytest.fixture(scope="module")
+def production_worker_overlay(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> ModuleType:
+    base_worker = os.environ.get("VLLM_QWEN38_PRODUCTION_PLE_WORKER")
+    if base_worker is None:
+        pytest.skip("production Qwen3.8 PLE worker source was not provided")
+    assert base_worker is not None
+    root = Path(__file__).parents[3]
+    output_dir = tmp_path_factory.mktemp("qwen38_production_overlay")
+    script = root / "benchmarks/qwen38_ple_runtime/build_native_gather_overlay.py"
+    subprocess.run(
+        [sys.executable, script, base_worker, output_dir],
+        check=True,
+    )
+    worker_path = output_dir / "worker_image_quant.py"
+    spec = importlib.util.spec_from_file_location(
+        "qwen38_production_worker_overlay",
+        worker_path,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_production_overlay_routes_supported_gathers_to_native(
+    production_worker_overlay: ModuleType,
+) -> None:
+    calls = []
+
+    class NativeGather:
+        def gather_into(self, row_ids: torch.Tensor, output: torch.Tensor) -> bool:
+            calls.append(row_ids.clone())
+            output.fill_(17)
+            return True
+
+    table = production_worker_overlay._PleQuantTable.__new__(
+        production_worker_overlay._PleQuantTable
+    )
+    table._native_gather = NativeGather()
+    output = torch.empty((3, 16), dtype=torch.bfloat16)
+    row_ids = torch.tensor([7, 0, 7])
+
+    table.gather_into(row_ids, output)
+
+    assert len(calls) == 1
+    assert torch.equal(calls[0], row_ids)
+    assert torch.equal(output, torch.full_like(output, 17))
+
+
+def test_production_overlay_keeps_python_fallback(
+    production_worker_overlay: ModuleType,
+) -> None:
+    class UnsupportedNativeGather:
+        def gather_into(self, row_ids: torch.Tensor, output: torch.Tensor) -> bool:
+            del row_ids, output
+            return False
+
+    table = production_worker_overlay._PleQuantTable.__new__(
+        production_worker_overlay._PleQuantTable
+    )
+    table._native_gather = UnsupportedNativeGather()
+    table.layout = "group16_e2m1_e4m3scale_lownibblefirst"
+    table.width = 16
+    table._lut = None
+    table._q = [torch.full((1, 8), 0x21, dtype=torch.uint8)]
+    table._s = [torch.full((1, 1), 0.5, dtype=torch.float8_e4m3fn)]
+    table._s2 = [2.0]
+    table.ROWS_PER_SHARD = 1
+    output = torch.empty((1, 16), dtype=torch.bfloat16)
+
+    table.gather_into(torch.tensor([0]), output)
+
+    expected = torch.tensor([0.5, 1.0] * 8, dtype=torch.bfloat16).reshape(1, 16)
+    assert torch.equal(output, expected)
