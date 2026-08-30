@@ -16,6 +16,9 @@ Qwen3.8 FP8-QSA hierarchical all-reduce profile.
   multimodal acceptance, BenchLocal quick result, exact-final state, GPU state,
   and server log. BenchLocal's generated Markdown is preserved as
   `benchlocal-quick.md.gz`.
+- `stability/` contains the warmed allocator reports, cold 261K-context NVML and
+  swap telemetry, deterministic summary, exact diagnostic context, and restored
+  production state.
 
 `SHA256SUMS` covers every file in this directory. Verify it with:
 

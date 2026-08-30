@@ -1,0 +1,7 @@
+health=ok
+restart_policy=unless-stopped
+restart_count=0
+image=sha256:4b59067e269f313a78f0a698e79261230fb02e3712f42ffd54b3e9ec9be9705a
+swap_bytes=0
+overcommit_memory=0
+gpu_power_limit_service=active

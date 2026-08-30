@@ -112,6 +112,40 @@ contracts preserve both the prior FP8/PYNCCL profile and the earlier BF16-QSA
 profile. The fixed `gpu-power-limit.service` remained active at 230 W throughout
 validation.
 
+## Warmed stability acceptance
+
+The final acceptance used diagnostic image
+`sha256:63ccf7ea4983d950b739b1e9bc2a5fcbaba1a8537ccfbc5b7fecfa1747db6c85`,
+which layers opt-in memory reporting over the promoted image without changing the
+model, QSA, collective, scheduler, or serving configuration.
+
+The first full acceptance warmed deterministic generation, tool and post-tool
+turns, multimodal input, concurrency 2, and a 261,544-token NIAH request. The
+allocator made a one-time first-use reservation: per rank, reserved memory grew
+by 360-380 MiB from startup warmup to execution step 500, while active allocation
+grew by only 5.37 MiB. This is allocator cache, not retained model or request
+state.
+
+The warmed state then held:
+
+- all recorded allocator counters were byte-identical between execution steps
+  500 and 750 on all four ranks;
+- a separate first-block-nonced 261,549-token NIAH request passed in 188.55
+  seconds;
+- 162 one-second NVML samples per GPU showed zero memory growth during that cold
+  long-context request;
+- minimum free memory was 1,370 MiB on rank 0 and 1,394 MiB on ranks 1-3;
+- maximum serving-process swap was zero;
+- post-run metrics reported zero running or waiting requests and zero KV-cache
+  use.
+
+The diagnostic container reported `OOMKilled=false`, and its live log scan found
+no OOM, allocator-retry, CUDA-error, fatal, traceback, or engine-failure record.
+The diagnostic was removed after collection. The normal production image was
+restored healthy with restart policy `unless-stopped`, restart count zero, swap
+disabled, `vm.overcommit_memory=0`, the 230 W safety service active, and no
+rollback timer.
+
 ## Production identity
 
 | Item | Value |

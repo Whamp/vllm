@@ -1,0 +1,9 @@
+{
+  "answer": "CERULEAN COMET 8412",
+  "api_prompt_tokens": 261549,
+  "finish_reason": "stop",
+  "prefix_cache_buster": "first-prompt-block",
+  "target_tokens": 261500,
+  "tokenized_prompt_tokens": 261497,
+  "wall_seconds": 188.547427542042
+}

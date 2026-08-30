@@ -1,0 +1,215 @@
+{
+  "acceptance": {
+    "concurrency_2_aggregate_tokens_per_second": 49.643927013509305,
+    "deterministic": "passed",
+    "multimodal": "passed",
+    "niah_answer": "VIOLET ORBIT 9137",
+    "niah_api_prompt_tokens": 261544,
+    "tool_and_post_tool": "passed"
+  },
+  "allocator_by_rank": {
+    "0": {
+      "serve_execute_step_500": {
+        "allocator_cache_bytes": 876407808,
+        "device_free_bytes": 1436221440,
+        "torch_allocated_bytes": 22114669568,
+        "torch_peak_allocated_bytes": 22453165056,
+        "torch_reserved_bytes": 22991077376
+      },
+      "serve_execute_step_750": {
+        "allocator_cache_bytes": 876407808,
+        "device_free_bytes": 1436221440,
+        "torch_allocated_bytes": 22114669568,
+        "torch_peak_allocated_bytes": 22453165056,
+        "torch_reserved_bytes": 22991077376
+      },
+      "step_500_to_step_750": {
+        "allocator_cache_bytes": 0,
+        "device_free_bytes": 0,
+        "torch_allocated_bytes": 0,
+        "torch_peak_allocated_bytes": 0,
+        "torch_reserved_bytes": 0
+      },
+      "warmup": {
+        "allocator_cache_bytes": 504553472,
+        "device_free_bytes": 1813708800,
+        "torch_allocated_bytes": 22109036544,
+        "torch_peak_allocated_bytes": 22116098560,
+        "torch_reserved_bytes": 22613590016
+      },
+      "warmup_to_step_500": {
+        "allocator_cache_bytes": 371854336,
+        "device_free_bytes": -377487360,
+        "torch_allocated_bytes": 5633024,
+        "torch_peak_allocated_bytes": 337066496,
+        "torch_reserved_bytes": 377487360
+      }
+    },
+    "1": {
+      "serve_execute_step_500": {
+        "allocator_cache_bytes": 897379328,
+        "device_free_bytes": 1461387264,
+        "torch_allocated_bytes": 22114669568,
+        "torch_peak_allocated_bytes": 22453165056,
+        "torch_reserved_bytes": 23012048896
+      },
+      "serve_execute_step_750": {
+        "allocator_cache_bytes": 897379328,
+        "device_free_bytes": 1461387264,
+        "torch_allocated_bytes": 22114669568,
+        "torch_peak_allocated_bytes": 22453165056,
+        "torch_reserved_bytes": 23012048896
+      },
+      "step_500_to_step_750": {
+        "allocator_cache_bytes": 0,
+        "device_free_bytes": 0,
+        "torch_allocated_bytes": 0,
+        "torch_peak_allocated_bytes": 0,
+        "torch_reserved_bytes": 0
+      },
+      "warmup": {
+        "allocator_cache_bytes": 504553472,
+        "device_free_bytes": 1859846144,
+        "torch_allocated_bytes": 22109036544,
+        "torch_peak_allocated_bytes": 22116098560,
+        "torch_reserved_bytes": 22613590016
+      },
+      "warmup_to_step_500": {
+        "allocator_cache_bytes": 392825856,
+        "device_free_bytes": -398458880,
+        "torch_allocated_bytes": 5633024,
+        "torch_peak_allocated_bytes": 337066496,
+        "torch_reserved_bytes": 398458880
+      }
+    },
+    "2": {
+      "serve_execute_step_500": {
+        "allocator_cache_bytes": 897379328,
+        "device_free_bytes": 1461387264,
+        "torch_allocated_bytes": 22114669568,
+        "torch_peak_allocated_bytes": 22453165056,
+        "torch_reserved_bytes": 23012048896
+      },
+      "serve_execute_step_750": {
+        "allocator_cache_bytes": 897379328,
+        "device_free_bytes": 1461387264,
+        "torch_allocated_bytes": 22114669568,
+        "torch_peak_allocated_bytes": 22453165056,
+        "torch_reserved_bytes": 23012048896
+      },
+      "step_500_to_step_750": {
+        "allocator_cache_bytes": 0,
+        "device_free_bytes": 0,
+        "torch_allocated_bytes": 0,
+        "torch_peak_allocated_bytes": 0,
+        "torch_reserved_bytes": 0
+      },
+      "warmup": {
+        "allocator_cache_bytes": 504553472,
+        "device_free_bytes": 1859846144,
+        "torch_allocated_bytes": 22109036544,
+        "torch_peak_allocated_bytes": 22116098560,
+        "torch_reserved_bytes": 22613590016
+      },
+      "warmup_to_step_500": {
+        "allocator_cache_bytes": 392825856,
+        "device_free_bytes": -398458880,
+        "torch_allocated_bytes": 5633024,
+        "torch_peak_allocated_bytes": 337066496,
+        "torch_reserved_bytes": 398458880
+      }
+    },
+    "3": {
+      "serve_execute_step_500": {
+        "allocator_cache_bytes": 897379328,
+        "device_free_bytes": 1461649408,
+        "torch_allocated_bytes": 22114669568,
+        "torch_peak_allocated_bytes": 22453165056,
+        "torch_reserved_bytes": 23012048896
+      },
+      "serve_execute_step_750": {
+        "allocator_cache_bytes": 897379328,
+        "device_free_bytes": 1461649408,
+        "torch_allocated_bytes": 22114669568,
+        "torch_peak_allocated_bytes": 22453165056,
+        "torch_reserved_bytes": 23012048896
+      },
+      "step_500_to_step_750": {
+        "allocator_cache_bytes": 0,
+        "device_free_bytes": 0,
+        "torch_allocated_bytes": 0,
+        "torch_peak_allocated_bytes": 0,
+        "torch_reserved_bytes": 0
+      },
+      "warmup": {
+        "allocator_cache_bytes": 504553472,
+        "device_free_bytes": 1860108288,
+        "torch_allocated_bytes": 22109036544,
+        "torch_peak_allocated_bytes": 22116098560,
+        "torch_reserved_bytes": 22613590016
+      },
+      "warmup_to_step_500": {
+        "allocator_cache_bytes": 392825856,
+        "device_free_bytes": -398458880,
+        "torch_allocated_bytes": 5633024,
+        "torch_peak_allocated_bytes": 337066496,
+        "torch_reserved_bytes": 398458880
+      }
+    }
+  },
+  "cold_prefix_busted_niah": {
+    "answer": "CERULEAN COMET 8412",
+    "api_prompt_tokens": 261549,
+    "finish_reason": "stop",
+    "prefix_cache_buster": "first-prompt-block",
+    "target_tokens": 261500,
+    "tokenized_prompt_tokens": 261497,
+    "wall_seconds": 188.547427542042
+  },
+  "decision": {
+    "allocator_counters_stable_from_step_500_to_step_750": true,
+    "nvml_used_memory_stable_during_cold_261k_niah": true,
+    "passed": true,
+    "zero_process_swap": true
+  },
+  "maximum_process_swap_kib": 0,
+  "nvml_by_rank": {
+    "0": {
+      "first_free_mib": 1370,
+      "first_used_mib": 22757,
+      "last_free_mib": 1370,
+      "last_used_mib": 22757,
+      "minimum_free_mib": 1370,
+      "samples": 162,
+      "used_growth_mib": 0
+    },
+    "1": {
+      "first_free_mib": 1394,
+      "first_used_mib": 22733,
+      "last_free_mib": 1394,
+      "last_used_mib": 22733,
+      "minimum_free_mib": 1394,
+      "samples": 162,
+      "used_growth_mib": 0
+    },
+    "2": {
+      "first_free_mib": 1394,
+      "first_used_mib": 22733,
+      "last_free_mib": 1394,
+      "last_used_mib": 22733,
+      "minimum_free_mib": 1394,
+      "samples": 162,
+      "used_growth_mib": 0
+    },
+    "3": {
+      "first_free_mib": 1394,
+      "first_used_mib": 22733,
+      "last_free_mib": 1394,
+      "last_used_mib": 22733,
+      "minimum_free_mib": 1394,
+      "samples": 162,
+      "used_growth_mib": 0
+    }
+  },
+  "schema_version": 1
+}
