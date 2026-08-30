@@ -44,6 +44,13 @@ aggregate decode. Prefill changed by less than 0.3%. BenchLocal quick scored
 - [Native SM86 Kernel2](KERNEL2-HYPERCONNECTION.md) specializes the repeated
   Qwen hyperconnection BF16 projections for M=1 and M=2.
 
+## Prepared experiments
+
+- [Shared-expert early launch](SHARED-EXPERT-EARLY-LAUNCH.md) moves the existing
+  CUDA auxiliary-stream submission before routed-expert dispatch. It is
+  default-off and CPU-prepared; RTX 3090 correctness and performance remain
+  unmeasured.
+
 ## Rejected experiments
 
 - [Capacity kernel gates](CAPACITY-KERNEL-GATES.md) close the generic

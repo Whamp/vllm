@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "status": "cpu_prepared_gpu_unvalidated",
+  "selector": "VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH",
+  "selector_default": false,
+  "upstream_reference": {
+    "commit": "2c7d7dd64a2eaba0feedf42cab2f527486d7479c",
+    "pull_request": "https://github.com/vllm-project/vllm/pull/52033"
+  },
+  "whamp_base": {
+    "commit": "617d38d97b4dd8a90ad0ffaf15a4f64412470b25"
+  },
+  "current_production_contract": {
+    "base_image_id": "sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef",
+    "service_name": "qwen38-flash-next",
+    "container_name": "qwen38-qsa-fp8-candidate",
+    "served_model_name": "qwen3.8-flash-next-intel-autoround-w4a16",
+    "host_port": 30002,
+    "production_compose": "/home/will/inference/runtime/qwen38-qsa-fp8-candidate/production.yml",
+    "resolved_compose_sha256": "ad55f9159a517e3ac816361d73473e90ae3ff1b794eba59a0324d5dd7d51b0fb",
+    "restore_script": "/home/will/inference/runtime/qwen38-qsa-fp8-candidate/restore-fp8.sh",
+    "restore_script_sha256": "3792aad749575e9dec73d89b597e2df767444d11f99725ff221f90de30acff03",
+    "installed_sources": {
+      "vllm/envs.py": "cbe6272965f373a2e490a4b16171a4301277b5ad0f6889654183b3d1d1121b4c",
+      "vllm/model_executor/layers/fused_moe/runner/moe_runner.py": "a19ecf2417c80b93c0fe5594e74528f686665847732196f9b29ef967b38110b0",
+      "vllm/model_executor/layers/fused_moe/runner/shared_experts.py": "4216c125cecc05181a94f745101603e90e7c06bb98030036dd1c1acfe5095ff6"
+    },
+    "known_derived_outputs": {
+      "vllm/envs.py": null,
+      "vllm/model_executor/layers/fused_moe/runner/moe_runner.py": "9214e858d8b6b40ccdef0f8a2ce3c1d79ad9b02d7b1557fb6bf8a6561726a423",
+      "vllm/model_executor/layers/fused_moe/runner/shared_experts.py": "5c109687a6803906099ed2d98934e1692a20dee3af7d3b3a0af2336afa9cb64b"
+    },
+    "env_output_sha256_status": "derived_and_recorded_at_build"
+  },
+  "canonical_candidate_sources": {
+    "vllm/envs.py": "78ac1296266d66dc6d72167bc2a8082ebb6f368e43148bd268efc8aedb662c2a",
+    "vllm/model_executor/layers/fused_moe/runner/moe_runner.py": "6251bf5eaefe769d7af1c5b4fd0c452fa888ea7195f1b3d0c35a9f575515b78a",
+    "vllm/model_executor/layers/fused_moe/runner/shared_experts.py": "a3401ea592c18dc66e2c79bdac905906fc2b2b10a125de523232496542f6f01a"
+  },
+  "delivery": {
+    "patch_script": {
+      "path": "scripts/qwen38_patch_shared_expert_early_launch.py",
+      "sha256": "c5ab4840a21459f59bac63e146fd596621a2298d8d0ae3282fffce2432ca2e92"
+    },
+    "build_script": {
+      "path": "scripts/qwen38_build_shared_expert_early_launch_image.sh",
+      "sha256": "29766ba25bac5b5600beef0fbc9aeb26a76de89dbd76dce51d9f586e6d154f08"
+    },
+    "dockerfile": {
+      "path": "docs/whamp/qwen38_flash_next/experiments/shared-expert-early-launch/Dockerfile",
+      "sha256": "35eadac6a4d03a37aa34d7141817a0876590bd3dd65ff29b057a98e779491641"
+    },
+    "rollback_verifier": {
+      "path": "scripts/qwen38_verify_shared_expert_rollback.sh",
+      "sha256": "6ba017c00db7b1b4772b7a79b7be67fcef627f521b7feb3604126ff0b741686e"
+    },
+    "restore_watchdog": {
+      "path": "scripts/qwen38_shared_expert_restore_watchdog.sh",
+      "sha256": "d5f3b2ea13d334f975ff3bafeea1f16b8111ad78d0cc408d5ec51a56a6bf3437"
+    },
+    "restore_executor": {
+      "path": "scripts/qwen38_execute_shared_expert_restore.sh",
+      "sha256": "32f54980aa8701d9189203463d02147a2e58199c00cafc67afe34f9ec7276a8d"
+    }
+  },
+  "gpu_gate": {
+    "required": true,
+    "minimum_decode_improvement_percent": 3.0,
+    "maximum_other_decode_regression_percent": 2.0,
+    "maximum_prefill_regression_percent": 2.0,
+    "requirements": [
+      "exact operator output",
+      "CUDA Graph deterministic replay",
+      "Compute Sanitizer memcheck and racecheck",
+      "runtime dispatch log",
+      "phase-separated overlap trace",
+      "same-image selector ablation",
+      "functional and long-context acceptance",
+      "zero-swap healthy restoration"
+    ]
+  }
+}

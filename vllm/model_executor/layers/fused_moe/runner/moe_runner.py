@@ -582,12 +582,17 @@ class MoERunner(MoERunnerInterface):
         router_logits: torch.Tensor,
         shared_experts_input: torch.Tensor | None,
         input_ids: torch.Tensor | None = None,
+        shared_experts_overlapping: bool = False,
     ) -> tuple[torch.Tensor | None, torch.Tensor | UnfinalizedMoEOutput]:
         """Run expert routing and the fused MoE kernel via the quant method.
 
         Orchestrates shared expert execution (before/after), expert selection
         via the router, and the actual fused MoE computation. Returns
         (shared_expert_output, fused_expert_output).
+
+        ``shared_experts_overlapping`` is true only when the shared expert was
+        already enqueued on its auxiliary CUDA stream. That path waits here at
+        the same result-consumption boundary used by the legacy launch order.
         """
         self._maybe_apply_shared_experts(
             shared_experts_input, SharedExpertsOrder.NO_OVERLAP
@@ -617,10 +622,16 @@ class MoERunner(MoERunnerInterface):
                 shared_experts_input=shared_experts_input,
             )
 
-        self._maybe_apply_shared_experts(
-            shared_experts_input,
-            SharedExpertsOrder.MULTI_STREAM_OVERLAPPED,
-        )
+        if shared_experts_overlapping:
+            assert self._shared_experts is not None
+            self._shared_experts.wait()
+        else:
+            # Preserve the existing CUDA launch and synchronization path when
+            # the early-launch experiment is disabled or inapplicable.
+            self._maybe_apply_shared_experts(
+                shared_experts_input,
+                SharedExpertsOrder.MULTI_STREAM_OVERLAPPED,
+            )
 
         return (
             self._shared_experts.output if self._shared_experts is not None else None,
@@ -878,39 +889,62 @@ class MoERunner(MoERunnerInterface):
         # TODO(bnell): this can be removed after MK migration is complete.
         self.routed_experts._ensure_moe_quant_config_init()
 
-        # Sync aux and main stream for shared expert multi-stream overlap.
-        self._maybe_sync_shared_experts_stream(shared_experts_input)
-
-        # If the Runner holds the gate, apply it after the stream sync,
-        # so it can run overlapped with the
-        # NOTE: in future PR, MoE runner will always hold the gate.
-        if self.gate is not None:
-            if self._fse_fuse_gate:
-                self._maybe_fuse_gate_weights()
-                router_logits = F.linear(hidden_states, self._combined_gate_weight)
-            else:
-                router_logits, _ = self.gate(hidden_states)
-
-        with self._sequence_parallel_context():
-            # TODO(bnell): parts of the dispatch/combine steps will go away once
-            # #32567 lands and the remaining kernels are made MKs.  The PCP
-            # code will probably remain
-            hidden_states, router_logits = self._maybe_dispatch(
-                hidden_states,
-                router_logits,
+        # Opt-in CUDA experiment: enqueue shared experts before gate, routing,
+        # and routed-expert dispatch. If it does not apply, preserve the legacy
+        # stream synchronization and later host launch order exactly.
+        shared_experts_overlapping = False
+        if self._shared_experts is not None:
+            assert shared_experts_input is not None
+            shared_experts_overlapping = self._shared_experts.maybe_forward_async(
+                shared_experts_input
             )
+        if not shared_experts_overlapping:
+            self._maybe_sync_shared_experts_stream(shared_experts_input)
 
-            shared_output, hidden_states = self._apply_quant_method(
-                hidden_states=hidden_states,
-                router_logits=router_logits,
-                shared_experts_input=shared_experts_input,
-                input_ids=input_ids,
-            )
+        try:
+            # If the Runner holds the gate, apply it after the stream sync,
+            # so it can run overlapped with the
+            # NOTE: in future PR, MoE runner will always hold the gate.
+            if self.gate is not None:
+                if self._fse_fuse_gate:
+                    self._maybe_fuse_gate_weights()
+                    router_logits = F.linear(hidden_states, self._combined_gate_weight)
+                else:
+                    router_logits, _ = self.gate(hidden_states)
 
-            return self._maybe_combine(
-                shared_output,
-                hidden_states,
-            )
+            with self._sequence_parallel_context():
+                # TODO(bnell): parts of the dispatch/combine steps will go away once
+                # #32567 lands and the remaining kernels are made MKs.  The PCP
+                # code will probably remain
+                hidden_states, router_logits = self._maybe_dispatch(
+                    hidden_states,
+                    router_logits,
+                )
+
+                shared_output, hidden_states = self._apply_quant_method(
+                    hidden_states=hidden_states,
+                    router_logits=router_logits,
+                    shared_experts_input=shared_experts_input,
+                    input_ids=input_ids,
+                    shared_experts_overlapping=shared_experts_overlapping,
+                )
+
+                return self._maybe_combine(
+                    shared_output,
+                    hidden_states,
+                )
+        except BaseException:
+            if shared_experts_overlapping:
+                assert self._shared_experts is not None
+                try:
+                    self._shared_experts.wait_and_discard_async_output()
+                except BaseException as cleanup_error:
+                    logger.exception(
+                        "CUDA shared-expert cleanup failed while preserving "
+                        "the routed-path error: %r",
+                        cleanup_error,
+                    )
+            raise
 
     #########################################################
     #

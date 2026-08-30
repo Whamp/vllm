@@ -52,10 +52,14 @@ class SharedExperts(torch.nn.Module):
         # index is always 0 and the second output list element is ignored.
         self.enable_dbo = enable_dbo
         self._output: list[torch.Tensor | None] = [None, None]
+        self._async_in_flight = [False, False]
         self._layer = layer
         self._moe_config = moe_config
 
         self._mk_can_overlap_shared_experts = mk_can_overlap_shared_experts
+        self._cuda_early_launch = (
+            envs.VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH and current_platform.is_cuda()
+        )
 
         # Allow disabling of the separate shared experts stream for
         # debug purposes.
@@ -84,6 +88,13 @@ class SharedExperts(torch.nn.Module):
             self._stream = aux_stream()
             if self._stream is not None:
                 logger.debug_once("Enabled separate cuda stream for MoE shared_experts")
+
+        self._input_ready_event: list[torch.cuda.Event] = []
+        self._output_ready_event: list[torch.cuda.Event] = []
+        if self._stream is not None and self._cuda_early_launch:
+            self._input_ready_event = [torch.cuda.Event(), torch.cuda.Event()]
+            self._output_ready_event = [torch.cuda.Event(), torch.cuda.Event()]
+            logger.info_once("Enabled early launch for CUDA MoE shared experts")
 
     # TODO(bnell): Hack for elastic_ep. Get rid of this
     def _set_moe_config(self, new_moe_config: FusedMoEConfig):
@@ -132,6 +143,80 @@ class SharedExperts(torch.nn.Module):
         else:
             return SharedExpertsOrder.NO_OVERLAP
 
+    def maybe_forward_async(self, shared_experts_input: torch.Tensor) -> bool:
+        """Enqueue CUDA shared experts before routed expert dispatch.
+
+        Returns whether the caller must invoke :meth:`wait` before consuming
+        :attr:`output`. The default-off selector preserves the legacy launch
+        order and synchronization path.
+        """
+        if not self._cuda_early_launch:
+            return False
+        if (
+            self._determine_shared_experts_order(shared_experts_input)
+            != SharedExpertsOrder.MULTI_STREAM_OVERLAPPED
+        ):
+            return False
+
+        assert self._stream is not None
+        idx = self._output_idx
+        if self._output[idx] is not None or self._async_in_flight[idx]:
+            raise RuntimeError(
+                f"CUDA shared-expert early-launch slot {idx} is occupied"
+            )
+        if len(self._input_ready_event) != 2 or len(self._output_ready_event) != 2:
+            raise RuntimeError("CUDA shared-expert early-launch events are unavailable")
+
+        shared_experts_input.record_stream(self._stream)
+        self._input_ready_event[idx].record(current_stream())
+        output_event_recorded = False
+        try:
+            with torch.cuda.stream(self._stream):
+                self._input_ready_event[idx].wait(self._stream)
+                try:
+                    self._output[idx] = self._layer(shared_experts_input)
+                finally:
+                    self._output_ready_event[idx].record(self._stream)
+                    output_event_recorded = True
+        except BaseException:
+            try:
+                if output_event_recorded:
+                    self._output_ready_event[idx].wait(current_stream())
+                else:
+                    current_stream().wait_stream(self._stream)
+            except BaseException as cleanup_error:
+                logger.exception(
+                    "CUDA shared-expert launch cleanup failed while preserving "
+                    "the shared-layer error: %r",
+                    cleanup_error,
+                )
+            self._output[idx] = None
+            raise
+
+        self._async_in_flight[idx] = True
+        logger.debug_once("Early-launched CUDA MoE shared experts")
+        return True
+
+    def wait(self) -> None:
+        """Order the current CUDA stream after one early shared-expert launch."""
+        idx = self._output_idx
+        if not self._async_in_flight[idx]:
+            raise RuntimeError(
+                f"CUDA shared-expert early-launch slot {idx} is not in flight"
+            )
+        self._output_ready_event[idx].wait(current_stream())
+        self._async_in_flight[idx] = False
+
+    def wait_and_discard_async_output(self) -> None:
+        """Finish and discard early output after the routed path raises."""
+        idx = self._output_idx
+        try:
+            if self._async_in_flight[idx]:
+                self._output_ready_event[idx].wait(current_stream())
+        finally:
+            self._async_in_flight[idx] = False
+            self._output[idx] = None
+
     def maybe_sync_shared_experts_stream(
         self,
         shared_experts_input: torch.Tensor,
@@ -171,9 +256,19 @@ class SharedExperts(torch.nn.Module):
 
     @property
     def output(self) -> torch.Tensor:
-        assert self._output[self._output_idx] is not None
-        output = self._output[self._output_idx]
-        self._output[self._output_idx] = None
+        idx = self._output_idx
+        if self._async_in_flight[idx]:
+            raise RuntimeError(
+                f"CUDA shared-expert early-launch slot {idx} was not waited"
+            )
+        output = self._output[idx]
+        if output is None:
+            raise RuntimeError(
+                f"CUDA shared-expert early-launch slot {idx} has no output"
+            )
+        if self._cuda_early_launch:
+            output.record_stream(current_stream())
+        self._output[idx] = None
         return output
 
     def forward(

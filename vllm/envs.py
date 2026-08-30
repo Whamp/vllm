@@ -318,6 +318,7 @@ if TYPE_CHECKING:
     VLLM_GC_DEBUG: str = ""
     VLLM_DEBUG_WORKSPACE: bool = False
     VLLM_DISABLE_SHARED_EXPERTS_STREAM: bool = False
+    VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH: bool = False
     VLLM_DETERMINISTIC_MOE_ALIGN: bool = False
     VLLM_DISABLE_MULTI_STREAM_PARALLEL: bool = False
     VLLM_DISABLE_DSV4_MEGAMOE_SHARED_EXPERT_FUSION: bool = False
@@ -2306,6 +2307,11 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Disables parallel execution of shared_experts via separate cuda stream
     "VLLM_DISABLE_SHARED_EXPERTS_STREAM": lambda: bool(
         int(os.getenv("VLLM_DISABLE_SHARED_EXPERTS_STREAM", "0"))
+    ),
+    # Opt-in experiment: enqueue CUDA shared experts before routed expert
+    # dispatch instead of relying on later host launch ordering for overlap.
+    "VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH": lambda: bool(
+        int(os.getenv("VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH", "0"))
     ),
     # Deterministic moe_align_block_size (stable sort instead of FCFS atomics).
     # The Marlin MoE GEMM is permutation-sensitive at the ulp level, so the
