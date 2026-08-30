@@ -471,6 +471,7 @@ class ChatCompletionRequest(OpenAIBaseModel):
     cache_salt: str | None = Field(
         default=None,
         min_length=1,
+        max_length=1024,
         description=(
             "If specified, the prefix cache will be salted with the provided "
             "string to prevent an attacker to guess prompts in multi-user "
@@ -1112,7 +1113,19 @@ class BatchChatCompletionRequest(OpenAIBaseModel):
     media_io_kwargs: dict[str, dict[str, Any]] | None = None
     mm_processor_kwargs: dict[str, Any] | None = None
     priority: int = Field(default=0, ge=_INT64_MIN, le=_INT64_MAX)
-    cache_salt: str | None = None
+    cache_salt: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=1024,
+        description=(
+            "If specified, the prefix cache will be salted with the provided "
+            "string to prevent an attacker to guess prompts in multi-user "
+            "environments. The salt should be random, protected from "
+            "access by 3rd parties, and long enough to be "
+            "unpredictable (e.g., 43 characters base64-encoded, corresponding "
+            "to 256 bit)."
+        ),
+    )
     include_stop_str_in_output: bool = False
     guided_decoding_backend: str | None = None
     echo: bool = False

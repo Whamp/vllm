@@ -49,3 +49,34 @@ def test_diffusion_accepts_top_k_top_p():
 def test_non_diffusion_models_unaffected():
     params = SamplingParams(temperature=0.7, top_k=10, seed=42)
     params.verify(MockModelConfig(), None, None, None)
+
+
+@pytest.mark.skip_global_cleanup
+@pytest.mark.parametrize("parameter", ["stop_token_ids", "allowed_token_ids"])
+@pytest.mark.parametrize("invalid_token_id", [-1, 1024])
+def test_sampling_token_id_lists_reject_out_of_model_vocab(
+    parameter: str, invalid_token_id: int
+) -> None:
+    params = SamplingParams(**{parameter: [invalid_token_id]})
+
+    with pytest.raises(VLLMValidationError, match=parameter):
+        params.verify(MockModelConfig(), None, None, None)
+
+
+@pytest.mark.skip_global_cleanup
+@pytest.mark.parametrize("parameter", ["stop_token_ids", "allowed_token_ids"])
+def test_sampling_token_id_lists_accept_model_vocab_boundaries(parameter: str) -> None:
+    params = SamplingParams(**{parameter: [0, 1023]})
+
+    params.verify(MockModelConfig(), None, None, None)
+
+
+@pytest.mark.skip_global_cleanup
+def test_allowed_token_ids_use_model_vocab_when_tokenizer_vocab_is_smaller() -> None:
+    class SmallerTokenizer:
+        def __len__(self) -> int:
+            return 1
+
+    params = SamplingParams(allowed_token_ids=[1023])
+
+    params.verify(MockModelConfig(), None, None, SmallerTokenizer())

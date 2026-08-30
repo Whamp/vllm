@@ -10,6 +10,7 @@ import pytest
 from vllm.config import ModelConfig
 from vllm.exceptions import VLLMValidationError
 from vllm.multimodal import MULTIMODAL_REGISTRY
+from vllm.multimodal.processing import processor as processor_module
 from vllm.multimodal.processing.context import InputProcessingContext
 from vllm.multimodal.processing.processor import (
     BaseMultiModalProcessor,
@@ -1082,7 +1083,17 @@ class _FakeTokenizer:
     _MERGES = {"food": (1000,), "foo": (101, 111, 111)}
     _INVERSE = {ids: text for text, ids in _MERGES.items()}
 
-    def encode(self, text: str, **kwargs) -> list[int]:
+    def __init__(self) -> None:
+        self.encode_add_special_tokens: list[bool] = []
+
+    def encode(
+        self,
+        text: str,
+        *,
+        add_special_tokens: bool = True,
+        **kwargs,
+    ) -> list[int]:
+        self.encode_add_special_tokens.append(add_special_tokens)
         token_ids = list[int]()
         pos = 0
         while pos < len(text):
@@ -1157,6 +1168,32 @@ def test_apply_prompt_updates_falls_back_to_text_matching():
     assert new_token_ids == [200, 201, ord("d")]
     assert [p.to_range().offset for p in placeholders["image"]] == [0]
     assert [p.tokens for p in placeholders["image"]] == [[200, 201]]
+
+
+@pytest.mark.skip_global_cleanup
+def test_text_fallback_does_not_retain_full_prompt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tokenizer = _FakeTokenizer()
+    processor = _TextFallbackProcessor(tokenizer)
+
+    def reject_cached_prompt(*args, **kwargs):
+        raise AssertionError("full fallback prompts must not enter cached_encode")
+
+    monkeypatch.setattr(processor_module, "cached_encode", reject_cached_prompt)
+
+    new_token_ids, placeholders = processor._apply_prompt_updates(
+        [1000],  # "food"
+        {
+            "image": [
+                [PromptReplacement("image", [101, 111, 111], [200, 201]).resolve(0)]
+            ]
+        },
+    )
+
+    assert new_token_ids == [200, 201, ord("d")]
+    assert [p.tokens for p in placeholders["image"]] == [[200, 201]]
+    assert tokenizer.encode_add_special_tokens == [False]
 
 
 def test_apply_prompt_updates_falls_back_with_prefix_target():
