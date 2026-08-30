@@ -531,6 +531,75 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
         valid = (source.unsqueeze(0) >= 0) & (position_in_segment >= shift)
         return torch.where(valid, shifted, tokens.new_full((), eos_token_id))
 
+    def _is_single_token_decode_batch(
+        self,
+        query_start_loc: torch.Tensor,
+        num_tokens: int,
+        num_reqs: int,
+    ) -> bool:
+        """Return whether every request contributes exactly one decode token."""
+        return (
+            num_tokens == num_reqs
+            and int(query_start_loc[0]) == 0
+            and bool(torch.all(query_start_loc[1:] - query_start_loc[:-1] == 1))
+        )
+
+    def _compute_decode_ngram_ids(
+        self,
+        input_ids: torch.Tensor,
+        ngram_context: torch.Tensor,
+    ) -> torch.Tensor:
+        """Compute EOS-aware PLE row IDs without generic token packing."""
+        shifted = [input_ids]
+        previous_tokens_available = torch.ones_like(input_ids, dtype=torch.bool)
+        for shift in range(1, self.ngram_size):
+            previous_token = ngram_context[:, -shift]
+            shifted.append(
+                torch.where(
+                    previous_tokens_available,
+                    previous_token,
+                    self.eos_token_id,
+                )
+            )
+            previous_tokens_available &= previous_token != self.eos_token_id
+
+        id_blocks = []
+        for ngram in range(2, self.ngram_size + 1):
+            start = (ngram - 2) * self.heads_per_ngram
+            end = start + self.heads_per_ngram
+            mixed = shifted[0] * self.layer_multipliers[0]
+            for index in range(1, ngram):
+                mixed = torch.bitwise_xor(
+                    mixed, shifted[index] * self.layer_multipliers[index]
+                )
+            sizes = self.ngram_heads_vocab_sizes[start:end]
+            offsets = self.ngram_heads_offsets[start:end]
+            id_blocks.append(torch.remainder(mixed.unsqueeze(-1), sizes) + offsets)
+        return torch.cat(id_blocks, dim=-1)
+
+    def _gather_nvfp4_sidecar_embeddings(
+        self,
+        ngram_ids: torch.Tensor,
+        num_tokens: int,
+        output_buffer: torch.Tensor | None,
+    ) -> torch.Tensor:
+        """Gather sidecar rows into caller-owned floating output storage."""
+        sidecar = self._nvfp4_sidecar
+        assert sidecar is not None
+        if output_buffer is None:
+            output = torch.empty(
+                (num_tokens, self.embedding_dim),
+                dtype=self._nvfp4_sidecar_output_dtype,
+                device=ngram_ids.device,
+            )
+        else:
+            output = output_buffer[:num_tokens, : self.embedding_dim]
+        sidecar.gather_dequantized_rows(
+            ngram_ids.reshape(-1),
+            output.reshape(-1, self.head_dim),
+        )
+        return output
+
     def forward_impl(  # type: ignore[override]
         self,
         hidden_states: torch.Tensor,
@@ -553,6 +622,18 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
             raise ValueError(
                 f"PLE received {num_reqs} requests, but its workspace supports "
                 f"at most {self.padded_buffer.shape[0]}"
+            )
+
+        ngram_context = ngram_context[:num_reqs].to(
+            device=input_ids.device, dtype=torch.long
+        )
+        sidecar = self._nvfp4_sidecar
+        if sidecar is not None and self._is_single_token_decode_batch(
+            query_start_loc, num_tokens, num_reqs
+        ):
+            ngram_ids = self._compute_decode_ngram_ids(input_ids, ngram_context)
+            return self._gather_nvfp4_sidecar_embeddings(
+                ngram_ids, num_tokens, output_buffer
             )
 
         # The CPU-offload subprocess is never captured by a CUDA Graph, so its
@@ -584,10 +665,6 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
         packed[request_indices[:num_valid_tokens], columns[:num_valid_tokens]] = (
             input_ids[:num_valid_tokens]
         )
-        ngram_context = ngram_context[:num_reqs].to(
-            device=input_ids.device, dtype=torch.long
-        )
-
         context = torch.cat([ngram_context, packed], dim=-1)
         positions_2d, position_in_segment = self._shift_precompute(
             context, self.eos_token_id
@@ -618,21 +695,10 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
             ids = torch.remainder(mixed.unsqueeze(-1), sizes) + offsets
             id_blocks.append(ids[request_indices, adjusted_columns])
         ngram_ids = torch.cat(id_blocks, dim=-1)
-        sidecar = self._nvfp4_sidecar
         if sidecar is not None:
-            if output_buffer is None:
-                output = torch.empty(
-                    (num_tokens, self.embedding_dim),
-                    dtype=self._nvfp4_sidecar_output_dtype,
-                    device=ngram_ids.device,
-                )
-            else:
-                output = output_buffer[:num_tokens, : self.embedding_dim]
-            sidecar.gather_dequantized_rows(
-                ngram_ids.reshape(-1),
-                output.reshape(-1, self.head_dim),
+            return self._gather_nvfp4_sidecar_embeddings(
+                ngram_ids, num_tokens, output_buffer
             )
-            return output
         if output_buffer is not None:
             quant_method = getattr(self.ngram_embedding, "quant_method", None)
             if isinstance(quant_method, Qwen4ExpPLENVFp4EmbeddingMethod):

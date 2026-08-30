@@ -4,6 +4,7 @@
 
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,6 +13,11 @@ from safetensors import safe_open
 
 NVFP4_PLE_SIDECAR_LAYOUT = "group16_e2m1_e4m3scale_lownibblefirst"
 NVFP4_PLE_BLOCK_SIZE = 16
+
+
+def _get_native_nvfp4_ple_gather() -> Callable[..., None] | None:
+    """Return the native packed-row gather when the extension provides it."""
+    return getattr(torch.ops._C, "gather_nvfp4_ple_rows", None)
 
 
 @dataclass(frozen=True)
@@ -212,6 +218,7 @@ class NvFp4PleSidecar:
         self.code_shards = code_shards
         self.scale_shards = scale_shards
         self.outer_scales = outer_scales
+        self._outer_scales_tensor = torch.stack(outer_scales).to(torch.float32)
         self._dequant_lut = torch.tensor(
             _NVFP4_MAGNITUDES + tuple(-value for value in _NVFP4_MAGNITUDES),
             dtype=torch.float32,
@@ -271,6 +278,18 @@ class NvFp4PleSidecar:
                 f"PLE sidecar output shape mismatch: expected {expected_shape}, "
                 f"got {tuple(output.shape)}"
             )
+        native_gather = _get_native_nvfp4_ple_gather()
+        if native_gather is not None:
+            native_gather(
+                self.code_shards,
+                self.scale_shards,
+                self._outer_scales_tensor,
+                row_ids,
+                output,
+                self.manifest.rows_per_shard,
+            )
+            return
+
         plan = plan_nvfp4_ple_sidecar_gather(
             row_ids,
             shard_count=self.manifest.shard_count,

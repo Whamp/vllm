@@ -31,6 +31,12 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C, ops) {
 
   ops.def("get_cuda_view_from_cpu_tensor(Tensor cpu_tensor) -> Tensor");
 
+  // Gather mmap-backed packed PLE rows and dequantize them on the CPU.
+  ops.def(
+      "gather_nvfp4_ple_rows(Tensor[] code_shards, Tensor[] scale_shards, "
+      "Tensor outer_scales, Tensor row_ids, Tensor! output, "
+      "int rows_per_shard) -> ()");
+
 #ifndef USE_ROCM
 
   // Note about marlin kernel 'workspace' arguments:
