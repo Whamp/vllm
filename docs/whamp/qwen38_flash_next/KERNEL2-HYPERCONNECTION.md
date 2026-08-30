@@ -139,6 +139,81 @@ two matrix operations. A cooperative persistent kernel would add a large
 synchronization and maintenance burden before the simpler exact-shape paths are
 measured.
 
+## SM103 to SM86 feasibility
+
+The SM103 selector is architecture-specific, but the selected CuTe kernel is not
+a Blackwell Tensor Core kernel. It uses global-to-register loads, converts BF16
+values to FP32, performs scalar multiply-accumulate work, reduces within each
+warp, and combines warp partials through a very small shared-memory allocation.
+It uses no TMA, WGMMA, thread-block cluster, distributed shared memory, or native
+FP8 operation.
+
+The portable and nonportable parts are therefore:
+
+| Mechanism | SM86 status |
+| --- | --- |
+| Global-to-register BF16 loads and cache hints | Source-supported by CuTe DSL on Ampere; runtime build and SASS remain unproven |
+| FP32 accumulation and warp reductions | Native and structurally portable |
+| Static-K loop specialization and two-tile register prefetch | Structurally portable, but register count and spills must be measured |
+| Tiny cross-warp shared-memory reduction | Fits SM86 easily |
+| Programmatic Dependent Launch | Unavailable on SM86; early weight prefetch cannot overlap the preceding kernel |
+| SM103 tile table | Not portable; every SM86 M/shape needs measurement |
+
+The missing PDL overlap matters most for the static-K down projection: SM103 can
+begin loading its first two weight tiles before the preceding producer is fully
+complete. SM86 starts normally after the dependency. That removes one benefit
+but does not invalidate the row-wise decomposition.
+
+SM86 also permits only 16 resident blocks per SM. A one-warp up-projection block
+can therefore expose at most 16 resident warps even when registers allow more.
+The first up-projection sweep should compare a 32-thread, two-BF16-per-lane plan
+with a 64-thread, one-BF16-per-lane plan. The latter can reach 32 resident warps
+without requiring a K tail because 320 is divisible by 64.
+
+Candidate BF16 configurations are deliberately small:
+
+- down, K=10,240: static K, one output row per block, 64/128/256 threads;
+- up, K=320: 32 threads x two BF16 values or 64 threads x one BF16 value,
+  with four and eight output rows per block;
+- M=1 and M=2 only; larger token batches remain on the existing implementation.
+
+### FP8 weight-storage candidate
+
+BF16 is not a model requirement for stored hyperconnection weights. A separate
+candidate can keep activations and outputs in BF16, accumulate in FP32, and
+store weights as one-byte E4M3 values plus scales. RTX 3090 has no native FP8
+arithmetic, so this is weight-only FP8: every weight must be decoded in registers
+or into a BF16 Tensor Core fragment before use.
+
+This candidate has more theoretical headroom because the 97 hyperconnection
+groups currently own about 1.215 GiB of BF16 weights per rank. A byte-neutral,
+unpadded E4M3 representation would approximately halve the dominant weight
+traffic. The existing all-weight 128x128 block-FP8 screen measured normalized
+RMSE 0.026313 and cosine 0.999630, which justifies an experiment but not a model
+quality claim.
+
+The prior FP8 no-go applies only to generic Marlin. It padded the odd
+hyperconnection shapes and measured 112-138 us where BF16 measured 22-27 us. A
+purpose-built candidate must therefore:
+
+- retain the raw unpadded `[N,K]` shape;
+- compare per-output-row and 128x128 block scales;
+- decode E4M3 bytes inside the exact-shape kernel rather than materializing a
+  BF16 weight copy;
+- reuse each decoded weight across both M=2 rows;
+- keep BF16 activation/output and FP32 accumulation semantics;
+- remain default-off with the original BF16 linear as the complete fallback.
+
+The current QSA FP8 reader supplies a tested SM86 software E4M3 decode pattern,
+but sparse-attention success does not establish GEMM economics: hyperconnection
+execution decodes hundreds of millions of weight values per token. The decisive
+measurement is whether halved traffic outweighs integer decode and scaling.
+
+The implementation order is BF16 decomposition first, then FP8. The BF16 arm
+isolates the portable scheduling idea without changing model weights. If it
+cannot compile or execute efficiently on SM86, the more complex FP8 arm needs a
+different kernel foundation rather than inheriting the same decomposition.
+
 ## Gated hypothesis
 
 Outcome: raise warmed concurrency-2 aggregate decode by at least 5% while
