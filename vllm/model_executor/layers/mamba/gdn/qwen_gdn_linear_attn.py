@@ -464,13 +464,32 @@ class QwenGatedDeltaNetAttention(GatedDeltaNetAttention):
             f"unsupported {output_gate_type=}"
         )
 
+        # PLE discovery constructs the complete non-PLE model under a meta
+        # device context.  Forcing the platform CUDA device here bypasses that
+        # context, creating a real CUDA context and allocations in the otherwise
+        # CPU-only offload process.  Honor meta construction
+        # there; ordinary GPU workers retain the explicit device.
+        in_ple_offload_process = False
+        if envs.VLLM_PLE_CPU_OFFLOAD:
+            from vllm.model_executor.layers.ple_offload_layer import (
+                is_offload_process,
+            )
+
+            in_ple_offload_process = is_offload_process()
+
+        norm_device = (
+            torch.device("meta")
+            if in_ple_offload_process
+            else current_platform.current_device()
+        )
+
         self.norm = RMSNormGated(
             self.head_v_dim,
             eps=self.layer_norm_epsilon,
             group_size=None,
             norm_before_gate=True,
             activation=output_gate_type,
-            device=current_platform.current_device(),
+            device=norm_device,
         )
 
         self.out_proj = RowParallelLinear(
