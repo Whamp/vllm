@@ -2,7 +2,7 @@
 
 ## Status
 
-CPU implementation complete. GPU validation has not started.
+Rejected on server60's current PCIe topology. Retained default-off for one matched retest after the planned x4-to-x8 BIOS correction. See [FANOUT-RESULTS.md](FANOUT-RESULTS.md).
 
 This candidate stacks only concurrent TP output delivery on the promoted native lookup baseline. The control remains image:
 
