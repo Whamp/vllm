@@ -3,7 +3,9 @@
 ## Decision
 
 Promote the calibrated direct-E4M3 QSA cache as server60's Qwen3.8 production default.
-Keep the BF16 profile as the rollback path.
+Keep the BF16 profile as the rollback path. The current production image also
+enables island-aware hierarchical all-reduce. See
+[Qwen3.8 hierarchical all-reduce](HIERARCHICAL-ALL-REDUCE.md).
 
 The promoted profile stores the twelve QSA layers' main K/V cache as E4M3 bytes,
 decodes those bytes in the sparse QSA reader, and applies an exact calibrated
@@ -28,7 +30,8 @@ shape.
 | Derived index SHA-256 | `e8893bbecf33dc7f9cdc27f927adbb3886d41531756e8e46cf9cee85499a1201` |
 | Primitive PLE revision | `da8b39586016d8325ac619be28ad77d6296625ec` |
 | Accepted base image | `sha256:1b4577a1b6f11029bb0c06e8051b7a3b360b5834b65e84fae09ff2f5485c6c0b` |
-| Production FP8 image | `sha256:61971a78222e89335d84a7f4d72b0e8842619a4a29564582a58ff328af48abb9` |
+| Base FP8 image | `sha256:61971a78222e89335d84a7f4d72b0e8842619a4a29564582a58ff328af48abb9` |
+| Current hierarchical image | `sha256:4b59067e269f313a78f0a698e79261230fb02e3712f42ffd54b3e9ec9be9705a` |
 | Scale-file SHA-256 | `554d68aa917bdcac3ec7e5c14a8ca1421182d0b899da30b6c54501b72aefdcf3` |
 | Cache dtype | `fp8_e4m3` |
 | Context | 262,144 tokens |
@@ -94,9 +97,14 @@ KV and allocated 314,261 tokens. It passed:
 - zero serving-process swap;
 - the fixed 230 W server60 power policy.
 
-A matched internal benchmark measured 43.77 decode tokens/s and 1,529.25
-cache-busted prefill tokens/s. The preceding BF16 run measured 43.98 and
-1,531.33. The differences were minus 0.47% and minus 0.14%.
+The initial PYNCCL production benchmark measured 43.77 decode tokens/s and
+1,529.25 cache-busted prefill tokens/s. The preceding BF16 run measured 43.98
+and 1,531.33. The differences were minus 0.47% and minus 0.14%.
+
+After trace-guided hierarchical all-reduce promotion, the exact-final service
+measured 50.34 decode and 1,538.14 prefill tokens/s. Concurrency-2 aggregate
+throughput rose from 53.25 to 59.00 tokens/s. The model, QSA cache, PLE,
+context, batch-token budget, and GPU policy stayed unchanged.
 
 ## llama-benchy interpretation
 
@@ -120,20 +128,14 @@ decode interference workload.
 
 ## Open performance work
 
-Two targets remain separate:
+The matched c=1/c=2 trace separated mixed concurrent prefill from steady decode
+and identified BF16 ring all-reduce as the first measured critical segment.
+Island-aware hierarchical all-reduce shortened that segment and raised
+single-stream decode by 15.0%.
 
-1. Mixed concurrent-prefill starvation or serialization in the cold c=2 run.
-2. Cached steady decode scaling and the single-stream gap to Alesha's reported
-   63 to 68 tokens/s.
-
-The local cached c=1 result costs 20.744 ms/token. Alesha's 64.31-token/s
-near-maximum result costs 15.550 ms/token. The unexplained budget is 5.194
-ms/token. `max_num_seqs`, GPU-memory utilization, and benchmark prompt method do
-not explain that matched single-stream interval. Before changing code, capture
-matched c=1 and c=2 timelines and attribute scheduler phase admission, 1,024-token
-chunking, expert-parallel all-to-all and imbalance, PLE, QSA, GDN,
-hyperconnection, shared-expert, and routed-MoE work.
-
-The next implementation must name one measured critical segment and shorten it.
-Checkpoint changes and Alesha's thin-v2 FP8 companion projections remain a
-separate one-variable comparison rather than an assumed cause.
+Mixed concurrent-prefill starvation remains separate. The current exact-final
+service costs 19.865 ms/token at 50.34 tokens/s. Alesha's 64.31-token/s
+near-maximum result costs 15.550 ms/token, leaving a 4.315 ms/token external
+comparison gap. Checkpoint differences, split projection structure, companion
+FP8 weights, and host configuration still prevent attributing that gap to one
+runtime mechanism.

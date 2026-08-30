@@ -1,0 +1,8 @@
+8d6b202ab8838da0196fd3af3a292e30185e5c19d4df32373401428e96d86cd7  /home/will/inference/runtime/qwen38-hier-allreduce-ab/overlay/cuda_communicator.py
+299a7c6dbbfd620c9d8b904ba0f4fd731f7dfec3cf494b1b24618aa2095adc39  /home/will/inference/runtime/qwen38-hier-allreduce-ab/overlay/hier_all_reduce.py
+ffc0c62a1b23b0cfe78abb4f331693b49e899f9ada6268134dfbece40d604ebf  /home/will/inference/runtime/qwen38-hier-allreduce-ab/Dockerfile
+3d91e1d4b2245745657d4c3aa36418b3e9955c48425b97edbd6a8ca1400440d8  /home/will/inference/runtime/qwen38-hier-allreduce-ab/build.sh
+0ffeeb6d42ca74b3457820ee77c300a7918f0d105eb0ba7fbc09c1ce86cc50c2  /home/will/inference/runtime/qwen38-hier-allreduce-ab/gate.py
+047956704c2e49a3710f74933828e6efe2da62a68a36efe56f0b3baa1213e748  /home/will/inference/runtime/qwen38-hier-allreduce-ab/restore-production.sh
+fd3b8511bfb1f790bae178e3992a069842808cb2de9b2661893320d3a788331a  /home/will/inference/runtime/qwen38-hier-allreduce-ab/candidate.yml
+1ed6eb334a981814e3e7b49ca24818c51c342ac449a99b090587c5295f16d20a  /home/will/inference/runtime/qwen38-hier-allreduce-ab/launch-candidate.sh
