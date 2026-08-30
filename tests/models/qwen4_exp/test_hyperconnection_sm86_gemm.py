@@ -77,8 +77,23 @@ def test_sm86_dispatch_uses_native_op_only_for_registered_shapes(monkeypatch) ->
     native_result = object()
     fallback_result = object()
     native_calls: list[tuple[object, object]] = []
+
+    class FailIfCalledSkinnyGemm:
+        @staticmethod
+        def is_available() -> bool:
+            return True
+
+        def __call__(self, *args: object) -> object:
+            raise AssertionError("SM103 CuTe path must not run on SM86")
+
     monkeypatch.setattr(low_latency_gemm, "_is_sm86", lambda: True)
+    monkeypatch.setattr(low_latency_gemm, "_is_sm103", lambda: False)
     monkeypatch.setattr(low_latency_gemm, "_runtime_ok", lambda x, weight: True)
+    monkeypatch.setattr(
+        low_latency_gemm,
+        "shape_dynamic_skinny_gemm",
+        FailIfCalledSkinnyGemm(),
+    )
     monkeypatch.setattr(
         low_latency_gemm.envs,
         "VLLM_QWEN4_EXP_HYPERCONNECTION_BF16_SM86",
@@ -113,11 +128,17 @@ def test_sm86_dispatch_uses_native_op_only_for_registered_shapes(monkeypatch) ->
         )
         assert result is native_result
 
-    result = low_latency_gemm._qwen4_exp_low_latency_gemm(
-        SimpleNamespace(shape=(2, 320)),
-        SimpleNamespace(shape=(10240, 320)),
+    fallback_shapes = (
+        ((2, 320), (10240, 320)),
+        ((4, 10240), (336, 10240)),
+        ((8, 10240), (336, 10240)),
     )
-    assert result is fallback_result
+    for activation_shape, weight_shape in fallback_shapes:
+        result = low_latency_gemm._qwen4_exp_low_latency_gemm(
+            SimpleNamespace(shape=activation_shape),
+            SimpleNamespace(shape=weight_shape),
+        )
+        assert result is fallback_result
     assert len(native_calls) == len(native_shapes)
 
 

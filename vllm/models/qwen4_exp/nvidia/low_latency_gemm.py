@@ -179,6 +179,7 @@ def _qwen4_exp_low_latency_gemm(x: torch.Tensor, weight: torch.Tensor) -> torch.
     config = None if plan is None else plan.get(x.shape[0])
     if (
         config is not None
+        and _is_sm103()
         and _runtime_ok(x, weight)
         and shape_dynamic_skinny_gemm.is_available()
     ):
