@@ -55,6 +55,118 @@ _WORKER_GATHER_NEW = (
     "            return\n"
     "        shard = ids // self.ROWS_PER_SHARD\n"
 )
+_WORKER_DISK_FUNCTION_ANCHOR = "\n\ndef _ple_disk_dir() -> str | None:\n"
+_WORKER_BF16_FUNCTIONS = """
+
+def _ple_bf16_mmap_config() -> tuple[str, str, str] | None:
+    import os
+
+    checkpoint_path = os.environ.get("VLLM_PLE_BF16_MMAP_FILE")
+    if not checkpoint_path:
+        return None
+    expected_sha256 = os.environ.get("VLLM_PLE_BF16_MMAP_SHA256")
+    native_library_path = os.environ.get("VLLM_PLE_BF16_MMAP_LIBRARY")
+    if not expected_sha256 or not native_library_path:
+        raise RuntimeError(
+            "BF16 PLE direct mmap requires VLLM_PLE_BF16_MMAP_SHA256 and "
+            "VLLM_PLE_BF16_MMAP_LIBRARY"
+        )
+    return checkpoint_path, expected_sha256, native_library_path
+
+
+def _ple_bf16_mmap_attach(
+    layer_name: str,
+    layer: torch.nn.Module,
+    checkpoint_path: str,
+    expected_sha256: str,
+    native_library_path: str,
+) -> str:
+    from vllm.v1.ple_offload.bf16_ple_mmap_gather import (
+        attach_bf16_ple_mmap_table,
+    )
+
+    parameter_name = attach_bf16_ple_mmap_table(
+        layer_name=layer_name,
+        layer=layer,
+        checkpoint_path=checkpoint_path,
+        expected_sha256=expected_sha256,
+        native_library_path=native_library_path,
+    )
+    logger.info(
+        "PLE BF16 direct mmap: %s.%s served from %s",
+        layer_name,
+        parameter_name,
+        checkpoint_path,
+    )
+    return parameter_name
+
+
+def _ple_storage_config(
+) -> tuple[str | None, tuple[str, str, str] | None, str | None]:
+    quant_dir = _ple_quant_dir()
+    bf16_mmap_config = _ple_bf16_mmap_config()
+    disk_dir = _ple_disk_dir()
+    if bf16_mmap_config is not None and (quant_dir is not None or disk_dir is not None):
+        raise RuntimeError(
+            "PLE BF16 direct mmap is mutually exclusive with quantized "
+            "sidecar and copied disk offload modes"
+        )
+    if quant_dir is not None:
+        disk_dir = None
+    return quant_dir, bf16_mmap_config, disk_dir
+"""
+_WORKER_STORAGE_OLD = """        quant_dir = _ple_quant_dir()
+        disk_dir = _ple_disk_dir() if quant_dir is None else None
+        disk_attached: dict[str, str] = {}
+        disk_complete_params: set[str] = set()
+        disk_complete_tables: tuple[str, ...] = ()
+        if quant_dir is not None:
+            table_prefixes = []
+            for layer_name, layer in offload_layers.items():
+                pname = _ple_quant_attach(layer_name, layer, quant_dir)
+                if pname is None:
+                    continue
+                full = f"{layer_name}.{pname}"
+                disk_complete_params.add(full)
+                table_prefixes.append(full.rsplit(".", 1)[0])
+            disk_complete_tables = tuple(table_prefixes)
+        if disk_dir is not None:
+"""
+_WORKER_STORAGE_NEW = """        (
+            quant_dir,
+            bf16_mmap_config,
+            disk_dir,
+        ) = _ple_storage_config()
+        disk_attached: dict[str, str] = {}
+        disk_complete_params: set[str] = set()
+        disk_complete_tables: tuple[str, ...] = ()
+        if bf16_mmap_config is not None:
+            checkpoint_path, expected_sha256, native_library_path = bf16_mmap_config
+            table_prefixes = []
+            for layer_name, layer in offload_layers.items():
+                pname = _ple_bf16_mmap_attach(
+                    layer_name,
+                    layer,
+                    checkpoint_path,
+                    expected_sha256,
+                    native_library_path,
+                )
+                full = f"{layer_name}.{pname}"
+                disk_complete_params.add(full)
+                table_prefixes.append(full.rsplit(".", 1)[0])
+            disk_complete_tables = tuple(table_prefixes)
+        elif quant_dir is not None:
+            table_prefixes = []
+            for layer_name, layer in offload_layers.items():
+                pname = _ple_quant_attach(layer_name, layer, quant_dir)
+                if pname is None:
+                    continue
+                full = f"{layer_name}.{pname}"
+                disk_complete_params.add(full)
+                table_prefixes.append(full.rsplit(".", 1)[0])
+            disk_complete_tables = tuple(table_prefixes)
+        if disk_dir is not None:
+"""
 
 
 def _sha256(path: Path) -> str:
@@ -82,11 +194,17 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     worker_output = args.output_dir / "worker_image_quant.py"
     helper_output = args.output_dir / "nvfp4_native_gather.py"
+    bf16_helper_output = args.output_dir / "bf16_ple_mmap_gather.py"
     library_output = args.output_dir / "libvllm_ple_nvfp4_gather.so"
     worker_source = args.worker_image_quant.read_text()
     for old, new in (
         (_WORKER_INIT_OLD, _WORKER_INIT_NEW),
         (_WORKER_GATHER_OLD, _WORKER_GATHER_NEW),
+        (
+            _WORKER_DISK_FUNCTION_ANCHOR,
+            _WORKER_BF16_FUNCTIONS + _WORKER_DISK_FUNCTION_ANCHOR,
+        ),
+        (_WORKER_STORAGE_OLD, _WORKER_STORAGE_NEW),
     ):
         if worker_source.count(old) != 1:
             raise RuntimeError("production PLE worker patch anchor is not unique")
@@ -95,6 +213,10 @@ def main() -> None:
     shutil.copyfile(
         repo_root / "vllm/v1/ple_offload/nvfp4_native_gather.py",
         helper_output,
+    )
+    shutil.copyfile(
+        repo_root / "vllm/v1/ple_offload/bf16_ple_mmap_gather.py",
+        bf16_helper_output,
     )
     subprocess.run(
         [
@@ -112,8 +234,14 @@ def main() -> None:
     )
     py_compile.compile(worker_output, doraise=True)
     py_compile.compile(helper_output, doraise=True)
+    py_compile.compile(bf16_helper_output, doraise=True)
 
-    artifacts = (worker_output, helper_output, library_output)
+    artifacts = (
+        worker_output,
+        helper_output,
+        bf16_helper_output,
+        library_output,
+    )
     manifest = "".join(f"{_sha256(path)}  {path.name}\n" for path in artifacts)
     (args.output_dir / "SHA256SUMS").write_text(manifest)
 

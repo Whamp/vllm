@@ -1,0 +1,119 @@
+{
+  "artifact": {
+    "download_snapshot_revision": "4c67bf686b7f7fd386bae6b07ab59e8ff1d5b897",
+    "file_bytes": 102400512256,
+    "header_bytes": 20728,
+    "lfs_sha256": "59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf",
+    "payload_bytes": 102400491520,
+    "pinned_model_revision": "861536dda5bcb208376fc4cd879b2bf76bece9fe",
+    "tensor_count": 128,
+    "tensor_dtype": "BF16",
+    "tensor_shape": [
+      2500012,
+      160
+    ]
+  },
+  "full_file_verification": {
+    "direct_io_aligned_bytes": 102400512000,
+    "matched": true,
+    "normal_io_tail_bytes": 256,
+    "sha256": "59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf"
+  },
+  "production_nvfp4_mapping": {
+    "mapped_bytes": 28800188416,
+    "mapping_count": 128,
+    "madv_random": false,
+    "resident_kib": 1331880
+  },
+  "real_artifact_oracle": {
+    "bit_exact": true,
+    "distinct_shards": 111,
+    "independent_reference": "bounded os.pread of each 320-byte BF16 source row",
+    "rows_checked": 260
+  },
+  "ssd_probes": {
+    "bf16_cold_default": [
+      {
+        "major_faults": 1023,
+        "ms_per_token": 2.954495,
+        "read_bytes_per_token": 2094592
+      },
+      {
+        "major_faults": 1023,
+        "ms_per_token": 2.776261,
+        "read_bytes_per_token": 2094592
+      },
+      {
+        "major_faults": 1023,
+        "ms_per_token": 2.750929,
+        "read_bytes_per_token": 2094592
+      }
+    ],
+    "bf16_cold_madv_random": [
+      {
+        "major_faults": 1084,
+        "ms_per_token": 1.338339,
+        "read_bytes_per_token": 69376
+      },
+      {
+        "major_faults": 1084,
+        "ms_per_token": 1.363694,
+        "read_bytes_per_token": 69376
+      },
+      {
+        "major_faults": 1084,
+        "ms_per_token": 1.348674,
+        "read_bytes_per_token": 69376
+      }
+    ],
+    "committed_benchmark_bf16_cold_madv_random": {
+      "checksum": 4411089,
+      "major_faults": 1090,
+      "minor_faults": 44,
+      "ms_per_token": 1.467622015625,
+      "read_bytes_per_token": 69760,
+      "seed": 20260831,
+      "steps": 64
+    },
+    "nvfp4_default_unique_seeds_without_eviction": [
+      {
+        "major_faults": 1346,
+        "ms_per_token": 5.1269561875,
+        "read_bytes_per_token": 5047744,
+        "seed": 202
+      },
+      {
+        "major_faults": 1297,
+        "ms_per_token": 5.102239671875,
+        "read_bytes_per_token": 4792192,
+        "seed": 303
+      },
+      {
+        "major_faults": 1258,
+        "ms_per_token": 4.9454529375,
+        "read_bytes_per_token": 4707136,
+        "seed": 606
+      }
+    ],
+    "nvfp4_madv_random_unique_seeds_without_eviction": [
+      {
+        "major_faults": 1345,
+        "ms_per_token": 1.609221484375,
+        "read_bytes_per_token": 86080,
+        "seed": 101
+      },
+      {
+        "major_faults": 1311,
+        "ms_per_token": 1.763348984375,
+        "read_bytes_per_token": 83904,
+        "seed": 404
+      },
+      {
+        "major_faults": 1277,
+        "ms_per_token": 1.760658609375,
+        "read_bytes_per_token": 81728,
+        "seed": 505
+      }
+    ]
+  }
+}

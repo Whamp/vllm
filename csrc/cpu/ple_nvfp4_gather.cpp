@@ -19,6 +19,32 @@ uint16_t float_to_bfloat16(float value) {
 
 }  // namespace
 
+extern "C" int vllm_gather_bf16_ple_rows(const void* table, int64_t total_rows,
+                                         int64_t width, const int64_t* row_ids,
+                                         int64_t row_count, void* output) {
+  if (table == nullptr || row_ids == nullptr || output == nullptr ||
+      total_rows <= 0 || width <= 0 || row_count < 0) {
+    return -1;
+  }
+
+  for (int64_t output_row = 0; output_row < row_count; ++output_row) {
+    const int64_t source_row = row_ids[output_row];
+    if (source_row < 0 || source_row >= total_rows) {
+      return -2;
+    }
+  }
+
+  const auto* input_rows = static_cast<const uint16_t*>(table);
+  auto* output_rows = static_cast<uint16_t*>(output);
+  for (int64_t output_row = 0; output_row < row_count; ++output_row) {
+    const int64_t source_row = row_ids[output_row];
+    std::memcpy(output_rows + output_row * width,
+                input_rows + source_row * width,
+                static_cast<size_t>(width) * sizeof(uint16_t));
+  }
+  return 0;
+}
+
 extern "C" int vllm_gather_nvfp4_ple_rows(
     const void* const* code_shards, const void* const* scale_shards,
     const float* outer_scales, const float* nvfp4_lut, const float* fp8_lut,

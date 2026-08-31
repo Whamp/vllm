@@ -5,6 +5,7 @@ This experiment targets the PLE worker that the accepted server60 Compose profil
 The completed server60 campaign and promotion decision are recorded in [RESULTS.md](RESULTS.md).
 The separate scheduling A/B is recorded in [ASYNC-SCHEDULING-RESULTS.md](ASYNC-SCHEDULING-RESULTS.md).
 The exact-production trace blocker is recorded in [NSYS-TRACE-BLOCKER.md](NSYS-TRACE-BLOCKER.md).
+The direct unquantized SSD candidate is recorded in [BF16-SSD-PLE.md](BF16-SSD-PLE.md).
 
 The production worker source must have SHA-256:
 
@@ -42,6 +43,7 @@ The builder verifies the production worker hash before it writes:
 ```text
 worker_image_quant.py
 nvfp4_native_gather.py
+bf16_ple_mmap_gather.py
 libvllm_ple_nvfp4_gather.so
 SHA256SUMS
 ```
@@ -70,6 +72,30 @@ environment:
 
 Do not change the accepted production profile in place. Run the candidate sequentially, collect its evidence, stop it, and restore the exact accepted profile.
 
+## Direct BF16 SSD candidate
+
+The same generated worker can map the original Intel BF16 PLE shard directly. Do not set `VLLM_PLE_QUANT_DIR` or `VLLM_PLE_DISK_OFFLOAD_DIR` in this mode.
+
+Mount the generated BF16 helper beside the existing helper and bind the content-addressed Intel shard read-only:
+
+```yaml
+volumes:
+  - type: bind
+    source: /path/to/output/bf16_ple_mmap_gather.py
+    target: /usr/local/lib/python3.12/dist-packages/vllm/v1/ple_offload/bf16_ple_mmap_gather.py
+    read_only: true
+  - type: bind
+    source: /path/to/intel/model-00016-of-00017.safetensors
+    target: /ple/59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf
+    read_only: true
+environment:
+  VLLM_PLE_BF16_MMAP_FILE: /ple/59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf
+  VLLM_PLE_BF16_MMAP_SHA256: 59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf
+  VLLM_PLE_BF16_MMAP_LIBRARY: /opt/vllm/libvllm_ple_nvfp4_gather.so
+```
+
+This path is CPU-validated but has not passed full-model serving gates. See [BF16-SSD-PLE.md](BF16-SSD-PLE.md) before launching it.
+
 ## CPU evidence
 
 The committed tests compile the raw ABI and compare it against the production Torch arithmetic. They cover:
@@ -89,7 +115,19 @@ Rows  Torch mean  Native mean  Speedup
 
 Reproduce these rows with `benchmark_native_gather.py` and the generated shared library.
 
-This microbenchmark excludes mmap page faults, worker scheduling, GPU delivery, and model execution. It proves that the native call removes the measured Torch gather overhead; it does not predict end-to-end throughput.
+Run a cold direct-BF16 SSD probe with:
+
+```bash
+python benchmarks/qwen38_ple_runtime/benchmark_bf16_ssd_gather.py \
+  --checkpoint /path/to/model-00016-of-00017.safetensors \
+  --expected-sha256 59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf \
+  --library /path/to/output/libvllm_ple_nvfp4_gather.so \
+  --drop-file-cache
+```
+
+The cold option evicts only the specified checkpoint's clean file-cache pages. Do not run it while another process depends on that same table's cache state.
+
+These microbenchmarks exclude worker scheduling, GPU delivery, and model execution. They validate the local gather mechanisms, not end-to-end throughput.
 
 ## Required server60 gates
 

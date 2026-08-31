@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+import hashlib
 import importlib.util
 import os
 import subprocess
@@ -10,6 +11,12 @@ from types import ModuleType
 
 import pytest
 import torch
+from safetensors.torch import save_file
+
+
+@pytest.fixture(autouse=True)
+def should_do_global_cleanup_after_test() -> bool:
+    return False
 
 
 @pytest.fixture(scope="module")
@@ -61,6 +68,85 @@ def test_production_overlay_routes_supported_gathers_to_native(
     assert len(calls) == 1
     assert torch.equal(calls[0], row_ids)
     assert torch.equal(output, torch.full_like(output, 17))
+
+
+def test_production_overlay_ple_storage_modes_fail_closed(
+    production_worker_overlay: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for name in (
+        "VLLM_PLE_QUANT_DIR",
+        "VLLM_PLE_DISK_OFFLOAD_DIR",
+        "VLLM_PLE_BF16_MMAP_FILE",
+        "VLLM_PLE_BF16_MMAP_SHA256",
+        "VLLM_PLE_BF16_MMAP_LIBRARY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    assert production_worker_overlay._ple_storage_config() == (None, None, None)
+
+    monkeypatch.setenv("VLLM_PLE_QUANT_DIR", "/quant")
+    monkeypatch.setenv("VLLM_PLE_DISK_OFFLOAD_DIR", "/disk")
+    assert production_worker_overlay._ple_storage_config() == (
+        "/quant",
+        None,
+        None,
+    )
+    monkeypatch.delenv("VLLM_PLE_QUANT_DIR")
+    monkeypatch.delenv("VLLM_PLE_DISK_OFFLOAD_DIR")
+    monkeypatch.setenv("VLLM_PLE_BF16_MMAP_FILE", "/table")
+    with pytest.raises(RuntimeError, match="requires VLLM_PLE_BF16_MMAP_SHA256"):
+        production_worker_overlay._ple_storage_config()
+
+    monkeypatch.setenv("VLLM_PLE_BF16_MMAP_SHA256", "a" * 64)
+    monkeypatch.setenv("VLLM_PLE_BF16_MMAP_LIBRARY", "/library")
+    monkeypatch.setenv("VLLM_PLE_QUANT_DIR", "/quant")
+    with pytest.raises(RuntimeError, match="mutually exclusive"):
+        production_worker_overlay._ple_storage_config()
+
+
+def test_production_overlay_attaches_direct_bf16_table(
+    production_worker_overlay: ModuleType,
+    tmp_path: Path,
+) -> None:
+    prefix = "model.language_model.layers.1.ple.ple_embedding.ngram_embedding"
+    source_rows = torch.arange(24, dtype=torch.float32).reshape(6, 4).to(torch.bfloat16)
+    temporary = tmp_path / "ple.safetensors"
+    save_file(
+        {
+            f"{prefix}.shard_0.weight": source_rows[:3],
+            f"{prefix}.shard_1.weight": source_rows[3:],
+        },
+        temporary,
+    )
+    digest = hashlib.sha256(temporary.read_bytes()).hexdigest()
+    checkpoint_path = temporary.with_name(digest)
+    temporary.rename(checkpoint_path)
+    assert production_worker_overlay.__file__ is not None
+    output_dir = Path(production_worker_overlay.__file__).parent
+    assert (output_dir / "bf16_ple_mmap_gather.py").is_file()
+    assert "bf16_ple_mmap_gather.py" in (output_dir / "SHA256SUMS").read_text()
+    layer = torch.nn.Module()
+    layer.ple_embedding = torch.nn.Module()
+    layer.ple_embedding.ngram_embedding = torch.nn.Embedding(6, 4, dtype=torch.bfloat16)
+
+    parameter_name = production_worker_overlay._ple_bf16_mmap_attach(
+        "language_model.model.layers.1.ple",
+        layer,
+        str(checkpoint_path),
+        digest,
+        str(output_dir / "libvllm_ple_nvfp4_gather.so"),
+    )
+
+    assert parameter_name == "ple_embedding.ngram_embedding.weight"
+    output = torch.empty((3, 4), dtype=torch.bfloat16)
+    layer.ple_embedding.ngram_embedding._ple_quant.gather_into(  # type: ignore[attr-defined]
+        torch.tensor([5, 0, 3]), output
+    )
+    assert torch.equal(
+        output.view(torch.uint16),
+        source_rows[torch.tensor([5, 0, 3])].view(torch.uint16),
+    )
+    layer.ple_embedding.ngram_embedding._ple_quant.close()  # type: ignore[attr-defined]
 
 
 def test_production_overlay_keeps_python_fallback(

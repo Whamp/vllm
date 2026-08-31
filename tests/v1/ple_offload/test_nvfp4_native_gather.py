@@ -11,6 +11,11 @@ import torch
 from vllm.v1.ple_offload.nvfp4_native_gather import NvFp4PleNativeGather
 
 
+@pytest.fixture(autouse=True)
+def should_do_global_cleanup_after_test() -> bool:
+    return False
+
+
 @pytest.fixture(scope="module")
 def native_library(tmp_path_factory: pytest.TempPathFactory) -> Path:
     compiler = shutil.which("g++")
