@@ -11,15 +11,16 @@ production contract.
 | --- | --- |
 | Model | Intel `Qwen3.8-Flash-Next-W4A16-AutoRound` |
 | Model revision | `861536dda5bcb208376fc4cd879b2bf76bece9fe` |
-| PLE | Primitive NVFP4 sidecar, revision `da8b39586016d8325ac619be28ad77d6296625ec` |
+| PLE | Direct Intel BF16 mmap, SHA-256 `59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf` |
+| PLE rollback | Primitive NVFP4 sidecar, revision `da8b39586016d8325ac619be28ad77d6296625ec` |
 | Main QSA cache | Calibrated per-layer E4M3 |
 | Context | 262,144 tokens |
-| Maximum sequences | 2 |
+| Maximum sequences | 4 |
 | Batch-token budget | 1,024 |
 | GPU-memory utilization | 0.98 |
 | Collectives | Hierarchical islands `0,1;2,3`, PYNCCL fallback |
 | Hyperconnection path | Native SM86 BF16 Kernel2 for exact M=1/2 shapes |
-| Production image | `sha256:acff9d8e08096a2265b23e50f5ff0d52a3f1e95ffa91e2fb099346e274a9b735` |
+| Production image | `sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef` |
 | Rollback | Pre-Kernel2 hierarchical image and BF16-QSA service contracts |
 
 The Kernel2 same-image ablation measured +7.84% c=1 decode and +2.69% c=2
@@ -43,6 +44,10 @@ aggregate decode. Prefill changed by less than 0.3%. BenchLocal quick scored
   PCIe ring collectives on the measured path.
 - [Native SM86 Kernel2](KERNEL2-HYPERCONNECTION.md) specializes the repeated
   Qwen hyperconnection BF16 projections for M=1 and M=2.
+- [Direct BF16 SSD PLE](PLE-BF16-SSD.md)
+  replaces the NVFP4 sidecar with the original BF16 table. It improved
+  concurrency-1 decode by 6.90%, kept prefill flat, and scored 30/30 on
+  BenchLocal quick.
 
 ## Rejected experiments
 
@@ -66,6 +71,7 @@ all-reduce, stability, utilization, and Kernel2 reports supersede its production
 identity while retaining its rejected-experiment history.
 
 Raw evidence lives under `docs/whamp/qwen38_flash_next/evidence/`. The
-Kernel2 production bundle
-is checksum-bound and reproducible at
+Kernel2 production bundle is checksum-bound at
 [`evidence/qwen38-kernel2-production-20260830/`](evidence/qwen38-kernel2-production-20260830/README.md).
+The direct BF16 PLE comparison and production switch are checksum-bound at
+[`evidence/qwen38-ple-bf16-ssd-production-20260831/`](evidence/qwen38-ple-bf16-ssd-production-20260831/README.md).

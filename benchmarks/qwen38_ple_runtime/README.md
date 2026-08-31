@@ -5,7 +5,7 @@ This experiment targets the PLE worker that the accepted server60 Compose profil
 The completed server60 campaign and promotion decision are recorded in [RESULTS.md](RESULTS.md).
 The separate scheduling A/B is recorded in [ASYNC-SCHEDULING-RESULTS.md](ASYNC-SCHEDULING-RESULTS.md).
 The exact-production trace blocker is recorded in [NSYS-TRACE-BLOCKER.md](NSYS-TRACE-BLOCKER.md).
-The direct unquantized SSD candidate is recorded in [BF16-SSD-PLE.md](BF16-SSD-PLE.md).
+The direct BF16 SSD production path is recorded in [BF16-SSD-PLE.md](BF16-SSD-PLE.md).
 
 The production worker source must have SHA-256:
 
@@ -94,7 +94,7 @@ environment:
   VLLM_PLE_BF16_MMAP_LIBRARY: /opt/vllm/libvllm_ple_nvfp4_gather.so
 ```
 
-This path is CPU-validated but has not passed full-model serving gates. See [BF16-SSD-PLE.md](BF16-SSD-PLE.md) before launching it.
+This path passed the server60 full-model A/B and is now the production default. See [BF16-SSD-PLE.md](BF16-SSD-PLE.md) for the artifact contract, measurements, and NVFP4 rollback.
 
 ## CPU evidence
 

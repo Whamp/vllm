@@ -1,0 +1,82 @@
+{
+  "schema_version": "1",
+  "runner_version": "0.9.10",
+  "started_at": "2026-08-31T18:08:54.239431Z",
+  "finished_at": "2026-08-31T18:12:25.171996Z",
+  "provider": "local-vllm",
+  "endpoint": "http://127.0.0.1:30003",
+  "model": "qwen3.8-flash-next-intel-autoround-w4a16",
+  "quantization": "Intel-AutoRound-W4A16-BF16-SSD-PLE",
+  "runtime_configuration": {
+    "ple": "bf16_direct_mmap",
+    "ple_sha256": "59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf",
+    "vllm_commit": "9a2bdd3e39b3ad692f4b4d3c9a5f9d2bde91a3a4"
+  },
+  "mode": "quick",
+  "thinking_enabled": false,
+  "thinking_mode": "pack-defaults",
+  "equivalent_score_150": 150,
+  "totals": {
+    "passed": 30,
+    "score": 1.0,
+    "total": 30
+  },
+  "packs": [
+    {
+      "pack_id": "toolcall-15",
+      "pack_version": null,
+      "passed": 15,
+      "scenario_count": 15,
+      "status": "ok"
+    },
+    {
+      "pack_id": "instructfollow-15",
+      "pack_version": null,
+      "passed": 15,
+      "scenario_count": 15,
+      "status": "ok"
+    }
+  ],
+  "delta": {
+    "by_pack": [
+      {
+        "dropped": 0,
+        "fixes": 1,
+        "fixes_list": [
+          "IF-01"
+        ],
+        "new": 0,
+        "pack_id": "instructfollow-15",
+        "regressions": 0,
+        "regressions_list": [],
+        "stable_fail": 0,
+        "stable_pass": 14
+      },
+      {
+        "dropped": 0,
+        "fixes": 1,
+        "fixes_list": [
+          "TC-11"
+        ],
+        "new": 0,
+        "pack_id": "toolcall-15",
+        "regressions": 0,
+        "regressions_list": [],
+        "stable_fail": 0,
+        "stable_pass": 14
+      }
+    ],
+    "previous_path": "/home/will/build/qwen38-kernel2-native-sm86/benchlocal-quick.json",
+    "schema_version_match": true,
+    "total_dropped": 0,
+    "total_fixes": 2,
+    "total_new": 0,
+    "total_regressions": 0,
+    "total_stable_fail": 0,
+    "total_stable_pass": 28,
+    "warnings": []
+  },
+  "warnings": [
+    "timeout scaling active: measured_decode_tps=59.9, reference_tps=100.0, scale=1.67, token-budget-multiplier=16384/1024=16.00"
+  ]
+}

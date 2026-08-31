@@ -2,11 +2,9 @@
 
 ## Status
 
-This is a default-off CPU-validated candidate. It has not loaded the full model or changed server60 production.
+Direct BF16 mmap is the server60 production PLE path as of 2026-08-31. It reads the original 95.37 GiB Intel BF16 table from its content-addressed safetensors blob. The previous 28.8 GB Primitive NVFP4 sidecar remains the rollback.
 
-The current service already reads its 28.8 GB Primitive NVFP4 PLE sidecar through file-backed mappings. The question is therefore whether direct reads from the original 95.37 GiB BF16 table can preserve exact PLE values without slowing serving enough to matter.
-
-The first server60 result supports a full service A/B. Direct BF16 reads with `MADV_RANDOM` moved fewer physical bytes and completed faster than the NVFP4 sidecar under the same cold random-row probe. That does not establish end-to-end performance.
+The order-balanced full-model A/B measured 6.90% higher concurrency-1 decode and 1.50% higher concurrency-2 aggregate decode with BF16. Prefill changed by less than 0.4%. The candidate passed the functional, 261K NIAH, and BenchLocal quick gates before promotion.
 
 ## Artifact identity
 
@@ -58,7 +56,24 @@ BF16 can read fewer pages despite its larger file. One BF16 row is a contiguous 
 
 The direct BF16 implementation also passed an independent oracle over 260 real rows spanning 111 source shards. Its BF16 bytes matched bounded `pread` reference reads exactly. The checksum-bound results are under [`evidence/bf16-ssd-ple-cpu-20260831/`](evidence/bf16-ssd-ple-cpu-20260831/README.md).
 
-## Candidate mechanism
+## Completed service A/B
+
+The arm order was BF16 A, NVFP4 A, NVFP4 B, BF16 B. Each decode arm used three warmups and five measured 256-token runs. Each prefill arm used one warmup and three measured runs.
+
+| Metric | NVFP4 | Direct BF16 | Change |
+| --- | ---: | ---: | ---: |
+| Concurrency-1 decode | 63.4460 tok/s | 67.8257 tok/s | +6.9030% |
+| Concurrency-2 aggregate decode | 111.8125 tok/s | 113.4911 tok/s | +1.5013% |
+| Concurrency-1 prefill | 1683.1305 tok/s | 1677.1220 tok/s | -0.3570% |
+| Concurrency-2 aggregate prefill | 1688.7556 tok/s | 1691.4904 tok/s | +0.1619% |
+
+Direct BF16 used 40.29 PLE-worker CPU seconds across its two arms versus 53.60 seconds for NVFP4. It recorded 285216768 host-NVMe read bytes versus 12924092416 bytes for NVFP4, about 45 times fewer. The NVFP4 control showed a material cache-order effect, while the two BF16 arms measured 67.8140 and 67.8374 concurrency-1 decode tok/s.
+
+The BF16 candidate passed deterministic, reasoning, tool and post-tool, repeated-prefix, multimodal, two-stream, and exact 261492-token NIAH checks. BenchLocal quick scored 30/30 versus the accepted NVFP4 record at 28/30.
+
+A diagnostic-only restart measured mean BF16 row-gather time at 2.58 ms over 256 operations. Request launch to worker handling averaged 12.60 ms, H2D plus semaphore submission 0.50 ms, and result readiness 0.58 ms. These intervals overlap and are not additive. The full evidence bundle is [`docs/whamp/qwen38_flash_next/evidence/qwen38-ple-bf16-ssd-production-20260831/`](../../docs/whamp/qwen38_flash_next/evidence/qwen38-ple-bf16-ssd-production-20260831/README.md).
+
+## Production mechanism
 
 The candidate keeps the existing asynchronous PLE worker, pinned output buffer, CUDA IPC fanout, semaphore contract, and CUDA Graph behavior. It changes only the table behind the worker's existing `_ple_quant.gather_into()` call.
 
@@ -102,22 +117,13 @@ CONTRACTS: model, QSA, PLE hashing, row order, CUDA Graphs, context, vision, too
            sampling, safety controls, zero swap, and rollback remain unchanged
 ```
 
-## Required service A/B
+## Production decision
 
-Do not promote from the CPU evidence.
+The candidate passed the registered full-model A/B and became the server60 production default. Production keeps the accepted model, calibrated FP8 QSA cache, hierarchical collectives, native SM86 Kernel2 path, 262144-token API limit, and GPU safety policy. Only the PLE table and gather mechanism changed.
 
-1. Freeze the live image, Compose, model, scale file, context, cache capacity, GPU safety state, and worker hashes.
-2. Build a thin child image containing only the four checksum-bound overlay files.
-3. Arm the exact production rollback watchdog before stopping production.
-4. Run a non-restarting BF16 candidate at the same 262,144-token API limit.
-5. Verify startup dispatch and the exact PLE source SHA-256.
-6. Run deterministic text, tool plus post-tool, reasoning, multimodal, two-stream, prefix-cache, and 261K NIAH checks.
-7. Run reverse-ordered matched control and candidate pairs. Use three decode warmups plus five measured 256-token runs, and one prefill warmup plus three measured runs, at c=1 and c=2.
-8. Record PLE-worker CPU, major faults, process read bytes, NVMe reads, queue time, lookup time, H2D submission, semaphore completion, VRAM, swap, and allocator failures.
-9. Run BenchLocal quick if performance stays inside the thresholds.
-10. Restore and verify the exact production service whether the candidate passes or fails.
+The production profile uses the existing image and checksum-bound overlay rather than a new model artifact. It sets `restart: unless-stopped`, serves on port 30002, and verifies the exact BF16 PLE blob before startup. The Primitive NVFP4 profile remains available through the previous restore contract.
 
-A passing result establishes one server60 option. It does not prove that every host should prefer BF16 over a quantized PLE table.
+This is a server60 result. It does not establish that every host should prefer BF16 over a quantized PLE table. Page-cache behavior, table layout, storage, and request locality decide the result.
 
 ## Source basis
 

@@ -1,0 +1,141 @@
+{
+  "arm_order": [
+    "candidate-a",
+    "control-a",
+    "control-b",
+    "candidate-b"
+  ],
+  "checks": {
+    "concurrency_1_decode": true,
+    "concurrency_1_prefill": true,
+    "concurrency_2_decode": true,
+    "concurrency_2_prefill": true
+  },
+  "comparison": {
+    "1": {
+      "candidate": {
+        "decode_runs": 10,
+        "decode_tokens_per_second": {
+          "maximum": 68.42292071524518,
+          "mean": 67.8256688060849,
+          "median": 67.77086708560297,
+          "minimum": 67.10950124125095,
+          "population_cv_percent": 0.5723727751323823
+        },
+        "prefill_runs": 6,
+        "prefill_tokens_per_second": {
+          "maximum": 1680.4095205540696,
+          "mean": 1677.1219799963053,
+          "median": 1676.498336379983,
+          "minimum": 1675.1699863244119,
+          "population_cv_percent": 0.10337983967850395
+        }
+      },
+      "control": {
+        "decode_runs": 10,
+        "decode_tokens_per_second": {
+          "maximum": 67.48048562875353,
+          "mean": 63.44600672011863,
+          "median": 63.77681805913544,
+          "minimum": 58.50401854658735,
+          "population_cv_percent": 5.202188041708128
+        },
+        "prefill_runs": 6,
+        "prefill_tokens_per_second": {
+          "maximum": 1688.3425537337507,
+          "mean": 1683.130502488804,
+          "median": 1684.5331100946246,
+          "minimum": 1677.8563983225888,
+          "population_cv_percent": 0.21886696903499456
+        }
+      },
+      "decode_percent_change": 6.902975163254044,
+      "prefill_percent_change": -0.35698494463822783
+    },
+    "2": {
+      "candidate": {
+        "decode_runs": 10,
+        "decode_tokens_per_second": {
+          "maximum": 115.30984417490508,
+          "mean": 113.49114638952535,
+          "median": 113.06228064760936,
+          "minimum": 112.49510704243197,
+          "population_cv_percent": 0.840942571102701
+        },
+        "prefill_runs": 6,
+        "prefill_tokens_per_second": {
+          "maximum": 1692.4281717263925,
+          "mean": 1691.490437958719,
+          "median": 1691.371033973702,
+          "minimum": 1690.9329795980116,
+          "population_cv_percent": 0.03083684487023764
+        }
+      },
+      "control": {
+        "decode_runs": 10,
+        "decode_tokens_per_second": {
+          "maximum": 116.22857466548808,
+          "mean": 111.8124623702321,
+          "median": 111.91491985630361,
+          "minimum": 107.42850997808269,
+          "population_cv_percent": 2.5662243003673764
+        },
+        "prefill_runs": 6,
+        "prefill_tokens_per_second": {
+          "maximum": 1691.128808857242,
+          "mean": 1688.7556129070367,
+          "median": 1688.4716936579803,
+          "minimum": 1687.3772869271525,
+          "population_cv_percent": 0.07664108988808975
+        }
+      },
+      "decode_percent_change": 1.501338923862372,
+      "prefill_percent_change": 0.1619432101827023
+    }
+  },
+  "limits": {
+    "concurrency_1_decode_minimum_percent_change": -10.0,
+    "concurrency_2_decode_minimum_percent_change": -15.0,
+    "prefill_minimum_percent_change": -5.0
+  },
+  "performance_gate_passed": true,
+  "schema_version": 1,
+  "telemetry": {
+    "candidate-a": {
+      "host_nvme_read_bytes": 114311168,
+      "host_nvme_read_time_ms": 2393,
+      "ple_cpu_seconds": 19.739999999999995,
+      "ple_major_faults": 27532,
+      "ple_minor_faults": 55,
+      "ple_process_read_bytes": 112771072,
+      "wall_seconds": 252.124441087
+    },
+    "candidate-b": {
+      "host_nvme_read_bytes": 170905600,
+      "host_nvme_read_time_ms": 3592,
+      "ple_cpu_seconds": 20.550000000000004,
+      "ple_major_faults": 41163,
+      "ple_minor_faults": 267,
+      "ple_process_read_bytes": 168591360,
+      "wall_seconds": 273.112696483
+    },
+    "control-a": {
+      "host_nvme_read_bytes": 10643869696,
+      "host_nvme_read_time_ms": 7469,
+      "ple_cpu_seconds": 29.25,
+      "ple_major_faults": 44445,
+      "ple_minor_faults": 18778,
+      "ple_process_read_bytes": 10640973824,
+      "wall_seconds": 267.756264223
+    },
+    "control-b": {
+      "host_nvme_read_bytes": 2280222720,
+      "host_nvme_read_time_ms": 2248,
+      "ple_cpu_seconds": 24.350000000000005,
+      "ple_major_faults": 10279,
+      "ple_minor_faults": 8474,
+      "ple_process_read_bytes": 2277584896,
+      "wall_seconds": 256.444294748
+    }
+  }
+}

@@ -1,0 +1,4 @@
+production.yml: OK
+restore.sh: OK
+verify.sh: OK
+BF16_PRODUCTION_HEALTHY=1

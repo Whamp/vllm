@@ -1,0 +1,1 @@
+{"gather_ns": 660682566, "gather_us_mean": 2580.7912734375, "h2d_submit_ns": 127517711, "h2d_submit_us_mean": 498.11605859375, "operations": 256, "queue_delay_ns": 3224682813, "queue_delay_us_mean": 12596.41723828125, "result_ready_ns": 147895788, "result_ready_us_mean": 577.717921875, "reuse_wait_ns": 57814944, "reuse_wait_us_mean": 225.839625, "tokens": 338}
