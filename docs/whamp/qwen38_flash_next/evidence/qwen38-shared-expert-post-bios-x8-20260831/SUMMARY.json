@@ -1,0 +1,248 @@
+{
+  "archive_commit_before_retest": "9c349aa009f47fad9aa0f3335bdc0e3172b05265",
+  "benchmark": {
+    "decision_thresholds": {
+      "c4_diagnostic_only": true,
+      "maximum_other_decode_regression_percent": 2.0,
+      "maximum_prefill_regression_percent": 2.0,
+      "minimum_decode_improvement_percent": 3.0
+    },
+    "metrics": {
+      "c1_decode": {
+        "candidate_pooled_mean": 55.44967612259528,
+        "candidate_population_cv_percent": 2.9750442270480946,
+        "candidate_samples": [
+          53.095773231341184,
+          55.4545195269918,
+          56.27878856377616,
+          56.918128553670705,
+          56.611887739904006,
+          51.7647521727994,
+          55.225048989633514,
+          55.47978535104884,
+          56.74690406175267,
+          56.92117303503447
+        ],
+        "control_pooled_mean": 61.58827485853708,
+        "control_population_cv_percent": 2.695334750807906,
+        "control_samples": [
+          58.8237966329214,
+          59.699337054313226,
+          63.26218438833555,
+          63.104954724064946,
+          63.00666348503718,
+          60.04647031989837,
+          61.565909337569444,
+          60.71502742100859,
+          64.05634742224004,
+          61.60205779998211
+        ],
+        "forward_delta_percent": -9.593417532962611,
+        "pooled_delta_percent": -9.967154868425254,
+        "reverse_delta_percent": -10.340784353837407
+      },
+      "c1_prefill": {
+        "candidate_pooled_mean": 1673.8773191596938,
+        "candidate_population_cv_percent": 0.12677230060645206,
+        "candidate_samples": [
+          1676.4352362061145,
+          1675.6840741209307,
+          1675.0437127844766,
+          1673.514413686382,
+          1672.3802561712453,
+          1670.2062219890133
+        ],
+        "control_pooled_mean": 1684.410074710105,
+        "control_population_cv_percent": 0.21787227656332445,
+        "control_samples": [
+          1683.5338966671977,
+          1689.7772793331142,
+          1689.010938439169,
+          1681.2826826679202,
+          1680.3105461299356,
+          1682.5451050232925
+        ],
+        "forward_delta_percent": -0.6945249735822445,
+        "pooled_delta_percent": -0.6253082731189408,
+        "reverse_delta_percent": -0.5558420510895945
+      },
+      "c2_decode": {
+        "candidate_pooled_mean": 105.58754058430621,
+        "candidate_population_cv_percent": 2.590093486912223,
+        "candidate_samples": [
+          106.63122713406187,
+          105.80580937430099,
+          106.55266093565075,
+          105.8015774675244,
+          109.5025571153755,
+          98.54518475142028,
+          105.68026268262858,
+          103.5673213223492,
+          106.54070452392719,
+          107.24810053582335
+        ],
+        "control_pooled_mean": 104.64569480859552,
+        "control_population_cv_percent": 1.9340318593265908,
+        "control_samples": [
+          104.04572314504078,
+          102.2414591586496,
+          103.47439483983632,
+          106.75792004500425,
+          106.47325365374644,
+          102.52858460442147,
+          105.71710758942413,
+          101.47031899327602,
+          106.91022403765248,
+          106.83796201890377
+        ],
+        "forward_delta_percent": 2.1608485330696814,
+        "pooled_delta_percent": 0.9000329898266601,
+        "reverse_delta_percent": -0.35964702790415304
+      },
+      "c2_prefill": {
+        "candidate_pooled_mean": 1687.6434372003757,
+        "candidate_population_cv_percent": 0.14308781239205082,
+        "candidate_samples": [
+          1690.1630997885559,
+          1684.9124460407597,
+          1687.1320939452119,
+          1691.2934112854086,
+          1687.4667514706275,
+          1684.8928206716905
+        ],
+        "control_pooled_mean": 1692.9375930050883,
+        "control_population_cv_percent": 0.09308013039537388,
+        "control_samples": [
+          1694.0789782543854,
+          1693.4032303071626,
+          1691.578016605877,
+          1695.5703282463762,
+          1691.972693370581,
+          1691.022311246147
+        ],
+        "forward_delta_percent": -0.3318051892629792,
+        "pooled_delta_percent": -0.3127200805621566,
+        "reverse_delta_percent": -0.2936331120696689
+      },
+      "c4_decode": {
+        "candidate_pooled_mean": 188.38215069217313,
+        "candidate_population_cv_percent": 1.7124561027119334,
+        "candidate_samples": [
+          185.88634251231508,
+          192.2687830104011,
+          188.95860905510236,
+          193.1560728257709,
+          189.78045870351073,
+          186.98630018633992,
+          187.1705072165189,
+          189.61148289773075,
+          181.1369090182369,
+          188.86604149580464
+        ],
+        "control_pooled_mean": 188.895067321945,
+        "control_population_cv_percent": 1.1899305459860503,
+        "control_samples": [
+          189.2961416391222,
+          188.00036523256063,
+          193.81479826097836,
+          192.26338424170737,
+          189.0785176772109,
+          186.79172007983297,
+          187.71843793472488,
+          186.61915872128023,
+          187.5154828801076,
+          187.8526665519249
+        ],
+        "forward_delta_percent": -0.2522896586088397,
+        "pooled_delta_percent": -0.27153521637368616,
+        "reverse_delta_percent": -0.2911086737260593
+      },
+      "c4_prefill": {
+        "candidate_pooled_mean": 1694.0265896233623,
+        "candidate_population_cv_percent": 0.1324108867569864,
+        "candidate_samples": [
+          1697.7126278366795,
+          1692.8447887034897,
+          1695.7673564742151,
+          1690.6415055596674,
+          1693.1806945362562,
+          1694.0125646298654
+        ],
+        "control_pooled_mean": 1695.0368280698547,
+        "control_population_cv_percent": 0.13765911959968447,
+        "control_samples": [
+          1696.4293605098485,
+          1694.3903057283512,
+          1699.5543419302448,
+          1693.8104544113394,
+          1692.665111171432,
+          1693.371394667912
+        ],
+        "forward_delta_percent": -0.07954690848966939,
+        "pooled_delta_percent": -0.05959979333562959,
+        "reverse_delta_percent": -0.03961134145654688
+      }
+    },
+    "schema_version": 1
+  },
+  "candidate_commit": "0a5e081188f5384bcf79cfd201f418906de8f083",
+  "candidate_image": "sha256:39de8fdfb787592cf06819268a817c8a4087d84658e2300d7adb5ad136b59bb3",
+  "decision": "default_off_post_bios_no_go",
+  "final_production_state": {
+    "health": "healthy",
+    "max_model_len": 262144,
+    "model": "qwen3.8-flash-next-intel-autoround-w4a16",
+    "restart_count": 0,
+    "restart_policy": "unless-stopped",
+    "restore_watchdog_active": false,
+    "worker_swap_kb": 0
+  },
+  "operational": {
+    "allocator_failure_signatures": 0,
+    "restart_count": 0,
+    "safety_clock_max_mhz": 1650,
+    "safety_power_watts": 230,
+    "worker_swap_kb": 0
+  },
+  "production_image": "sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef",
+  "raw_trace_archive": "/home/will/inference/runtime/qwen38-shared-expert-overlap/evidence/post-bios-x8-20260831",
+  "reason": "early launch misses the 3% decode gate and causes a repeatable C1 regression; the fresh trace shows longer C1 and C2 graph spans",
+  "schema_version": 1,
+  "terminal_for_current_mechanism": true,
+  "topology": {
+    "after_widths": [
+      8,
+      16,
+      8,
+      16
+    ],
+    "before_widths": [
+      4,
+      16,
+      8,
+      16
+    ],
+    "pcie_errors": "expected_non_blocking_per_user"
+  },
+  "trace": {
+    "api_max_model_len": 262144,
+    "gpu_memory_utilization": 0.979,
+    "performance_claims": false,
+    "summary": {
+      "c1": {
+        "busy_union_delta_percent_median_across_gpus": 0.8316113550107418,
+        "candidate_streams": 3.0,
+        "control_streams": 2.0,
+        "graph_span_delta_percent_median_across_gpus": 7.306231034967259,
+        "overlap_time_delta_percent_median_across_gpus": 2.9267709073631187
+      },
+      "c2": {
+        "busy_union_delta_percent_median_across_gpus": 1.6221077153837804,
+        "candidate_streams": 3.0,
+        "control_streams": 2.0,
+        "graph_span_delta_percent_median_across_gpus": 6.29114017567538,
+        "overlap_time_delta_percent_median_across_gpus": -9.88268921023835
+      }
+    }
+  }
+}

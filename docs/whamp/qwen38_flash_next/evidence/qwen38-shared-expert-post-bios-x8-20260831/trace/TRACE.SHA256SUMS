@@ -1,0 +1,5 @@
+ad207b51c8157389843e1eac5611a2036e9f0fb6af7cccab662e791d9e681b59  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/control/control.nsys-rep
+6b04f85882c1d73f77cd64128930e2011fc8b580e885170da30da5fd9ca4b8f8  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/control/control.sqlite
+363b4d78f627539d15b3f805893246563f93223ddc3831524b6ccd5f929ce9c5  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/candidate/candidate.nsys-rep
+99d00fd24219e95ac06d866721def3c11bf29f489aaea8ff2288c7acacc183c3  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/candidate/candidate.sqlite
+acb68aa388b4bef1fcb8fd37b880067070b4c4d5f1759784402805394d09d893  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/analysis.json

@@ -1,0 +1,9 @@
+● qwen38-shared-expert-postbios-restore.timer - [systemd-run] /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/restore-production.sh
+     Loaded: loaded (/run/user/1000/systemd/transient/qwen38-shared-expert-postbios-restore.timer; transient)
+  Transient: yes
+     Active: active (waiting) since Mon 2026-08-31 06:07:29 UTC; 20ms ago
+ Invocation: 2981dd3777fd4179a4df171bce4960d5
+    Trigger: Mon 2026-08-31 10:07:29 UTC; 3h 59min left
+   Triggers: ● qwen38-shared-expert-postbios-restore.service
+
+Aug 31 06:07:29 server60 systemd[2495]: Started qwen38-shared-expert-postbios-restore.timer - [systemd-run] /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/restore-production.sh.

@@ -1,0 +1,10 @@
+36274ee61d35c91a1b521ba128528cd3d4726dc9d6db5f55f5b1d436344a5117  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control-b/benchmark.json
+36274ee61d35c91a1b521ba128528cd3d4726dc9d6db5f55f5b1d436344a5117  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control-b/benchmark.stdout.json
+cddfc969bef04d5ec432d81ed1c06fd2e9daf1d4609136af1317f897230f67e1  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control-b/container-inspect.json
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control-b/failure-signatures.txt
+d738b8df72e7d1b6527d230a0808026d8393344cdcd7651fc3ad4914335e1337  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control-b/health.txt
+b6c60d827ac2982633fcc4b4a7b34175b322f00feaefb3ac5d2a8c55158bf0af  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control-b/models.json
+5276fcece1f66fadafcb09edc4a4c10d277fc3966f4ca053ddfe63604af5a597  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control-b/pcie-under-load.txt
+682c3ff8e694bdc94d41c29e1eccd01445726ee6009385ac138c4af659aaa563  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control-b/post-benchmark-nvml.csv
+8c322de95e7f4042f6f95c0e094f409125e91a5679e9b5b04908333cf826e560  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control-b/pre-benchmark-nvml.csv
+5c93eae50dd71afe1117bc980ca6cc32fbc21a537362d3ec255d4e69ee9021e7  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control-b/startup.log

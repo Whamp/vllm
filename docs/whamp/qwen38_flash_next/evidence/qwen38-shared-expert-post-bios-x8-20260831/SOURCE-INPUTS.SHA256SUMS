@@ -1,0 +1,6 @@
+51a4d7e69e44b5ab300de4a7e10299ccaad60b7ff5e81d07926b655f6c724b6c  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/PLAN.json
+7044b7746699108771ceda362a9bb7f3e908338cfec5b6f29760974fe6a07aae  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/control.yml
+864c4fa77f475f0c48670876b7fb540e5a84f1398621238d848fea8d985989ac  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/candidate.yml
+1eb81254a53c12f915645498f28bdafb5f5d36d3ba85ab10776dd73a5c68a8eb  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/benchmark-concurrencies.py
+38f22d6b65a9440cd6310fbc775a9deac633589d2c57ff5c2b81d8f6554c3863  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/run-arm.sh
+337612b2ccb7752c3ddb4d12d4d3127bf6f1de2722da93fe89a4fed7759cc2dc  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/restore-production.sh

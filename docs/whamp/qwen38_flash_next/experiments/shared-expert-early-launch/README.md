@@ -3,15 +3,16 @@
 This directory contains the thin-image contract for the default-off Qwen3.8
 CUDA shared-expert early-launch experiment.
 
-The first server60 gate completed on 2026-08-31. It did not clear the 3% decode
-promotion threshold, but C2 aggregate decode and both prefill measures improved.
-The candidate remains default-off for a matched retest after the planned BIOS
-work on server60's PCIe Gen3 x4 link. The current test does not establish that
-the x4 link caused the mixed result. See
-[the evidence bundle](../../evidence/qwen38-shared-expert-early-launch-20260831/README.md).
+The first server60 gate completed on 2026-08-31 and missed the 3% decode
+promotion threshold. A post-BIOS retest then raised GPU0 from x4 to x8 and ran
+both selector orders. Early launch regressed C1 decode by 9.97%, improved C2 by
+only 0.90%, and left C4 flat. Fresh traces showed longer C1 and C2 CUDA Graph
+spans. The current mechanism is rejected and remains default-off. See the
+[initial evidence](../../evidence/qwen38-shared-expert-early-launch-20260831/README.md)
+and [post-BIOS evidence](../../evidence/qwen38-shared-expert-post-bios-x8-20260831/README.md).
 
-Do not run it while another agent owns server60. Do not run it after the
-production image changes without updating and reviewing `MANIFEST.json`.
+Do not deploy this candidate. Keep it as a tested reference. If a future design
+changes the mechanism, update and review `MANIFEST.json` before any GPU run.
 
 After an explicit GPU release, verify and arm rollback before stopping production:
 

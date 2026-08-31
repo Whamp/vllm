@@ -1,0 +1,4 @@
+FINAL_HEALTH=healthy
+FINAL_SWAP_KB=0
+FINAL_RESTARTS=0
+FINAL_MODEL=qwen3.8-flash-next-intel-autoround-w4a16

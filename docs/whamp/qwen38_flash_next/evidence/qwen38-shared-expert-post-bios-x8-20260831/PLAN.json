@@ -1,0 +1,68 @@
+{
+  "benchmark": {
+    "concurrency": [
+      1,
+      2,
+      4
+    ],
+    "decode_measured": 5,
+    "decode_tokens": 256,
+    "decode_warmups": 3,
+    "prefill_measured": 3,
+    "prefill_warmups": 1,
+    "temperature": 0.6,
+    "top_k": 20,
+    "top_p": 0.95
+  },
+  "candidate_image": "sha256:39de8fdfb787592cf06819268a817c8a4087d84658e2300d7adb5ad136b59bb3",
+  "decision": "post_bios_shared_expert_matched_retest",
+  "inputs": {
+    "benchmark-concurrencies.py": "1eb81254a53c12f915645498f28bdafb5f5d36d3ba85ab10776dd73a5c68a8eb",
+    "candidate.yml": "864c4fa77f475f0c48670876b7fb540e5a84f1398621238d848fea8d985989ac",
+    "control.yml": "7044b7746699108771ceda362a9bb7f3e908338cfec5b6f29760974fe6a07aae",
+    "restore-production.sh": "337612b2ccb7752c3ddb4d12d4d3127bf6f1de2722da93fe89a4fed7759cc2dc",
+    "run-arm.sh": "38f22d6b65a9440cd6310fbc775a9deac633589d2c57ff5c2b81d8f6554c3863"
+  },
+  "production_image": "sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef",
+  "production_restore": "/home/will/inference/runtime/qwen38-qsa-fp8-candidate/restore-fp8.sh",
+  "promotion": {
+    "c4_diagnostic_only": true,
+    "maximum_other_decode_regression_percent": 2.0,
+    "maximum_prefill_regression_percent": 2.0,
+    "minimum_decode_improvement_percent": 3.0
+  },
+  "schema_version": 1,
+  "sequence": [
+    [
+      "control-a",
+      "control"
+    ],
+    [
+      "candidate-a",
+      "candidate"
+    ],
+    [
+      "candidate-b",
+      "candidate"
+    ],
+    [
+      "control-b",
+      "control"
+    ]
+  ],
+  "topology": {
+    "after_widths": [
+      8,
+      16,
+      8,
+      16
+    ],
+    "before_widths": [
+      4,
+      16,
+      8,
+      16
+    ],
+    "expected_pcie_errors": "non_blocking_per_user"
+  }
+}

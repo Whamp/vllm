@@ -1,0 +1,9 @@
+ROLLBACK_READY=1
+BASE_IMAGE_ID=sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef
+SERVICE_NAME=qwen38-flash-next
+COMPOSE_PROJECT=qwen38-qsa-fp8-candidate
+COMPOSE_PROFILE=qwen38-flash-next
+CONTAINER_NAME=qwen38-qsa-fp8-candidate
+SERVED_MODEL_NAME=qwen3.8-flash-next-intel-autoround-w4a16
+HOST_PORT=30002
+RESTORE_SCRIPT=/home/will/inference/runtime/qwen38-qsa-fp8-candidate/restore-fp8.sh

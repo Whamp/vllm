@@ -1,0 +1,6 @@
+a2e9d9a5db3848410201e8502eb52d5fa1d327941feeb198a7f3fbf14996fdb4  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/control.yml
+0ce465956ae4f8ebb16393b482751b56d2708d13175b587d9ef05ecc49d89ddc  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/candidate.yml
+751345f689ee3e432640e97f119961c75f052987353c960038b4aeafc9e25bd5  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/run_trace_arm.sh
+4764a9f266cb8c2966076e6453e28e074be7e69759b66aefd842d7543f0dc516  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/trace_workload.py
+7b53ad11e1cf46ae69e59cacff3d13d0282d22c6db0f58ff61a9a0e48bb5d14f  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/analyze_trace.py
+6b8d3e7265ed1cabdeab2df0e464462dfbbc3cbce7e850d092b4e92b450b810f  /home/will/build/qwen38-shared-expert-overlap/post-bios-x8-20260831/trace/TRACE-PLAN.json

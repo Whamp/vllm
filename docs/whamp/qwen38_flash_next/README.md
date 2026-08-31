@@ -44,18 +44,13 @@ aggregate decode. Prefill changed by less than 0.3%. BenchLocal quick scored
 - [Native SM86 Kernel2](KERNEL2-HYPERCONNECTION.md) specializes the repeated
   Qwen hyperconnection BF16 projections for M=1 and M=2.
 
-## Deferred experiments
-
-- [Shared-expert early launch](SHARED-EXPERT-EARLY-LAUNCH.md) moves the existing
-  CUDA auxiliary-stream submission before routed-expert dispatch. RTX 3090
-  correctness, graph, sanitizer, serving, and matched A/B gates ran successfully,
-  but the selector missed its 3% promotion threshold: C1 decode changed -0.86%,
-  C2 aggregate decode +1.28%, and prefill +0.20% to +0.27%. It remains
-  default-off for a post-BIOS matched retest; the current PCIe Gen3 x4 link is a
-  recorded condition, not a proven cause.
-
 ## Rejected experiments
 
+- [Shared-expert early launch](SHARED-EXPERT-EARLY-LAUNCH.md) moved the existing
+  CUDA auxiliary-stream submission before routed-expert dispatch. The post-BIOS
+  x8 retest reproduced a 9.97% C1 decode regression, left C2 at only +0.90%, and
+  showed flat C4 throughput. Fresh traces showed longer C1 and C2 CUDA Graph
+  spans. The selector remains default-off.
 - [Capacity kernel gates](CAPACITY-KERNEL-GATES.md) close the generic
   hyperconnection FP8/INT8 candidates that failed quality or performance.
 - [QSA INT8 cache](QSA-INT8-CACHE.md) passed correctness but was too slow on

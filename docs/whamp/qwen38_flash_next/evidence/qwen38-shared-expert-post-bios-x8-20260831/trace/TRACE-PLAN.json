@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "purpose": "post-BIOS x8 matched observational attribution",
+  "arms": ["control", "candidate"],
+  "gpu_memory_utilization": 0.979,
+  "reason": "nsys startup overhead made 0.98 miss the device reservation by less than one thousandth; lower both arms equally",
+  "required_api_max_model_len": 262144,
+  "performance_claims_from_profiled_runs": false,
+  "selector_only_difference_between_arms": true
+}

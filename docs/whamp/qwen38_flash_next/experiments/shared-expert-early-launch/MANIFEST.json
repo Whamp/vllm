@@ -1,12 +1,21 @@
 {
   "schema_version": 1,
-  "status": "gpu_validated_default_off_deferred_post_bios_retest",
+  "status": "gpu_validated_default_off_post_bios_no_go",
   "validation_result": {
-    "evidence": "docs/whamp/qwen38_flash_next/evidence/qwen38-shared-expert-early-launch-20260831/summary.json",
+    "evidence": "docs/whamp/qwen38_flash_next/evidence/qwen38-shared-expert-post-bios-x8-20260831/SUMMARY.json",
     "candidate_image_id": "sha256:39de8fdfb787592cf06819268a817c8a4087d84658e2300d7adb5ad136b59bb3",
     "promotion_gate_met": false,
-    "terminal_rejection": false,
-    "topology_causality_established": false
+    "terminal_rejection": true,
+    "topology_causality_established": false,
+    "x4_link_explanation_falsified_for_workload": true,
+    "post_bios_x8_deltas_percent": {
+      "c1_decode": -9.967,
+      "c2_aggregate_decode": 0.900,
+      "c4_aggregate_decode": -0.272,
+      "c1_prefill": -0.625,
+      "c2_aggregate_prefill": -0.313,
+      "c4_aggregate_prefill": -0.060
+    }
   },
   "selector": "VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH",
   "selector_default": false,
