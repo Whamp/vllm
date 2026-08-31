@@ -178,4 +178,7 @@ Important files include:
 
 This experiment measured service behavior. It did not collect a fresh Nsight
 Systems trace, so it does not claim why async scheduling produced these deltas.
-The exact-production trace remains the next campaign step.
+A later exact-production trace attempt reached a healthy API but fit 423,164
+KV-cache tokens instead of the required 425,497. The runner rejected it before
+collection. [NSYS-TRACE-BLOCKER.md](NSYS-TRACE-BLOCKER.md) records the blocker
+and evidence.

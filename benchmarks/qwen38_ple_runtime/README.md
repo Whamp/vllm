@@ -4,6 +4,7 @@ This experiment targets the PLE worker that the accepted server60 Compose profil
 
 The completed server60 campaign and promotion decision are recorded in [RESULTS.md](RESULTS.md).
 The separate scheduling A/B is recorded in [ASYNC-SCHEDULING-RESULTS.md](ASYNC-SCHEDULING-RESULTS.md).
+The exact-production trace blocker is recorded in [NSYS-TRACE-BLOCKER.md](NSYS-TRACE-BLOCKER.md).
 
 The production worker source must have SHA-256:
 
