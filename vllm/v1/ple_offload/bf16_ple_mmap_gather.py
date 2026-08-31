@@ -18,7 +18,7 @@ from numpy.typing import NDArray
 
 _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 _MAX_SAFETENSORS_HEADER_BYTES = 16 << 20
-_QWEN_PLE_LAYER_PATTERN = re.compile(r"(?:^|\.)layers\.(\d+)\.ple$")
+_QWEN_PLE_LAYER_PATTERN = re.compile(r"(?:^|\.)layers\.(\d+)\.ple(?:\.ple_embedding)?$")
 
 
 class Bf16PleMmapGather:

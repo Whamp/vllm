@@ -118,7 +118,7 @@ def test_attach_bf16_ple_mmap_table_preserves_worker_gather_seam(
     layer.ple_embedding.ngram_embedding = torch.nn.Embedding(6, 4, dtype=torch.bfloat16)
 
     parameter_name = attach_bf16_ple_mmap_table(
-        layer_name="language_model.model.layers.1.ple",
+        layer_name="language_model.model.layers.1.ple.ple_embedding",
         layer=layer,
         checkpoint_path=checkpoint_path,
         expected_sha256=digest,
