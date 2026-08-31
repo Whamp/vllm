@@ -329,6 +329,9 @@ if TYPE_CHECKING:
     VLLM_PLE_OFFLOAD_READY_TIMEOUT: float = 600.0
     VLLM_PLE_NVFP4_SIDECAR_DIR: str | None = None
     VLLM_PLE_NVFP4_SIDECAR_META_SHA256: str | None = None
+    VLLM_PLE_BF16_MMAP_FILE: str | None = None
+    VLLM_PLE_BF16_MMAP_SHA256: str | None = None
+    VLLM_PLE_BF16_MMAP_LIBRARY: str | None = None
     VLLM_LOG_MODEL_INSPECTION: bool = False
     VLLM_MODEL_MEMORY_REPORT_DIR: str | None = None
     VLLM_DEBUG_MFU_METRICS: bool = False
@@ -2374,6 +2377,12 @@ environment_variables: dict[str, Callable[[], Any]] = {
     "VLLM_PLE_NVFP4_SIDECAR_META_SHA256": lambda: os.getenv(
         "VLLM_PLE_NVFP4_SIDECAR_META_SHA256"
     ),
+    # Content-addressed BF16 PLE safetensors file used by the CPU offload worker.
+    "VLLM_PLE_BF16_MMAP_FILE": lambda: os.getenv("VLLM_PLE_BF16_MMAP_FILE"),
+    # Required SHA-256 identity encoded by the BF16 PLE safetensors filename.
+    "VLLM_PLE_BF16_MMAP_SHA256": lambda: os.getenv("VLLM_PLE_BF16_MMAP_SHA256"),
+    # Native CPU row-gather library used by the direct BF16 PLE mapping.
+    "VLLM_PLE_BF16_MMAP_LIBRARY": lambda: os.getenv("VLLM_PLE_BF16_MMAP_LIBRARY"),
     # Log model inspection after loading.
     # If enabled, logs a transformers-style hierarchical view of the model
     # with quantization methods and attention backends.

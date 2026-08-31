@@ -22,7 +22,9 @@ A self-contained legacy-image overlay also pins `ple_layer.py` to SHA-256:
 ```
 
 Copying this 51,675-byte source into the overlay prevents production restarts
-from depending on the removable NVFP4 Hugging Face cache.
+from depending on the removable NVFP4 Hugging Face cache. This option is only
+needed by the accepted legacy `qwen3_8_flash_next` image. Current `qwen4_exp`
+source owns the BF16 mmap path directly and does not need this source override.
 
 ## Behavior
 

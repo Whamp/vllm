@@ -27,6 +27,12 @@ The comparison kept these values fixed:
 
 Only the PLE table and gather implementation changed.
 
+The canonical `qwen4_exp` PLE implementation now reads the BF16 mmap settings,
+opens the table only in the CPU PLE worker, skips the resident table, and gathers
+selected rows through the validated native library. New images no longer need
+to replace `ple_layer.py`. The accepted legacy image keeps its checksum-bound
+copy until that image lineage is rebuilt.
+
 The BF16 path binds Intel `model-00016-of-00017.safetensors` by content hash:
 
 ```text

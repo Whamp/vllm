@@ -4,6 +4,8 @@
 
 import math
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 import torch.nn.functional as F
@@ -54,6 +56,7 @@ from vllm.v1.attention.backends.short_conv_attn import (
     PleShortConvAttentionMetadata,
 )
 from vllm.v1.attention.backends.utils import NULL_BLOCK_ID
+from vllm.v1.ple_offload.bf16_ple_mmap_gather import Bf16PleMmapGather
 
 from ..common.ple import copy_ple_embedding_shard_
 from ..common.ple_sidecar import NvFp4PleSidecar
@@ -65,6 +68,16 @@ _SPLITMIX_GAMMA = 0x9E3779B97F4A7C15
 _SPLITMIX_M1 = 0xBF58476D1CE4E5B9
 _SPLITMIX_M2 = 0x94D049BB133111EB
 _PLE_LAYER_PRIME = 10007
+
+
+@dataclass(frozen=True)
+class Qwen4ExpBf16PleMmapConfig:
+    """Complete direct BF16 PLE mapping contract for one source tensor."""
+
+    checkpoint_path: str | Path
+    expected_sha256: str
+    native_library_path: str | Path
+    tensor_prefix: str
 
 
 def _splitmix64(value: int) -> int:
@@ -377,6 +390,7 @@ def _get_shared_nvfp4_outer_scale(
 
 class Qwen4ExpNGramEmbedding(PleOffloadLayer):
     _offload_quant_method: QuantizeMethodBase | None = None
+    _bf16_mmap: Bf16PleMmapGather | None = None
     _nvfp4_sidecar: NvFp4PleSidecar | None = None
 
     def __init__(
@@ -391,6 +405,7 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
         params_dtype: torch.dtype | None = None,
         nvfp4_sidecar_dir: str | None = None,
         nvfp4_sidecar_manifest_sha256: str | None = None,
+        bf16_mmap_config: Qwen4ExpBf16PleMmapConfig | None = None,
     ) -> None:
         super().__init__()
         self.embedding_dim = embedding_dim
@@ -449,6 +464,7 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
         )
         divisor = int(config.make_ngram_vocab_size_divisible_by)
         padded_vocab_size = ((offset + divisor - 1) // divisor) * divisor
+        self._bf16_mmap: Bf16PleMmapGather | None = None
         self._nvfp4_sidecar: NvFp4PleSidecar | None = None
         self._nvfp4_sidecar_output_dtype = params_dtype or torch.get_default_dtype()
         if self._nvfp4_sidecar_output_dtype not in (
@@ -457,7 +473,24 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
             torch.float32,
         ):
             raise ValueError("NVFP4 PLE sidecar output requires a floating dtype")
-        if nvfp4_sidecar_dir is not None:
+        if bf16_mmap_config is not None and nvfp4_sidecar_dir is not None:
+            raise ValueError("BF16 mmap and NVFP4 PLE sidecars are mutually exclusive")
+        if bf16_mmap_config is not None:
+            if not is_offload_process():
+                raise RuntimeError(
+                    "BF16 PLE mmap may only own storage in the CPU offload process"
+                )
+            if params_dtype != torch.bfloat16:
+                raise ValueError("BF16 PLE mmap requires a BF16 model dtype")
+            self._bf16_mmap = Bf16PleMmapGather(
+                checkpoint_path=bf16_mmap_config.checkpoint_path,
+                expected_sha256=bf16_mmap_config.expected_sha256,
+                native_library_path=bf16_mmap_config.native_library_path,
+                tensor_prefix=bf16_mmap_config.tensor_prefix,
+                total_rows=padded_vocab_size,
+                width=self.head_dim,
+            )
+        elif nvfp4_sidecar_dir is not None:
             if not is_offload_process():
                 raise RuntimeError(
                     "NVFP4 PLE sidecars may only own storage in the CPU offload process"
@@ -618,6 +651,21 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
             ids = torch.remainder(mixed.unsqueeze(-1), sizes) + offsets
             id_blocks.append(ids[request_indices, adjusted_columns])
         ngram_ids = torch.cat(id_blocks, dim=-1)
+        bf16_mmap = self._bf16_mmap
+        if bf16_mmap is not None:
+            if output_buffer is None:
+                output = torch.empty(
+                    (num_tokens, self.embedding_dim),
+                    dtype=torch.bfloat16,
+                    device=ngram_ids.device,
+                )
+            else:
+                output = output_buffer[:num_tokens, : self.embedding_dim]
+            bf16_mmap.gather_into(
+                ngram_ids.reshape(-1),
+                output.reshape(-1, self.head_dim),
+            )
+            return output
         sidecar = self._nvfp4_sidecar
         if sidecar is not None:
             if output_buffer is None:
@@ -656,6 +704,8 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
         weight = getattr(embedding, "weight", None)
         if weight is not None:
             return weight.dtype
+        if self._bf16_mmap is not None:
+            return torch.bfloat16
         if self._nvfp4_sidecar is not None:
             return self._nvfp4_sidecar_output_dtype
         if isinstance(self._offload_quant_method, Qwen4ExpPLENVFp4EmbeddingMethod):
@@ -766,7 +816,7 @@ class Qwen4ExpNGramEmbedding(PleOffloadLayer):
         loaded: set[str] = set()
         regular_weights: list[tuple[str, torch.Tensor]] = []
         shard_prefix = "ngram_embedding.shard_"
-        sidecar_runtime = self._nvfp4_sidecar is not None
+        sidecar_runtime = self._bf16_mmap is not None or self._nvfp4_sidecar is not None
         quant_method = (
             None
             if sidecar_runtime
@@ -969,8 +1019,26 @@ class Qwen4ExpPLELayer(nn.Module, MambaBase):
             raise ValueError(
                 "NVFP4 PLE sidecar directory and META.json SHA-256 must be set together"
             )
-        if sidecar_dir is not None and not envs.VLLM_PLE_CPU_OFFLOAD:
-            raise ValueError("NVFP4 PLE sidecars require VLLM_PLE_CPU_OFFLOAD")
+        bf16_mmap_file = envs.VLLM_PLE_BF16_MMAP_FILE
+        bf16_mmap_sha256 = envs.VLLM_PLE_BF16_MMAP_SHA256
+        bf16_mmap_library = envs.VLLM_PLE_BF16_MMAP_LIBRARY
+        bf16_mmap_settings = (
+            bf16_mmap_file,
+            bf16_mmap_sha256,
+            bf16_mmap_library,
+        )
+        if any(setting is not None for setting in bf16_mmap_settings) and not all(
+            bf16_mmap_settings
+        ):
+            raise ValueError(
+                "BF16 PLE mmap file, SHA-256, and native library must be set together"
+            )
+        if sidecar_dir is not None and bf16_mmap_file is not None:
+            raise ValueError("BF16 mmap and NVFP4 PLE sidecars are mutually exclusive")
+        if (sidecar_dir is not None or bf16_mmap_file is not None) and not (
+            envs.VLLM_PLE_CPU_OFFLOAD
+        ):
+            raise ValueError("PLE sidecars require VLLM_PLE_CPU_OFFLOAD")
         # The offload process builds the surrounding model on meta while
         # this subtree must own real CPU storage. GPU workers skip the
         # subclass constructor and retain only an empty IPC placeholder.
@@ -988,11 +1056,28 @@ class Qwen4ExpPLELayer(nn.Module, MambaBase):
                 nvfp4_sidecar_manifest_sha256=(
                     sidecar_manifest_sha256 if is_offload_process() else None
                 ),
+                bf16_mmap_config=(
+                    Qwen4ExpBf16PleMmapConfig(
+                        checkpoint_path=bf16_mmap_file,
+                        expected_sha256=bf16_mmap_sha256,
+                        native_library_path=bf16_mmap_library,
+                        tensor_prefix=(
+                            "model.language_model.layers."
+                            f"{self.layer_idx}.ple.ple_embedding.ngram_embedding"
+                        ),
+                    )
+                    if is_offload_process()
+                    and bf16_mmap_file is not None
+                    and bf16_mmap_sha256 is not None
+                    and bf16_mmap_library is not None
+                    else None
+                ),
             )
         if (
             envs.VLLM_PLE_CPU_OFFLOAD
             and not is_offload_process()
             and sidecar_dir is None
+            and bf16_mmap_file is None
         ):
             ple_embedding._offload_quant_method = _get_ple_embedding_quant_method(
                 quant_config,

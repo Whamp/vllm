@@ -105,7 +105,9 @@ The deployed image uses the legacy `qwen3_8_flash_next` model namespace. Its `pl
 
 Removing that file would remove the model's PLE computation, not merely disable an old quantization format. The current production overlay therefore keeps the exact 51,675-byte source at SHA-256 `1cb682b53f024b2060c5fe205fa0f6eca7c8df2cfbca3d21bea94d832b4db16a`. The overlay builder can copy it with `--ple-layer`, so restarts no longer depend on the deleted NVFP4 cache.
 
-The clean replacement is a production image built from the current in-tree `qwen4_exp` implementation. That would remove the legacy bind mount after a full-model parity and performance gate. The measured BF16 gather averaged 2.58 ms while request launch to worker handling averaged 12.60 ms, so future performance work should first attribute the worker queue and n-gram control path rather than retune the row copy.
+The in-tree `qwen4_exp` implementation now owns direct BF16 mmap configuration, table construction, row gathering, and weight-loading exclusion. A current-main image can set `VLLM_PLE_BF16_MMAP_FILE`, `VLLM_PLE_BF16_MMAP_SHA256`, and `VLLM_PLE_BF16_MMAP_LIBRARY` without replacing `ple_layer.py`. The accepted legacy production image still uses its checksum-bound copy until that image lineage is rebuilt; the copy no longer represents unowned behavior.
+
+The measured BF16 gather averaged 2.58 ms while request launch to worker handling averaged 12.60 ms, so future performance work should first attribute the worker queue and n-gram control path rather than retune the row copy.
 
 ## Gated hypothesis
 
