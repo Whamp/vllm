@@ -31,6 +31,8 @@ contract = json.loads(Path(sys.argv[1]).read_text())["current_production_contrac
 for key in (
     "base_image_id",
     "service_name",
+    "compose_project",
+    "compose_profile",
     "container_name",
     "served_model_name",
     "host_port",
@@ -42,20 +44,22 @@ for key in (
     print(contract[key])
 PY
 )
-if [[ "${#rollback_identity[@]}" -ne 9 ]]; then
+if [[ "${#rollback_identity[@]}" -ne 11 ]]; then
     echo "Shared-expert rollback manifest is incomplete" >&2
     exit 1
 fi
 
 base_image_id="${rollback_identity[0]}"
 service_name="${rollback_identity[1]}"
-container_name="${rollback_identity[2]}"
-served_model_name="${rollback_identity[3]}"
-host_port="${rollback_identity[4]}"
-production_compose="${rollback_identity[5]}"
-resolved_compose_sha256="${rollback_identity[6]}"
-restore_script="${rollback_identity[7]}"
-restore_script_sha256="${rollback_identity[8]}"
+compose_project="${rollback_identity[2]}"
+compose_profile="${rollback_identity[3]}"
+container_name="${rollback_identity[4]}"
+served_model_name="${rollback_identity[5]}"
+host_port="${rollback_identity[6]}"
+production_compose="${rollback_identity[7]}"
+resolved_compose_sha256="${rollback_identity[8]}"
+restore_script="${rollback_identity[9]}"
+restore_script_sha256="${rollback_identity[10]}"
 
 actual_restore_sha256="$(sha256sum "$restore_script" | cut -d' ' -f1)"
 if [[ "$actual_restore_sha256" != "$restore_script_sha256" ]]; then
@@ -63,8 +67,14 @@ if [[ "$actual_restore_sha256" != "$restore_script_sha256" ]]; then
     exit 1
 fi
 
+compose_args=(
+    compose
+    -p "$compose_project"
+    --profile "$compose_profile"
+    -f "$production_compose"
+)
 actual_compose_sha256="$(
-    docker compose -f "$production_compose" config | sha256sum | cut -d' ' -f1
+    docker "${compose_args[@]}" config | sha256sum | cut -d' ' -f1
 )"
 if [[ "$actual_compose_sha256" != "$resolved_compose_sha256" ]]; then
     echo "Shared-expert resolved production Compose SHA-256 mismatch" >&2
@@ -77,7 +87,7 @@ if [[ "$actual_base_image_id" != "$base_image_id" ]]; then
     exit 1
 fi
 
-if ! docker compose -f "$production_compose" config --services | grep -Fxq "$service_name"; then
+if ! docker "${compose_args[@]}" config --services | grep -Fxq "$service_name"; then
     echo "Shared-expert rollback service is absent from production Compose" >&2
     exit 1
 fi
@@ -85,6 +95,8 @@ fi
 printf 'ROLLBACK_READY=1\n'
 printf 'BASE_IMAGE_ID=%s\n' "$base_image_id"
 printf 'SERVICE_NAME=%s\n' "$service_name"
+printf 'COMPOSE_PROJECT=%s\n' "$compose_project"
+printf 'COMPOSE_PROFILE=%s\n' "$compose_profile"
 printf 'CONTAINER_NAME=%s\n' "$container_name"
 printf 'SERVED_MODEL_NAME=%s\n' "$served_model_name"
 printf 'HOST_PORT=%s\n' "$host_port"

@@ -13,13 +13,15 @@
   "current_production_contract": {
     "base_image_id": "sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef",
     "service_name": "qwen38-flash-next",
+    "compose_project": "qwen38-qsa-fp8-candidate",
+    "compose_profile": "qwen38-flash-next",
     "container_name": "qwen38-qsa-fp8-candidate",
     "served_model_name": "qwen3.8-flash-next-intel-autoround-w4a16",
     "host_port": 30002,
     "production_compose": "/home/will/inference/runtime/qwen38-qsa-fp8-candidate/production.yml",
-    "resolved_compose_sha256": "ad55f9159a517e3ac816361d73473e90ae3ff1b794eba59a0324d5dd7d51b0fb",
+    "resolved_compose_sha256": "0b8b5e857b3b550107817c7c682a89b76c2442ed3a6d3ccda23b39948e4045ab",
     "restore_script": "/home/will/inference/runtime/qwen38-qsa-fp8-candidate/restore-fp8.sh",
-    "restore_script_sha256": "3792aad749575e9dec73d89b597e2df767444d11f99725ff221f90de30acff03",
+    "restore_script_sha256": "d18463d486f803864fa1fb6b09040fb574f63fa0b87b80e6ef83c82a4035e34f",
     "installed_sources": {
       "vllm/envs.py": "cbe6272965f373a2e490a4b16171a4301277b5ad0f6889654183b3d1d1121b4c",
       "vllm/model_executor/layers/fused_moe/runner/moe_runner.py": "a19ecf2417c80b93c0fe5594e74528f686665847732196f9b29ef967b38110b0",
@@ -52,7 +54,7 @@
     },
     "rollback_verifier": {
       "path": "scripts/qwen38_verify_shared_expert_rollback.sh",
-      "sha256": "6ba017c00db7b1b4772b7a79b7be67fcef627f521b7feb3604126ff0b741686e"
+      "sha256": "52b389ac7c340e24846efcfe1e6622eafe13465618ce08ea0052910ec7674a7f"
     },
     "restore_watchdog": {
       "path": "scripts/qwen38_shared_expert_restore_watchdog.sh",

@@ -83,11 +83,12 @@ The current handoff identity is:
 | Installed `envs.py` | `cbe6272965f373a2e490a4b16171a4301277b5ad0f6889654183b3d1d1121b4c` |
 | Installed `moe_runner.py` | `a19ecf2417c80b93c0fe5594e74528f686665847732196f9b29ef967b38110b0` |
 | Installed `shared_experts.py` | `4216c125cecc05181a94f745101603e90e7c06bb98030036dd1c1acfe5095ff6` |
-| Resolved production Compose SHA-256 | `ad55f9159a517e3ac816361d73473e90ae3ff1b794eba59a0324d5dd7d51b0fb` |
+| Compose project/profile | `qwen38-qsa-fp8-candidate` / `qwen38-flash-next` |
+| Profile-resolved production Compose SHA-256 | `0b8b5e857b3b550107817c7c682a89b76c2442ed3a6d3ccda23b39948e4045ab` |
 | Production restore command | `/home/will/inference/runtime/qwen38-qsa-fp8-candidate/restore-fp8.sh` |
-| Restore script SHA-256 | `3792aad749575e9dec73d89b597e2df767444d11f99725ff221f90de30acff03` |
+| Restore script SHA-256 | `d18463d486f803864fa1fb6b09040fb574f63fa0b87b80e6ef83c82a4035e34f` |
 
-`MANIFEST.json` is the identity authority. `scripts/qwen38_verify_shared_expert_rollback.sh` verifies every repository-owned delivery artifact plus the restore script, resolved production Compose, service name, and immutable image. `scripts/qwen38_shared_expert_restore_watchdog.sh arm` creates the user-systemd restore timer. When the timer fires, `scripts/qwen38_execute_shared_expert_restore.sh` reruns the verifier immediately before invoking the restore script.
+`MANIFEST.json` is the identity authority. `scripts/qwen38_verify_shared_expert_rollback.sh` verifies every repository-owned delivery artifact plus the restore script, profile-resolved production Compose, Compose project/profile, service name, and immutable image. `scripts/qwen38_shared_expert_restore_watchdog.sh arm` creates the user-systemd restore timer. When the timer fires, `scripts/qwen38_execute_shared_expert_restore.sh` reruns the verifier immediately before invoking the restore script.
 
 `scripts/qwen38_build_shared_expert_early_launch_image.sh` reads the same manifest, extracts only the three Python files, runs the fail-closed patcher, builds a thin image, labels every input and output hash, and verifies the files inside the image. It does not start a service or use a GPU.
 

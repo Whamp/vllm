@@ -126,6 +126,8 @@ def _write_rollback_fixture(tmp_path: Path) -> tuple[Path, dict[str, str]]:
     contract = {
         "base_image_id": base_image_id,
         "service_name": "qwen38-flash-next",
+        "compose_project": "qwen38-test-project",
+        "compose_profile": "qwen38-flash-next",
         "container_name": "qwen38-test",
         "served_model_name": "qwen38-test-model",
         "host_port": 30002,
@@ -156,9 +158,10 @@ def _write_rollback_fixture(tmp_path: Path) -> tuple[Path, dict[str, str]]:
     fake_docker.write_text(
         "#!/bin/sh\n"
         "set -eu\n"
+        'printf \'%s\\n\' "$*" >> "$FAKE_DOCKER_LOG"\n'
         'if [ "$1" = compose ]; then\n'
-        '  case "${5:-}" in\n'
-        "    --services) printf '%s\\n' \"$FAKE_SERVICE_NAME\" ;;\n"
+        '  case " $* " in\n'
+        "    *' config --services '*) printf '%s\\n' \"$FAKE_SERVICE_NAME\" ;;\n"
         '    *) cat "$FAKE_COMPOSE_OUTPUT" ;;\n'
         "  esac\n"
         'elif [ "$1" = image ] && [ "$2" = inspect ]; then\n'
@@ -172,6 +175,7 @@ def _write_rollback_fixture(tmp_path: Path) -> tuple[Path, dict[str, str]]:
         "PATH": f"{fake_bin}:{Path('/usr/bin')}:{Path('/bin')}",
         "QWEN38_SHARED_EXPERT_MANIFEST": str(manifest_path),
         "FAKE_COMPOSE_OUTPUT": str(rendered_compose),
+        "FAKE_DOCKER_LOG": str(tmp_path / "docker.log"),
         "FAKE_SERVICE_NAME": str(contract["service_name"]),
         "FAKE_IMAGE_ID": base_image_id,
     }
@@ -225,6 +229,9 @@ def test_rollback_verifier_accepts_exact_manifest(tmp_path: Path) -> None:
 
     assert "ROLLBACK_READY=1" in result.stdout
     assert "HOST_PORT=30002" in result.stdout
+    docker_log = Path(env["FAKE_DOCKER_LOG"]).read_text()
+    assert "-p qwen38-test-project" in docker_log
+    assert "--profile qwen38-flash-next" in docker_log
 
 
 def test_rollback_verifier_rejects_changed_restore_script(tmp_path: Path) -> None:
