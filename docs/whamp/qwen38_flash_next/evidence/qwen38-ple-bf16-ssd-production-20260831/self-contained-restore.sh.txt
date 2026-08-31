@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root=/home/will/inference/runtime/qwen38-ple-bf16-ssd/9a2bdd3e39b3ad692f4b4d3c9a5f9d2bde91a3a4
+compose="$root/production-bf16/production.yml"
+project=qwen38-qsa-fp8-candidate
+profile=qwen38-flash-next
+service=qwen38-flash-next
+container=qwen38-qsa-fp8-candidate
+rollback=/home/will/inference/runtime/qwen38-ple-bf16-ssd/restore-production.sh
+ready=0
+on_exit() {
+  sudo -n sysctl -q -w vm.overcommit_memory=0 >/dev/null || true
+  if ((ready == 0)); then
+    "$rollback" || true
+  fi
+}
+trap on_exit EXIT
+(
+  cd "$root/production-bf16"
+  sha256sum -c SHA256SUMS
+)
+"/home/will/inference/runtime/qwen38-ple-bf16-ssd/verify.sh"
+docker rm -f qwen38-ple-bf16-ssd-candidate >/dev/null 2>&1 || true
+docker rm -f "$container" >/dev/null 2>&1 || true
+sudo -n swapoff -a
+sudo -n sysctl -q -w vm.overcommit_memory=1 >/dev/null
+docker compose -p "$project" --profile "$profile" -f "$compose" up -d "$service"
+for poll in $(seq 1 240); do
+  if curl -fsS http://127.0.0.1:30002/health >/dev/null 2>&1; then
+    break
+  fi
+  [[ "$(docker inspect "$container" --format '{{.State.Running}}' 2>/dev/null || true)" == true ]]
+  if ((poll == 240)); then
+    docker logs --tail 1500 "$container" >&2
+    exit 1
+  fi
+  sleep 15
+done
+sudo -n sysctl -q -w vm.overcommit_memory=0 >/dev/null
+for poll in $(seq 1 30); do
+  health=$(docker inspect "$container" --format '{{.State.Health.Status}}')
+  [[ "$health" != unhealthy ]]
+  if [[ "$health" == healthy ]]; then
+    break
+  fi
+  if ((poll == 30)); then
+    docker logs --tail 1500 "$container" >&2
+    exit 1
+  fi
+  sleep 10
+done
+"$root/production-bf16/verify.sh"
+ready=1
+trap - EXIT
+echo BF16_PRODUCTION_RESTORED=1

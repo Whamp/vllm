@@ -14,7 +14,8 @@ sampling, and GPU safety controls stayed fixed.
 | BF16 PLE file | Intel `model-00016-of-00017.safetensors` |
 | BF16 PLE SHA-256 | `59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf` |
 | BF16 PLE bytes | `102400512256` |
-| NVFP4 rollback revision | `da8b39586016d8325ac619be28ad77d6296625ec` |
+| NVFP4 cold-rollback revision | `da8b39586016d8325ac619be28ad77d6296625ec` |
+| Legacy PLE layer SHA-256 | `1cb682b53f024b2060c5fe205fa0f6eca7c8df2cfbca3d21bea94d832b4db16a` |
 | API context | `262144` tokens |
 | GPU safety | 230 W, driver-managed clocks within the host policy |
 
@@ -82,10 +83,17 @@ and port with `restart: unless-stopped`. Final checks confirmed the expected
 model identity, 262144-token API limit, deterministic output, zero process
 swap, strict overcommit restored to 0, and the 230 W GPU safety service.
 
-The Primitive NVFP4 profile remains the exact rollback. Startup still emits
-the inherited expandable-segment mapping warnings seen on this tight-memory
-profile. The service reached health and completed all registered workloads.
+Production was recreated with the exact legacy PLE model source copied into its
+own checksum-bound runtime directory. The 129 NVFP4 table files were then
+deleted, reclaiming 28,800,757,760 filesystem bytes. The old restore script now
+fails before changing the service unless revision
+`da8b39586016d8325ac619be28ad77d6296625ec` is present with exactly 129 files
+and 28,800,170,645 bytes. Startup still emits the inherited expandable-segment
+mapping warnings seen on this tight-memory profile. The service reached health
+and completed all registered workloads.
 
+The cleanup receipt, self-contained Compose and scripts, compressed legacy PLE
+source, and post-cleanup final-state record sit beside the original archive.
 `SHA256SUMS` covers the readable summaries, production Compose, raw archive,
 and `RAW-SHA256SUMS`. The gzip archive contains 113 original evidence files.
 Extract it and run `sha256sum -c RAW-SHA256SUMS` from the extraction directory

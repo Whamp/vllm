@@ -13,6 +13,9 @@ from pathlib import Path
 EXPECTED_WORKER_SHA256 = (
     "e85a2d599a422b0b2451f7ad74e408688f53e59e3a77ba17afb4fdffd0bcebad"
 )
+EXPECTED_PLE_LAYER_SHA256 = (
+    "1cb682b53f024b2060c5fe205fa0f6eca7c8df2cfbca3d21bea94d832b4db16a"
+)
 _WORKER_INIT_OLD = """        self.width = width
         self._lut = None
         logger.info("PLE quant table: %s, %d shards mmapped from %s",
@@ -177,10 +180,34 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _copy_checksum_bound_file(
+    source: Path,
+    destination: Path,
+    expected_sha256: str,
+) -> None:
+    """Copy one runtime source file only when its SHA-256 identity matches."""
+    actual_sha256 = _sha256(source)
+    if actual_sha256 != expected_sha256:
+        raise RuntimeError(
+            f"runtime source checksum mismatch: expected {expected_sha256}, "
+            f"got {actual_sha256} for {source}"
+        )
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, destination)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("worker_image_quant", type=Path)
     parser.add_argument("output_dir", type=Path)
+    parser.add_argument(
+        "--ple-layer",
+        type=Path,
+        help=(
+            "copy the checksum-bound legacy Qwen3.8 ple_layer.py into the "
+            "self-contained overlay"
+        ),
+    )
     args = parser.parse_args()
     script_dir = Path(__file__).resolve().parent
     repo_root = script_dir.parents[1]
@@ -236,12 +263,21 @@ def main() -> None:
     py_compile.compile(helper_output, doraise=True)
     py_compile.compile(bf16_helper_output, doraise=True)
 
-    artifacts = (
+    artifacts = [
         worker_output,
         helper_output,
         bf16_helper_output,
         library_output,
-    )
+    ]
+    if args.ple_layer is not None:
+        ple_layer_output = args.output_dir / "ple_layer.py"
+        _copy_checksum_bound_file(
+            args.ple_layer,
+            ple_layer_output,
+            EXPECTED_PLE_LAYER_SHA256,
+        )
+        py_compile.compile(ple_layer_output, doraise=True)
+        artifacts.append(ple_layer_output)
     manifest = "".join(f"{_sha256(path)}  {path.name}\n" for path in artifacts)
     (args.output_dir / "SHA256SUMS").write_text(manifest)
 

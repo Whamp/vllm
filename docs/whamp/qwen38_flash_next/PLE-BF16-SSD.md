@@ -3,7 +3,8 @@
 ## Decision
 
 Server60 now reads Qwen3.8's PLE directly from Intel's original BF16
-safetensors shard. The previous Primitive NVFP4 sidecar remains the rollback.
+safetensors shard. The previous Primitive NVFP4 table is now a cold rollback
+that must be re-downloaded before use.
 
 This result was counterintuitive. The BF16 table is 95.37 GiB, more than three
 times the NVFP4 sidecar's size. In the measured workload, BF16 still read about
@@ -90,10 +91,18 @@ Production uses the existing service identity and port 30002 with
 262144-token limit, deterministic output, zero process swap,
 `vm.overcommit_memory=0`, and active GPU safety controls.
 
-The Primitive NVFP4 Compose and restore path remain checksum-bound. Startup on
-this tight-memory profile still emits the inherited expandable-segment mapping
-warnings seen with the control runtime, but the BF16 service reached health and
-completed every registered workload.
+Production copies the exact legacy `ple_layer.py` into its checksum-bound
+runtime directory. That source computes n-gram row IDs, invokes the table gather,
+and applies the PLE projection, gate, normalization, and short-convolution
+state update. The current legacy image needs it, but production no longer reads
+it from the NVFP4 Hugging Face cache.
+
+After a self-contained restart passed, the 129 NVFP4 table files were deleted.
+This reclaimed 28,800,757,760 filesystem bytes. The old restore script now
+fails before touching production until the exact revision and byte count have
+been re-downloaded. Startup on this tight-memory profile still emits the
+inherited expandable-segment mapping warnings seen with the control runtime,
+but the BF16 service reached health and completed every registered workload.
 
 The complete 113-file archive, analyzer output, raw measurements, functional
 results, BenchLocal report, diagnostic timing, production Compose, and final

@@ -1,0 +1,5 @@
+exit_status=3
+container_unchanged=yes
+NVFP4 rollback is cold: the 26.82 GiB sidecar was removed after BF16 promotion.
+Re-download it before retrying:
+  HF_HOME=/mnt/models/huggingface hf download primitive-ai/Qwen3.8-Flash-Next-PLE-quant --revision da8b39586016d8325ac619be28ad77d6296625ec --include 'ples_nvfp4/**'

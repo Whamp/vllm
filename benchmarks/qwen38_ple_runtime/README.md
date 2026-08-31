@@ -15,6 +15,15 @@ e85a2d599a422b0b2451f7ad74e408688f53e59e3a77ba17afb4fdffd0bcebad
 
 That file is `worker_image_quant.py` from Primitive AI revision `da8b39586016d8325ac619be28ad77d6296625ec`.
 
+A self-contained legacy-image overlay also pins `ple_layer.py` to SHA-256:
+
+```text
+1cb682b53f024b2060c5fe205fa0f6eca7c8df2cfbca3d21bea94d832b4db16a
+```
+
+Copying this 51,675-byte source into the overlay prevents production restarts
+from depending on the removable NVFP4 Hugging Face cache.
+
 ## Behavior
 
 The candidate replaces the worker's per-shard Torch gather and dequantization loop with one raw CPU call. The kernel:
@@ -35,7 +44,8 @@ Run this command from the repository root:
 .venv/bin/python \
   benchmarks/qwen38_ple_runtime/build_native_gather_overlay.py \
   /path/to/worker_image_quant.py \
-  /path/to/output
+  /path/to/output \
+  --ple-layer /path/to/legacy/ple_layer.py
 ```
 
 The builder verifies the production worker hash before it writes:
@@ -45,6 +55,7 @@ worker_image_quant.py
 nvfp4_native_gather.py
 bf16_ple_mmap_gather.py
 libvllm_ple_nvfp4_gather.so
+ple_layer.py
 SHA256SUMS
 ```
 
@@ -85,6 +96,10 @@ volumes:
     target: /usr/local/lib/python3.12/dist-packages/vllm/v1/ple_offload/bf16_ple_mmap_gather.py
     read_only: true
   - type: bind
+    source: /path/to/output/ple_layer.py
+    target: /usr/local/lib/python3.12/dist-packages/vllm/models/qwen3_8_flash_next/nvidia/ple_layer.py
+    read_only: true
+  - type: bind
     source: /path/to/intel/model-00016-of-00017.safetensors
     target: /ple/59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf
     read_only: true
@@ -94,7 +109,7 @@ environment:
   VLLM_PLE_BF16_MMAP_LIBRARY: /opt/vllm/libvllm_ple_nvfp4_gather.so
 ```
 
-This path passed the server60 full-model A/B and is now the production default. See [BF16-SSD-PLE.md](BF16-SSD-PLE.md) for the artifact contract, measurements, and NVFP4 rollback.
+This path passed the server60 full-model A/B and is now the production default. See [BF16-SSD-PLE.md](BF16-SSD-PLE.md) for the artifact contract, measurements, and cold NVFP4 rollback.
 
 ## CPU evidence
 

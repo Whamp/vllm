@@ -2,7 +2,7 @@
 
 ## Status
 
-Direct BF16 mmap is the server60 production PLE path as of 2026-08-31. It reads the original 95.37 GiB Intel BF16 table from its content-addressed safetensors blob. The previous 28.8 GB Primitive NVFP4 sidecar remains the rollback.
+Direct BF16 mmap is the server60 production PLE path as of 2026-08-31. It reads the original 95.37 GiB Intel BF16 table from its content-addressed safetensors blob. After a self-contained BF16 restart passed, the 26.82 GiB Primitive NVFP4 table cache was deleted. NVFP4 is now a cold rollback that requires re-downloading revision `da8b39586016d8325ac619be28ad77d6296625ec`.
 
 The order-balanced full-model A/B measured 6.90% higher concurrency-1 decode and 1.50% higher concurrency-2 aggregate decode with BF16. Prefill changed by less than 0.4%. The candidate passed the functional, 261K NIAH, and BenchLocal quick gates before promotion.
 
@@ -24,9 +24,9 @@ The object is byte-identical to the LFS identity recorded at the pinned Intel mo
 
 ## Measured storage behavior
 
-### Current production sidecar
+### Former production sidecar
 
-The production PLE worker maps 128 Primitive NVFP4 files totaling 28,800,188,416 bytes. A live `/proc/<pid>/smaps` inspection found 1,331,880 KiB resident. Its mappings had no random-access advice.
+Before BF16 promotion, the production PLE worker mapped 128 Primitive NVFP4 files totaling 28,800,188,416 bytes. A live `/proc/<pid>/smaps` inspection found 1,331,880 KiB resident. Its mappings had no random-access advice.
 
 During one warmup and three 256-token generations, the worker recorded:
 
@@ -99,6 +99,14 @@ This design does not use vLLM PR [#54129](https://github.com/vllm-project/vllm/p
 
 It also avoids vLLM PR [#54070](https://github.com/vllm-project/vllm/pull/54070)'s second 95 GiB `.bin` file. The Intel shard already stores the table in the exact contiguous order the worker needs.
 
+## Why `ple_layer.py` remains
+
+The deployed image uses the legacy `qwen3_8_flash_next` model namespace. Its `ple_layer.py` is model code, not NVFP4 table data. `Qwen3_8FlashNextNGramEmbedding.forward_impl` reconstructs per-request token histories, hashes each n-gram head into the 320-million-row PLE address space, and calls `_ple_quant.gather_into()` for the selected rows. `Qwen3_8FlashNextPLELayer.forward` then applies the PLE key and value projections, grouped normalization, gating, and dilated short-convolution state update.
+
+Removing that file would remove the model's PLE computation, not merely disable an old quantization format. The current production overlay therefore keeps the exact 51,675-byte source at SHA-256 `1cb682b53f024b2060c5fe205fa0f6eca7c8df2cfbca3d21bea94d832b4db16a`. The overlay builder can copy it with `--ple-layer`, so restarts no longer depend on the deleted NVFP4 cache.
+
+The clean replacement is a production image built from the current in-tree `qwen4_exp` implementation. That would remove the legacy bind mount after a full-model parity and performance gate. The measured BF16 gather averaged 2.58 ms while request launch to worker handling averaged 12.60 ms, so future performance work should first attribute the worker queue and n-gram control path rather than retune the row copy.
+
 ## Gated hypothesis
 
 ```text
@@ -121,7 +129,7 @@ CONTRACTS: model, QSA, PLE hashing, row order, CUDA Graphs, context, vision, too
 
 The candidate passed the registered full-model A/B and became the server60 production default. Production keeps the accepted model, calibrated FP8 QSA cache, hierarchical collectives, native SM86 Kernel2 path, 262144-token API limit, and GPU safety policy. Only the PLE table and gather mechanism changed.
 
-The production profile uses the existing image and checksum-bound overlay rather than a new model artifact. It sets `restart: unless-stopped`, serves on port 30002, and verifies the exact BF16 PLE blob before startup. The Primitive NVFP4 profile remains available through the previous restore contract.
+The production profile uses the existing image and checksum-bound overlay rather than a new model artifact. It sets `restart: unless-stopped`, serves on port 30002, and verifies the exact BF16 PLE blob before startup. The 129 NVFP4 table files were deleted after the self-contained restart, reclaiming 28,800,757,760 filesystem bytes. The old restore contract now fails before touching production until all 28,800,170,645 bytes have been re-downloaded.
 
 This is a server60 result. It does not establish that every host should prefer BF16 over a quantized PLE table. Page-cache behavior, table layout, storage, and request locality decide the result.
 

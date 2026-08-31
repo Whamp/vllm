@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root=/home/will/inference/runtime/qwen38-ple-bf16-ssd
+production_root=/home/will/inference/runtime/qwen38-qsa-fp8-candidate
+candidate=qwen38-ple-bf16-ssd-candidate
+nvfp4_dir=/mnt/models/huggingface/hub/models--primitive-ai--Qwen3.8-Flash-Next-PLE-quant/snapshots/da8b39586016d8325ac619be28ad77d6296625ec/ples_nvfp4
+expected_nvfp4_files=129
+expected_nvfp4_bytes=28800170645
+if [[ ! -d "$nvfp4_dir" ]]; then
+  cat >&2 <<'EOF'
+NVFP4 rollback is cold: the 26.82 GiB sidecar was removed after BF16 promotion.
+Re-download it before retrying:
+  HF_HOME=/mnt/models/huggingface hf download primitive-ai/Qwen3.8-Flash-Next-PLE-quant --revision da8b39586016d8325ac619be28ad77d6296625ec --include 'ples_nvfp4/**'
+EOF
+  exit 3
+fi
+actual_nvfp4_files=$(find -L "$nvfp4_dir" -type f -printf '.' | wc -c)
+actual_nvfp4_bytes=$(find -L "$nvfp4_dir" -type f -printf '%s\n' | awk '{sum += $1} END {printf "%.0f", sum}')
+if [[ "$actual_nvfp4_files" != "$expected_nvfp4_files" || "$actual_nvfp4_bytes" != "$expected_nvfp4_bytes" ]]; then
+  echo "NVFP4 rollback cache identity mismatch: files=$actual_nvfp4_files bytes=$actual_nvfp4_bytes" >&2
+  exit 3
+fi
+trap 'sudo -n sysctl -q -w vm.overcommit_memory=0 >/dev/null || true' EXIT
+"$root/verify.sh"
+docker rm -f "$candidate" >/dev/null 2>&1 || true
+"$production_root/restore-fp8.sh"
+[[ "$(docker inspect qwen38-qsa-fp8-candidate --format '{{.Image}}')" == sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef ]]
+[[ "$(docker inspect qwen38-qsa-fp8-candidate --format '{{.State.Health.Status}}')" == healthy ]]
+[[ "$(docker inspect qwen38-qsa-fp8-candidate --format '{{.RestartCount}}')" == 0 ]]
+[[ "$(docker inspect qwen38-qsa-fp8-candidate --format '{{.HostConfig.RestartPolicy.Name}}')" == unless-stopped ]]
+[[ "$(swapon --show --noheadings | wc -l)" == 0 ]]
+[[ "$(sysctl -n vm.overcommit_memory)" == 0 ]]
+for pid in $(docker top qwen38-qsa-fp8-candidate -o pid | tail -n +2); do
+  [[ "$(awk '/^VmSwap:/{print $2}' "/proc/$pid/status")" == 0 ]]
+done
+systemctl is-active --quiet gpu-power-limit.service
+curl -fsS http://127.0.0.1:30002/v1/models | python3 -c 'import json,sys; models=json.load(sys.stdin)["data"]; assert len(models)==1; assert models[0]["id"]=="qwen3.8-flash-next-intel-autoround-w4a16"; assert models[0]["max_model_len"]==262144'
+echo PRODUCTION_RESTORED=1

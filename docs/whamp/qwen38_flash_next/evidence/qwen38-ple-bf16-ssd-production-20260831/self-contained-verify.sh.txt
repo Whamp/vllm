@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+container=qwen38-qsa-fp8-candidate
+root=/home/will/inference/runtime/qwen38-ple-bf16-ssd/9a2bdd3e39b3ad692f4b4d3c9a5f9d2bde91a3a4
+expected_image=sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef
+expected_ple=59d1ce2df8a9e4441e0d6328b5fd620f427734274bf559ba4f15a8f98bf35abf
+expected_ple_layer=1cb682b53f024b2060c5fe205fa0f6eca7c8df2cfbca3d21bea94d832b4db16a
+ple_layer_source="$root/production-bf16/ple_layer.py"
+(
+  cd "$root/production-bf16"
+  sha256sum -c SHA256SUMS
+)
+"/home/will/inference/runtime/qwen38-ple-bf16-ssd/verify.sh" >/dev/null
+[[ "$(sha256sum "$ple_layer_source" | cut -d' ' -f1)" == "$expected_ple_layer" ]]
+[[ "$(docker inspect "$container" --format '{{.State.Running}}')" == true ]]
+[[ "$(docker inspect "$container" --format '{{.State.Health.Status}}')" == healthy ]]
+[[ "$(docker inspect "$container" --format '{{.RestartCount}}')" == 0 ]]
+[[ "$(docker inspect "$container" --format '{{.HostConfig.RestartPolicy.Name}}')" == unless-stopped ]]
+[[ "$(docker inspect "$container" --format '{{.Image}}')" == "$expected_image" ]]
+[[ "$(docker inspect "$container" --format '{{index .Config.Labels "io.whamp.qwen38.ple"}}')" == bf16-direct-mmap ]]
+ple_layer_mount=$(docker inspect "$container" --format '{{range .Mounts}}{{if eq .Destination "/usr/local/lib/python3.12/dist-packages/vllm/models/qwen3_8_flash_next/nvidia/ple_layer.py"}}{{.Source}}{{end}}{{end}}')
+[[ "$ple_layer_mount" == "$ple_layer_source" ]]
+env_dump=$(docker inspect "$container" --format '{{range .Config.Env}}{{println .}}{{end}}')
+grep -Fqx "VLLM_PLE_BF16_MMAP_SHA256=$expected_ple" <<<"$env_dump"
+if grep -Fq 'VLLM_PLE_QUANT_DIR=' <<<"$env_dump"; then
+  echo 'NVFP4 PLE environment leaked into BF16 production' >&2
+  exit 1
+fi
+models=$(curl -fsS http://127.0.0.1:30002/v1/models)
+python3 -c 'import json,sys; d=json.load(sys.stdin); m=d["data"][0]; assert m["id"]=="qwen3.8-flash-next-intel-autoround-w4a16"; assert m["max_model_len"]==262144' <<<"$models"
+[[ "$(sysctl -n vm.overcommit_memory)" == 0 ]]
+[[ "$(swapon --show --noheadings | wc -l)" == 0 ]]
+systemctl is-active --quiet gpu-power-limit.service
+for pid in $(docker top "$container" -o pid | tail -n +2); do
+  [[ "$(awk '/^VmSwap:/ {print $2}' "/proc/$pid/status")" == 0 ]]
+done
+nvidia-smi --query-gpu=power.limit --format=csv,noheader,nounits | awk '$1 != 230 {exit 1}'
+echo BF16_PRODUCTION_HEALTHY=1

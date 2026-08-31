@@ -13,6 +13,10 @@ import pytest
 import torch
 from safetensors.torch import save_file
 
+from benchmarks.qwen38_ple_runtime.build_native_gather_overlay import (
+    _copy_checksum_bound_file,
+)
+
 
 @pytest.fixture(autouse=True)
 def should_do_global_cleanup_after_test() -> bool:
@@ -43,6 +47,25 @@ def production_worker_overlay(
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_copy_checksum_bound_file_preserves_exact_source(tmp_path: Path) -> None:
+    source = tmp_path / "ple_layer.py"
+    source.write_bytes(b"checksum-bound PLE layer\n")
+    expected_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
+    destination = tmp_path / "overlay" / "ple_layer.py"
+
+    _copy_checksum_bound_file(source, destination, expected_sha256)
+
+    assert destination.read_bytes() == source.read_bytes()
+
+
+def test_copy_checksum_bound_file_rejects_wrong_source(tmp_path: Path) -> None:
+    source = tmp_path / "ple_layer.py"
+    source.write_bytes(b"wrong PLE layer\n")
+
+    with pytest.raises(RuntimeError, match="checksum mismatch"):
+        _copy_checksum_bound_file(source, tmp_path / "output.py", "0" * 64)
 
 
 def test_production_overlay_routes_supported_gathers_to_native(

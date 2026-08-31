@@ -1,0 +1,15 @@
+timestamp_utc=2026-08-31T20:21:13Z
+health=healthy
+restarts=0
+restart_policy=unless-stopped
+image=sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef
+ple=bf16-direct-mmap
+ple_layer_mount=/home/will/inference/runtime/qwen38-ple-bf16-ssd/9a2bdd3e39b3ad692f4b4d3c9a5f9d2bde91a3a4/production-bf16/ple_layer.py
+ple_layer_sha256=1cb682b53f024b2060c5fe205fa0f6eca7c8df2cfbca3d21bea94d832b4db16a
+nvfp4_table_present=no
+model_free_bytes=195673522176
+overcommit=0
+swap_devices=0
+safety=active
+rollback_timers=0
+process_swap_kib=0
