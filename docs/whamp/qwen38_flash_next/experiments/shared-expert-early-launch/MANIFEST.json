@@ -28,11 +28,11 @@
       "vllm/model_executor/layers/fused_moe/runner/shared_experts.py": "4216c125cecc05181a94f745101603e90e7c06bb98030036dd1c1acfe5095ff6"
     },
     "known_derived_outputs": {
-      "vllm/envs.py": null,
+      "vllm/envs.py": "dee0edd24285ea7b5c56395638f10448392cc9ae19e9e15aa1cd5c658c1c9bdf",
       "vllm/model_executor/layers/fused_moe/runner/moe_runner.py": "9214e858d8b6b40ccdef0f8a2ce3c1d79ad9b02d7b1557fb6bf8a6561726a423",
       "vllm/model_executor/layers/fused_moe/runner/shared_experts.py": "5c109687a6803906099ed2d98934e1692a20dee3af7d3b3a0af2336afa9cb64b"
     },
-    "env_output_sha256_status": "derived_and_recorded_at_build"
+    "env_output_sha256_status": "validated_against_exact_production_source"
   },
   "canonical_candidate_sources": {
     "vllm/envs.py": "78ac1296266d66dc6d72167bc2a8082ebb6f368e43148bd268efc8aedb662c2a",
@@ -42,7 +42,7 @@
   "delivery": {
     "patch_script": {
       "path": "scripts/qwen38_patch_shared_expert_early_launch.py",
-      "sha256": "c5ab4840a21459f59bac63e146fd596621a2298d8d0ae3282fffce2432ca2e92"
+      "sha256": "0d748cbb29ef2a50e3dd51bf6182b9c5e98f0b1dbd143edd526e89059586d084"
     },
     "build_script": {
       "path": "scripts/qwen38_build_shared_expert_early_launch_image.sh",

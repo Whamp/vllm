@@ -57,28 +57,25 @@ def patch_envs_source(text: str) -> str:
     """Add the default-off CUDA shared-expert early-launch selector."""
     text = _replace_once(
         text,
+        "    VLLM_DISABLE_SHARED_EXPERTS_STREAM: bool = False\n",
         "    VLLM_DISABLE_SHARED_EXPERTS_STREAM: bool = False\n"
-        "    VLLM_DETERMINISTIC_MOE_ALIGN: bool = False",
-        "    VLLM_DISABLE_SHARED_EXPERTS_STREAM: bool = False\n"
-        "    VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH: bool = False\n"
-        "    VLLM_DETERMINISTIC_MOE_ALIGN: bool = False",
+        "    VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH: bool = False\n",
         "environment type declaration",
+    )
+    registry_entry = (
+        '    "VLLM_DISABLE_SHARED_EXPERTS_STREAM": lambda: bool(\n'
+        '        int(os.getenv("VLLM_DISABLE_SHARED_EXPERTS_STREAM", "0"))\n'
+        "    ),\n"
     )
     return _replace_once(
         text,
-        '    "VLLM_DISABLE_SHARED_EXPERTS_STREAM": lambda: bool(\n'
-        '        int(os.getenv("VLLM_DISABLE_SHARED_EXPERTS_STREAM", "0"))\n'
-        "    ),\n"
-        "    # Deterministic moe_align_block_size (stable sort instead of FCFS atomics).",
-        '    "VLLM_DISABLE_SHARED_EXPERTS_STREAM": lambda: bool(\n'
-        '        int(os.getenv("VLLM_DISABLE_SHARED_EXPERTS_STREAM", "0"))\n'
-        "    ),\n"
-        "    # Opt-in experiment: enqueue CUDA shared experts before routed expert\n"
-        "    # dispatch instead of relying on later host launch ordering for overlap.\n"
-        '    "VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH": lambda: bool(\n'
-        '        int(os.getenv("VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH", "0"))\n'
-        "    ),\n"
-        "    # Deterministic moe_align_block_size (stable sort instead of FCFS atomics).",
+        registry_entry,
+        registry_entry
+        + "    # Opt-in experiment: enqueue CUDA shared experts before routed expert\n"
+        + "    # dispatch instead of relying on later host launch ordering for overlap.\n"
+        + '    "VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH": lambda: bool(\n'
+        + '        int(os.getenv("VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH", "0"))\n'
+        + "    ),\n",
         "environment registry",
     )
 

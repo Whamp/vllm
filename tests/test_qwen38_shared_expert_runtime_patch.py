@@ -84,6 +84,30 @@ def test_runtime_patcher_transforms_exact_legacy_sources(tmp_path: Path) -> None
     )
 
 
+def test_env_patcher_supports_installed_stream_threshold_order() -> None:
+    source = (
+        "class EnvironmentVariables:\n"
+        "    VLLM_DISABLE_SHARED_EXPERTS_STREAM: bool = False\n"
+        "    VLLM_SHARED_EXPERTS_STREAM_TOKEN_THRESHOLD: int = 256\n"
+        "\n"
+        "environment_variables = {\n"
+        '    "VLLM_DISABLE_SHARED_EXPERTS_STREAM": lambda: bool(\n'
+        '        int(os.getenv("VLLM_DISABLE_SHARED_EXPERTS_STREAM", "0"))\n'
+        "    ),\n"
+        "    # Limits when we run shared_experts in a separate stream.\n"
+        "}\n"
+    )
+
+    patched = runtime_patch.patch_envs_source(source)
+
+    assert patched.count("VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH") == 3
+    assert (
+        "VLLM_DISABLE_SHARED_EXPERTS_STREAM: bool = False\n"
+        "    VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH: bool = False\n"
+        "    VLLM_SHARED_EXPERTS_STREAM_TOKEN_THRESHOLD: int = 256" in patched
+    )
+
+
 def test_runtime_patcher_rejects_source_drift(tmp_path: Path) -> None:
     input_hashes = _write_exact_runtime(tmp_path)
     drifted_path = tmp_path / runtime_patch.MOE_RUNNER_PATH
