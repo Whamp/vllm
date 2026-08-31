@@ -18,7 +18,7 @@ from numpy.typing import NDArray
 
 _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 _MAX_SAFETENSORS_HEADER_BYTES = 16 << 20
-_QWEN_PLE_LAYER_PATTERN = re.compile(r"(?:^|\.)layers\.(\d+)\.ple(?:\.ple_embedding)?$")
+_QWEN_PLE_LAYER_PATTERN = re.compile(r"(?:^|\.)layers\.(\d+)\.ple(\.ple_embedding)?$")
 
 
 class Bf16PleMmapGather:
@@ -170,21 +170,22 @@ def attach_bf16_ple_mmap_table(
         raise ValueError(
             f"BF16 PLE layer name does not identify a Qwen layer: {layer_name}"
         )
-    named_parameters = sorted(
-        layer.named_parameters(), key=lambda item: item[1].numel(), reverse=True
+    parameter_name = (
+        "ngram_embedding.weight"
+        if layer_match.group(2)
+        else "ple_embedding.ngram_embedding.weight"
     )
-    if not named_parameters:
-        raise ValueError(f"BF16 PLE layer has no table parameter: {layer_name}")
-    parameter_name, parameter = named_parameters[0]
+    named_parameters = dict(layer.named_parameters())
+    parameter = named_parameters.get(parameter_name)
     if (
-        parameter_name != "ple_embedding.ngram_embedding.weight"
+        parameter is None
         or parameter.device.type != "cpu"
         or parameter.dtype != torch.bfloat16
         or parameter.dim() != 2
     ):
         raise ValueError(
-            "BF16 PLE table parameter must be "
-            "ple_embedding.ngram_embedding.weight as a two-dimensional CPU BF16 tensor"
+            f"BF16 PLE table parameter must be {parameter_name} "
+            "as a two-dimensional CPU BF16 tensor"
         )
     total_rows, width = parameter.shape
     tensor_prefix = (

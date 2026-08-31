@@ -114,8 +114,7 @@ def test_attach_bf16_ple_mmap_table_preserves_worker_gather_seam(
         tuple(source_rows.chunk(2)),
     )
     layer = torch.nn.Module()
-    layer.ple_embedding = torch.nn.Module()
-    layer.ple_embedding.ngram_embedding = torch.nn.Embedding(6, 4, dtype=torch.bfloat16)
+    layer.ngram_embedding = torch.nn.Embedding(6, 4, dtype=torch.bfloat16)
 
     parameter_name = attach_bf16_ple_mmap_table(
         layer_name="language_model.model.layers.1.ple.ple_embedding",
@@ -125,17 +124,42 @@ def test_attach_bf16_ple_mmap_table_preserves_worker_gather_seam(
         native_library_path=native_library,
     )
 
-    assert parameter_name == "ple_embedding.ngram_embedding.weight"
-    assert layer.ple_embedding.ngram_embedding.weight.shape == (0, 4)
+    assert parameter_name == "ngram_embedding.weight"
+    assert layer.ngram_embedding.weight.shape == (0, 4)
     output = torch.empty((3, 4), dtype=torch.bfloat16)
-    layer.ple_embedding.ngram_embedding._ple_quant.gather_into(  # type: ignore[attr-defined]
+    layer.ngram_embedding._ple_quant.gather_into(  # type: ignore[attr-defined]
         torch.tensor([5, 0, 3]), output
     )
     assert torch.equal(
         output.view(torch.uint16),
         source_rows[torch.tensor([5, 0, 3])].view(torch.uint16),
     )
-    layer.ple_embedding.ngram_embedding._ple_quant.close()  # type: ignore[attr-defined]
+    layer.ngram_embedding._ple_quant.close()  # type: ignore[attr-defined]
+
+
+def test_attach_bf16_ple_mmap_table_supports_parent_ple_module(
+    native_library: Path,
+    tmp_path: Path,
+) -> None:
+    source_rows = torch.arange(24, dtype=torch.float32).reshape(6, 4).to(torch.bfloat16)
+    checkpoint_path, digest = _write_content_addressed_ple(
+        tmp_path,
+        tuple(source_rows.chunk(2)),
+    )
+    layer = torch.nn.Module()
+    layer.ple_embedding = torch.nn.Module()
+    layer.ple_embedding.ngram_embedding = torch.nn.Embedding(6, 4, dtype=torch.bfloat16)
+
+    parameter_name = attach_bf16_ple_mmap_table(
+        layer_name="language_model.model.layers.1.ple",
+        layer=layer,
+        checkpoint_path=checkpoint_path,
+        expected_sha256=digest,
+        native_library_path=native_library,
+    )
+
+    assert parameter_name == "ple_embedding.ngram_embedding.weight"
+    assert layer.ple_embedding.ngram_embedding.weight.shape == (0, 4)
 
 
 def test_bf16_ple_mmap_gather_rejects_wrong_content_identity(
