@@ -2,7 +2,7 @@
 
 ## Status
 
-Rejected on server60's current PCIe topology. Retained default-off for one matched retest after the planned x4-to-x8 BIOS correction. See [FANOUT-RESULTS.md](FANOUT-RESULTS.md).
+Rejected on server60. The post-BIOS x8 retest stopped before the candidate leg because the control produced recurrent correctable PCIe errors. Keep the candidate default-off until the control can complete the same x8 workload without new kernel-reported PCIe errors. See [FANOUT-RESULTS.md](FANOUT-RESULTS.md).
 
 This candidate stacks only concurrent TP output delivery on the promoted native lookup baseline. The control remains image:
 

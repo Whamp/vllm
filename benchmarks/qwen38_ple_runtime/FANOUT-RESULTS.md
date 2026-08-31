@@ -2,11 +2,9 @@
 
 ## Decision
 
-Reject concurrent four-rank PLE fan-out on server60's current PCIe topology. Preserve it default-off for one matched retest after the planned BIOS correction changes GPU 0 from PCIe 3.0 x4 to x8.
+Reject concurrent four-rank PLE fan-out on server60. The post-BIOS x8 retest stopped before the candidate leg because the control produced recurrent correctable PCIe errors.
 
-The x4 link masking a gain is an unverified hypothesis, not the diagnosed cause. The relevant transfers are small, and fixed latency, synchronization, scheduling, or other costs may remain dominant after the link-width correction.
-
-Do not promote this candidate from the current evidence.
+The earlier x4 link was not a proven cause of the fan-out loss. Changing GPU 0 to x8 exposed an unhealthy link under inference load, so the retest produced no new fan-out comparison. Keep the candidate default-off. Do not run another candidate benchmark until the control completes the same workload without new kernel-reported PCIe errors.
 
 ## Preserved candidate
 
@@ -73,8 +71,35 @@ It contains 143 files. The manifest SHA-256 is:
 1abed6ffaf7979c46666e1b16681c6e803d47784c5b2e4cea9142f0ade3bc244
 ```
 
-## Authorized post-BIOS retest
+## Post-BIOS x8 retest
 
-Run one matched retest only after verifying under load that the intended GPU link changed from x4 to x8 and the other links and storage remain healthy. Preserve the model, image, worker hashes, 0.98 memory utilization, FP8 KV cache, hierarchical all-reduce grouping, CUDA Graph mode, request inputs, warmup, and power limits.
+The BIOS change moved GPU 0 from PCIe Gen3 x4 to x8. The Samsung NVMe device remained available, and all four GPUs negotiated x8/x16/x8/x16 under load.
 
-Use the same matched-warm protocol and current thresholds. Do not promote unless C2 or C4 improves by at least 1%, C1 loses no more than 1%, capacity remains at least 425,497 tokens, and no correctness or operational gate fails. If the retest still loses, retain the current rejection without another tuning round.
+The PCIe health gate failed before the candidate ran:
+
+- the prior long x4 boot logged no PCIe Bus Error on GPU 0 root port `0000:00:01.3`;
+- the fresh x8 control startup added no errors;
+- the exact C2 precondition added 2 correctable errors;
+- the partial uninstrumented control matrix added 10 more before termination;
+- the new statuses included BadTLP, BadDLLP, and replay Timeout;
+- no uncorrectable or fatal PCIe error, NVIDIA Xid, container restart, CUDA error, or request failure occurred.
+
+The prior long boot also had correctable-error history on other GPU paths, dominated by root port `0000:00:03.1`. The host has a broader PCIe reliability problem, but GPU 0's path was clean at x4 and failed repeatedly at x8.
+
+The campaign stopped before collecting a complete control matrix or launching the fan-out candidate. It therefore does not supersede the current-topology performance result.
+
+The fail-closed path restored the pinned production image with zero restarts, 425,497 KV-cache tokens, native NVFP4 lookup enabled, zero swap, `vm.overcommit_memory=0`, and no experiment containers.
+
+The checksum-bound aborted-campaign archive is:
+
+```text
+/home/will/build/qwen38-ple-fanout-post-bios-x8/20260831T041104Z-post-bios-x8
+```
+
+It contains 64 files. The manifest SHA-256 is:
+
+```text
+bed1ec88b80bcc76eb820414be4c21e6d8bbb62c4e9c2bf8a2aaae8e9e0e1c94
+```
+
+Do not rerun fan-out at x8 until GPU 0 completes the same control precondition and matrix without new kernel-reported PCIe errors. The safest immediate production setting is the previous x4 BIOS mode. Diagnose x8 with a cold power-off, card and slot inspection, then run a control workload that rejects any new PCIe errors before benchmarking the candidate.
