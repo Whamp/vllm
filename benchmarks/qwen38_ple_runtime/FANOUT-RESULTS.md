@@ -2,9 +2,9 @@
 
 ## Decision
 
-Reject concurrent four-rank PLE fan-out on server60. The post-BIOS x8 retest stopped before the candidate leg because the control produced recurrent correctable PCIe errors.
+Do not promote unconditional four-rank PLE fan-out on server60. The post-BIOS x8 crossover confirmed a 3.95% C4 decode gain and a 1.25% C2 gain, but C1 decode lost 5.54%.
 
-The earlier x4 link was not a proven cause of the fan-out loss. Changing GPU 0 to x8 exposed an unhealthy link under inference load, so the retest produced no new fan-out comparison. Keep the candidate default-off. Do not run another candidate benchmark until the control completes the same workload without new kernel-reported PCIe errors.
+Keep this candidate default-off. The next candidate should retain serial TP delivery for single-sequence decode and use concurrent delivery for multi-sequence decode and prefill.
 
 ## Preserved candidate
 
@@ -71,35 +71,47 @@ It contains 143 files. The manifest SHA-256 is:
 1abed6ffaf7979c46666e1b16681c6e803d47784c5b2e4cea9142f0ade3bc244
 ```
 
-## Post-BIOS x8 retest
+## Post-BIOS x8 crossover
 
 The BIOS change moved GPU 0 from PCIe Gen3 x4 to x8. The Samsung NVMe device remained available, and all four GPUs negotiated x8/x16/x8/x16 under load.
 
-The PCIe health gate failed before the candidate ran:
+An initial health-gated attempt stopped during the control because the GPU 0 root port produced recurrent correctable PCIe errors. Will then authorized a full run that recorded correctable errors but stopped on fatal or uncorrectable PCIe events, NVIDIA Xids, CUDA or NCCL failures, request failures, or container restarts.
 
-- the prior long x4 boot logged no PCIe Bus Error on GPU 0 root port `0000:00:01.3`;
-- the fresh x8 control startup added no errors;
-- the exact C2 precondition added 2 correctable errors;
-- the partial uninstrumented control matrix added 10 more before termination;
-- the new statuses included BadTLP, BadDLLP, and replay Timeout;
-- no uncorrectable or fatal PCIe error, NVIDIA Xid, container restart, CUDA error, or request failure occurred.
+Two matched pairs ran in opposite orders:
 
-The prior long boot also had correctable-error history on other GPU paths, dominated by root port `0000:00:03.1`. The host has a broader PCIe reliability problem, but GPU 0's path was clean at x4 and failed repeatedly at x8.
+1. control, then fan-out candidate;
+2. fan-out candidate, then control.
 
-The campaign stopped before collecting a complete control matrix or launching the fan-out candidate. It therefore does not supersede the current-topology performance result.
+The pooled values are arithmetic means of the order-balanced legs:
 
-The fail-closed path restored the pinned production image with zero restarts, 425,497 KV-cache tokens, native NVFP4 lookup enabled, zero swap, `vm.overcommit_memory=0`, and no experiment containers.
+| Concurrency | Control decode | Fan-out decode | Decode delta | Prefill delta | Mean TTFT delta |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| C1 | 66.0317 tok/s | 62.3709 tok/s | -5.5440% | +1.0522% | -69.4700% |
+| C2 | 106.8013 tok/s | 108.1360 tok/s | +1.2497% | +0.8496% | -47.7222% |
+| C4 | 182.3439 tok/s | 189.5454 tok/s | +3.9494% | +0.0827% | -59.2749% |
 
-The checksum-bound aborted-campaign archive is:
+The C4 gain repeated at 3.8996% and 3.9993% in the two orders. C2 measured +2.3323% and +0.1699%. C1 lost 3.2601% and 7.7938%.
+
+Candidate C4 decode population CV was 0.9234% and 1.1100%. Control C4 CV was 11.3514% and 9.8862%, but the control pair means remained close at 182.5485 and 182.1394 tok/s. Candidate means repeated at 189.6671 and 189.4236 tok/s.
+
+The unconditional candidate fails the preregistered gate because C1 loses more than 1%. The measurements support a request-shape gate: keep serial delivery for single-sequence decode, then use concurrent delivery for multi-sequence decode and prefill.
+
+Both variants exercised the noisy x8 riser path. The control accumulated 123 correctable errors across both legs and the candidate accumulated 177. The second leg had more errors in both orders, and total pair counts were nearly identical at 148 and 152, so the candidate's 54-error excess is not clean feature attribution. No fatal or uncorrectable PCIe event, NVIDIA Xid, container restart, CUDA or NCCL failure, or measured-request failure occurred.
+
+Both variants retained 425,497 aggregate KV-cache tokens. The crossover did not rerun the full behavior battery because the unconditional candidate failed the C1 gate; the same immutable candidate image passed that battery in the earlier campaign.
+
+The combined checksum-bound archive is:
 
 ```text
-/home/will/build/qwen38-ple-fanout-post-bios-x8/20260831T041104Z-post-bios-x8
+/home/will/build/qwen38-ple-fanout-post-bios-x8-crossover
 ```
 
-It contains 64 files. The manifest SHA-256 is:
+It contains 15 files. The manifest SHA-256 is:
 
 ```text
-bed1ec88b80bcc76eb820414be4c21e6d8bbb62c4e9c2bf8a2aaae8e9e0e1c94
+eceb5664869811631f46169c152b485c035dc5a9dde4892c1132399c3e98c90e
 ```
 
-Do not rerun fan-out at x8 until GPU 0 completes the same control precondition and matrix without new kernel-reported PCIe errors. The safest immediate production setting is the previous x4 BIOS mode. Diagnose x8 with a cold power-off, card and slot inspection, then run a control workload that rejects any new PCIe errors before benchmarking the candidate.
+The forward and reverse pair manifests are `f0edb74779faeaffa9034b942be1a3ae55635a470ebee892fe68df2f584f5374` and `23d7ae0883e6ae2dea67722e6be6c16846eb6747a8b3465da0e5f811066d9a1c`.
+
+The final restore returned pinned production to healthy status with zero restarts, 425,497 KV-cache tokens, native NVFP4 lookup enabled, zero swap, `vm.overcommit_memory=0`, and no experiment containers or jobs.

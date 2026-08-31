@@ -2,7 +2,7 @@
 
 ## Status
 
-Rejected on server60. The post-BIOS x8 retest stopped before the candidate leg because the control produced recurrent correctable PCIe errors. Keep the candidate default-off until the control can complete the same x8 workload without new kernel-reported PCIe errors. See [FANOUT-RESULTS.md](FANOUT-RESULTS.md).
+Do not promote unconditional fan-out on server60. The post-BIOS x8 crossover measured +3.95% C4 decode and +1.25% C2 decode, but -5.54% C1 decode. Keep this candidate default-off; the next candidate should retain serial delivery for single-sequence decode and use concurrent delivery for multi-sequence decode and prefill. See [FANOUT-RESULTS.md](FANOUT-RESULTS.md).
 
 This candidate stacks only concurrent TP output delivery on the promoted native lookup baseline. The control remains image:
 
