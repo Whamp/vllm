@@ -1,0 +1,13 @@
+timestamp_utc=2026-08-31T19:27:16Z
+health=healthy
+restarts=0
+restart_policy=unless-stopped
+image=sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef
+ple=bf16-direct-mmap
+overcommit=0
+swap_devices=0
+safety=active
+rollback_timers=0
+process_swap_kib=0
+model=qwen3.8-flash-next-intel-autoround-w4a16
+max_model_len=262144
