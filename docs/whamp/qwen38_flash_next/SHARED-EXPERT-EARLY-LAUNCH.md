@@ -1,6 +1,6 @@
 # Qwen3.8 shared-expert early launch
 
-Status: CPU-prepared, default-off, GPU-unvalidated.
+Status: GPU-validated, default-off, and deferred for a post-BIOS topology retest. Not promoted; not terminally rejected.
 
 This experiment changes when vLLM submits Qwen3.8's shared expert. The current CUDA path submits routed-expert work on the main stream, then submits the shared expert on an auxiliary stream and waits before combining both results. CUDA can overlap those queues because the auxiliary stream waits at an earlier synchronization point. The experiment submits the same shared expert before gate and routed-expert dispatch, then waits at the same result-consumption boundary.
 
@@ -73,6 +73,50 @@ The exact production delivery adapter also has tests. It reconstructs the legacy
 
 CPU tests cannot prove CUDA event behavior, CUDA Graph capture, race freedom, timeline overlap, numerical output, or serving performance.
 
+## Server60 result
+
+The bounded GPU run used candidate image
+`sha256:39de8fdfb787592cf06819268a817c8a4087d84658e2300d7adb5ad136b59bb3`
+over the exact production base. The one-GPU operator suite passed eight eager
+and CUDA Graph cases. Compute Sanitizer reported zero memcheck errors and zero
+racecheck hazards.
+
+The non-restarting TP=4 candidate retained the native 262,144-token API limit
+and passed deterministic output, automatic tool use, post-tool continuation,
+multimodal input, two-stream decode, and exact retrieval from a 261,544-token
+API prompt. It stayed at zero serving-process swap with no allocator failure.
+
+The same-image unprofiled A/B measured:
+
+| Metric | Selector off | Selector on | Change |
+| --- | ---: | ---: | ---: |
+| C1 decode | 59.3775 tok/s | 58.8669 tok/s | -0.8598% |
+| C2 aggregate decode | 103.2025 tok/s | 104.5260 tok/s | +1.2825% |
+| C1 cache-busted prefill | 1,614.3558 tok/s | 1,618.7557 tok/s | +0.2725% |
+| C2 aggregate prefill | 1,629.2663 tok/s | 1,632.5239 tok/s | +0.1999% |
+
+This does not clear the preregistered 3% decode threshold. It also does not
+support discarding the mechanism: C2 decode and both prefill results improved,
+while C1 decode regressed.
+
+Matched Nsight Systems traces used the same profiler-adjusted 423,164-token KV
+capacity for both arms. CUDA Graph replay used two streams with the selector
+off and three with it on. Across four GPUs, median C1 graph spans fell by about
+2.49% and overlap time rose by about 2.65%. Median C2 graph spans grew by about
+8.91% and overlap time fell by about 10.04%. Node-level tracing perturbs timing,
+so these figures show a real but phase-dependent schedule change; they are not
+serving benchmarks.
+
+One server60 GPU currently uses a PCIe Gen3 x4 link. The present result is
+specific to that topology, but this test does not establish that the x4 link
+caused any gain or regression. Keep the selector default-off and repeat the
+matched test after BIOS maintenance if that link negotiates at least x8.
+
+The compact evidence bundle is
+[`evidence/qwen38-shared-expert-early-launch-20260831/`](evidence/qwen38-shared-expert-early-launch-20260831/README.md).
+It pins the image, Compose inputs, operator and sanitizer results, A/B data,
+trace analysis, raw trace hashes, rollback record, and post-BIOS retest recipe.
+
 ## Delivery contract
 
 The current handoff identity is:
@@ -113,4 +157,13 @@ Do not begin until `Mtplx` explicitly releases all four GPUs and reports service
 
 ## Decision
 
-Proceed to the bounded GPU gate after `Mtplx` releases server60. Do not merge the selector into production defaults before that gate. The likely outcomes are a small decode gain or a clean no-go. Upstream NVIDIA evidence makes a large gain unlikely.
+Keep the implementation on its default-off branch. The current production gate
+did not pass, so do not promote the selector. Preserve it for a matched
+post-BIOS retest because C2 decode and both prefill measures improved and the
+trace proves that launch scheduling changed. Treat the x4 PCIe link as a test
+condition, not as a proven cause.
+
+The post-BIOS run should record loaded PCIe widths, use forward and reverse
+selector order, repeat the existing C1/C2 matrix, and add C4 as a diagnostic.
+Promotion still requires the preregistered decode, regression, correctness,
+long-context, memory, swap, and rollback gates.

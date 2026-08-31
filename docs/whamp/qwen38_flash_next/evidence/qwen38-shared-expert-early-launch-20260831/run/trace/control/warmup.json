@@ -1,0 +1,39 @@
+{
+  "endpoint": "http://127.0.0.1:30014",
+  "model": "qwen3.8-flash-next-intel-autoround-w4a16",
+  "phases": [
+    {
+      "aggregate_decode_tokens_per_second": 47.42122228082617,
+      "aggregate_wall_tokens_per_second": 15.809274235945567,
+      "concurrency": 1,
+      "mean_per_stream_decode_tokens_per_second": 47.42122228082617,
+      "phase": "warmup-c1",
+      "phase_monotonic_end_ns": 2864157124276858,
+      "phase_monotonic_start_ns": 2864149027449792,
+      "phase_wall_end_ns": 1788142911960122905,
+      "phase_wall_start_ns": 1788142903863277634,
+      "requested_tokens_per_stream": 128,
+      "runs": [
+        {
+          "completion_tokens": 128,
+          "decode_seconds": 2.699213429,
+          "decode_tokens_per_second": 47.42122228082617,
+          "finish_reason": "length",
+          "first_delta_monotonic_ns": 2864154424749719,
+          "monotonic_end_ns": 2864157123963148,
+          "monotonic_start_ns": 2864149029701909,
+          "prompt_tokens": 82,
+          "stream": 0,
+          "ttft_seconds": 5.39504781,
+          "wall_end_ns": 1788142911959808744,
+          "wall_seconds": 8.094261239,
+          "wall_start_ns": 1788142903865544409
+        }
+      ]
+    }
+  ],
+  "process_monotonic_time_ns": 2864157124435557,
+  "process_wall_time_ns": 1788142911960279650,
+  "schema_version": 1,
+  "warmup_only": true
+}

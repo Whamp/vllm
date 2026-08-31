@@ -1,0 +1,16 @@
+# /etc/systemd/system/gpu-power-limit.service
+[Unit]
+Description=Set NVIDIA GPU power and clock limits (3090=230W/210-1650MHz, 3080Ti=225W)
+After=nvidia-persistenced.service
+Wants=nvidia-persistenced.service
+Before=sglang.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/set-gpu-power-limit.sh
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

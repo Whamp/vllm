@@ -1,0 +1,117 @@
+{
+  "candidate": {
+    "base_image_id": "sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef",
+    "git_commit": "0a5e081188f5384bcf79cfd201f418906de8f083",
+    "image_id": "sha256:39de8fdfb787592cf06819268a817c8a4087d84658e2300d7adb5ad136b59bb3",
+    "selector": "VLLM_CUDA_SHARED_EXPERTS_EARLY_LAUNCH=1"
+  },
+  "decision": "default_off_deferred_post_bios_retest",
+  "final_production": {
+    "container": "qwen38-qsa-fp8-candidate",
+    "health": "healthy",
+    "image_id": "sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef",
+    "max_model_len": 262144,
+    "restart_count": 0,
+    "restart_policy": "unless-stopped",
+    "restore_watchdog_active": false,
+    "serving_process_swap_kb": 0
+  },
+  "gpu_gates": {
+    "allocator_failures": 0,
+    "cuda_tests": "8 passed",
+    "functional": [
+      "deterministic",
+      "automatic_tool",
+      "post_tool",
+      "multimodal",
+      "concurrency_2",
+      "niah_261544"
+    ],
+    "memcheck": "8 passed; 0 errors",
+    "racecheck": "8 passed; 0 hazards",
+    "serving_process_swap_kb": 0
+  },
+  "promotion_gate_met": false,
+  "schema_version": 1,
+  "terminal_rejection": false,
+  "topology": {
+    "causality_established": false,
+    "observed_constraint": "one RTX 3090 link is PCIe Gen3 x4",
+    "planned_retest_condition": "after BIOS maintenance recovers at least x8 if possible"
+  },
+  "trace": {
+    "kv_cache_tokens_candidate": 423164,
+    "kv_cache_tokens_control": 423164,
+    "phase_results": {
+      "c1": {
+        "graph_span_delta_percent_by_gpu": [
+          -2.4834559460401695,
+          -2.491253781752889,
+          -2.4835935866538983,
+          -2.4942965006234274
+        ],
+        "graph_span_delta_percent_mean": -2.488149953767596,
+        "overlap_fraction_candidate_percent_mean": 10.648149661659897,
+        "overlap_fraction_control_percent_mean": 10.342182624015992,
+        "overlap_time_delta_percent_by_gpu": [
+          2.7732359566891907,
+          2.73630166778005,
+          3.041091276385388,
+          2.0575549281844463
+        ],
+        "overlap_time_delta_percent_mean": 2.6520459572597685,
+        "streams_candidate": 3.0,
+        "streams_control": 2.0
+      },
+      "c2": {
+        "graph_span_delta_percent_by_gpu": [
+          8.915102727434387,
+          8.907889970815951,
+          8.91356409765196,
+          8.914371968434098
+        ],
+        "graph_span_delta_percent_mean": 8.9127321910841,
+        "overlap_fraction_candidate_percent_mean": 8.606283433162778,
+        "overlap_fraction_control_percent_mean": 9.694379299331011,
+        "overlap_time_delta_percent_by_gpu": [
+          -10.409079746959693,
+          -9.867126912102975,
+          -9.932502671613562,
+          -9.961539294709832
+        ],
+        "overlap_time_delta_percent_mean": -10.042562156346516,
+        "streams_candidate": 3.0,
+        "streams_control": 2.0
+      }
+    },
+    "production_unprofiled_kv_cache_tokens": 425497,
+    "profiler": "Nsight Systems 2025.5.2.266",
+    "raw_location": "/home/will/build/qwen38-shared-expert-overlap/0a5e08118/trace"
+  },
+  "unprofiled_ab": {
+    "c1": {
+      "decode": {
+        "candidate": 58.8669263818861,
+        "control": 59.37745424576484,
+        "delta_percent": -0.8598008627410114
+      },
+      "prefill": {
+        "candidate": 1618.7557012114864,
+        "control": 1614.3558235291182,
+        "delta_percent": 0.27254695763103687
+      }
+    },
+    "c2": {
+      "decode": {
+        "candidate": 104.5260446719726,
+        "control": 103.20248406561522,
+        "delta_percent": 1.2824890973708314
+      },
+      "prefill": {
+        "candidate": 1632.5239279024552,
+        "control": 1629.2662899957552,
+        "delta_percent": 0.19994508735023953
+      }
+    }
+  }
+}

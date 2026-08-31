@@ -1,0 +1,154 @@
+[
+    {
+        "Id": "sha256:0c0488d13990e54f0e4bc8c0de8ca71da63e265f95e7be85748da3c45fb9f9e8",
+        "RepoTags": [
+            "whamp/vllm:qwen38-shared-expert-0a5e08118-sanitizer"
+        ],
+        "RepoDigests": [
+            "whamp/vllm@sha256:0c0488d13990e54f0e4bc8c0de8ca71da63e265f95e7be85748da3c45fb9f9e8"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-08-31T01:38:06.344172651Z",
+        "Config": {
+            "Env": [
+                "PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NVARCH=x86_64",
+                "NVIDIA_REQUIRE_CUDA=cuda>=13.0 brand=unknown,driver>=535,driver<536 brand=grid,driver>=535,driver<536 brand=tesla,driver>=535,driver<536 brand=nvidia,driver>=535,driver<536 brand=quadro,driver>=535,driver<536 brand=quadrortx,driver>=535,driver<536 brand=nvidiartx,driver>=535,driver<536 brand=vapps,driver>=535,driver<536 brand=vpc,driver>=535,driver<536 brand=vcs,driver>=535,driver<536 brand=vws,driver>=535,driver<536 brand=cloudgaming,driver>=535,driver<536 brand=unknown,driver>=550,driver<551 brand=grid,driver>=550,driver<551 brand=tesla,driver>=550,driver<551 brand=nvidia,driver>=550,driver<551 brand=quadro,driver>=550,driver<551 brand=quadrortx,driver>=550,driver<551 brand=nvidiartx,driver>=550,driver<551 brand=vapps,driver>=550,driver<551 brand=vpc,driver>=550,driver<551 brand=vcs,driver>=550,driver<551 brand=vws,driver>=550,driver<551 brand=cloudgaming,driver>=550,driver<551 brand=unknown,driver>=565,driver<566 brand=grid,driver>=565,driver<566 brand=tesla,driver>=565,driver<566 brand=nvidia,driver>=565,driver<566 brand=quadro,driver>=565,driver<566 brand=quadrortx,driver>=565,driver<566 brand=nvidiartx,driver>=565,driver<566 brand=vapps,driver>=565,driver<566 brand=vpc,driver>=565,driver<566 brand=vcs,driver>=565,driver<566 brand=vws,driver>=565,driver<566 brand=cloudgaming,driver>=565,driver<566 brand=unknown,driver>=570,driver<571 brand=grid,driver>=570,driver<571 brand=tesla,driver>=570,driver<571 brand=nvidia,driver>=570,driver<571 brand=quadro,driver>=570,driver<571 brand=quadrortx,driver>=570,driver<571 brand=nvidiartx,driver>=570,driver<571 brand=vapps,driver>=570,driver<571 brand=vpc,driver>=570,driver<571 brand=vcs,driver>=570,driver<571 brand=vws,driver>=570,driver<571 brand=cloudgaming,driver>=570,driver<571 brand=unknown,driver>=575,driver<576 brand=grid,driver>=575,driver<576 brand=tesla,driver>=575,driver<576 brand=nvidia,driver>=575,driver<576 brand=quadro,driver>=575,driver<576 brand=quadrortx,driver>=575,driver<576 brand=nvidiartx,driver>=575,driver<576 brand=vapps,driver>=575,driver<576 brand=vpc,driver>=575,driver<576 brand=vcs,driver>=575,driver<576 brand=vws,driver>=575,driver<576 brand=cloudgaming,driver>=575,driver<576",
+                "NV_CUDA_CUDART_VERSION=13.0.88-1",
+                "CUDA_VERSION=13.0.1",
+                "LD_LIBRARY_PATH=/usr/local/nvidia/lib64:/usr/local/cuda/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64",
+                "NVIDIA_VISIBLE_DEVICES=all",
+                "NVIDIA_DRIVER_CAPABILITIES=compute,utility",
+                "DEBIAN_FRONTEND=noninteractive",
+                "UV_HTTP_TIMEOUT=500",
+                "UV_INDEX_STRATEGY=unsafe-best-match",
+                "UV_LINK_MODE=copy",
+                "UV_PYTHON_INSTALL_DIR=/opt/uv/python",
+                "UV_CACHE_DIR=/opt/uv/cache",
+                "UV_OVERRIDE=/etc/uv-overrides.txt",
+                "VLLM_ENABLE_CUDA_COMPATIBILITY=0",
+                "TORCH_CUDA_ARCH_LIST=7.5 8.0 8.6 8.9 9.0 10.0 12.0",
+                "VLLM_USAGE_SOURCE=production-docker-image",
+                "VLLM_BUILD_COMMIT=unknown",
+                "VLLM_BUILD_PIPELINE=local",
+                "VLLM_BUILD_URL=",
+                "VLLM_IMAGE_TAG=local/vllm-openai:dev"
+            ],
+            "Entrypoint": [
+                "vllm",
+                "serve"
+            ],
+            "WorkingDir": "/vllm-workspace",
+            "Labels": {
+                "ai.vllm.build.commit": "unknown",
+                "ai.vllm.build.pipeline": "local",
+                "ai.vllm.build.url": "",
+                "ai.vllm.image.tag": "local/vllm-openai:dev",
+                "io.whamp.qwen38.base-image": "sha256:a6240960fff2f99f7b7e4ae765f3e940780e433f51439963d8897c4ab94387cb",
+                "io.whamp.qwen38.kernel2.envs.sha256": "cbe6272965f373a2e490a4b16171a4301277b5ad0f6889654183b3d1d1121b4c",
+                "io.whamp.qwen38.kernel2.extension.sha256": "91118abf4f8b94e1b41dc4226dfd1ef9cf32bd69a610156543c649b57e523381",
+                "io.whamp.qwen38.kernel2.low-latency.sha256": "a07808b1e286ecad5ccfbcd0a2b4f551dc50a47cbd9d87ae063d0fcc2953ffce",
+                "io.whamp.qwen38.ple-meta-process-fix": "d014fb2c0",
+                "io.whamp.qwen38.ple-meta-process-revision": "d014fb2c0d4063843acf92d5fdbbc2e198b2e604",
+                "io.whamp.qwen38.ple-native-helper-sha256": "c4b57440b6492289102adbda6efe0594864f6647047924481ddf479af3e4b1c5",
+                "io.whamp.qwen38.ple-native-library-sha256": "38f3e21801b300c5a24366cf9516c8afb7ab2c4d72da37ff0239f1168a20b4a1",
+                "io.whamp.qwen38.ple-native-revision": "9a0f67dcec40424f3c093abdbadf52b58730f187",
+                "io.whamp.qwen38.ple-worker-sha256": "8d6d71de8b56f32e27850ba24dcd194482808e6b7f0dc27f9312d39eb3c0fa32",
+                "io.whamp.qwen38.qsa-kv-cache": "fp8_e4m3_direct_sm86",
+                "io.whamp.qwen38.shared-expert-base-image": "sha256:5f3da087ea29d8122e0ac83dc6dc7b60b4dda59d3f532b9569b984c2d5b013ef",
+                "io.whamp.qwen38.shared-expert-early-launch": "experimental-default-off",
+                "io.whamp.qwen38.shared-expert-env-input-sha256": "cbe6272965f373a2e490a4b16171a4301277b5ad0f6889654183b3d1d1121b4c",
+                "io.whamp.qwen38.shared-expert-env-output-sha256": "dee0edd24285ea7b5c56395638f10448392cc9ae19e9e15aa1cd5c658c1c9bdf",
+                "io.whamp.qwen38.shared-expert-moe-runner-input-sha256": "a19ecf2417c80b93c0fe5594e74528f686665847732196f9b29ef967b38110b0",
+                "io.whamp.qwen38.shared-expert-moe-runner-output-sha256": "9214e858d8b6b40ccdef0f8a2ce3c1d79ad9b02d7b1557fb6bf8a6561726a423",
+                "io.whamp.qwen38.shared-expert-runtime-input-sha256": "4216c125cecc05181a94f745101603e90e7c06bb98030036dd1c1acfe5095ff6",
+                "io.whamp.qwen38.shared-expert-runtime-output-sha256": "5c109687a6803906099ed2d98934e1692a20dee3af7d3b3a0af2336afa9cb64b",
+                "io.whamp.qwen38.shared-expert-sanitizer-only": "true",
+                "maintainer": "NVIDIA CORPORATION <cudatools@nvidia.com>",
+                "org.opencontainers.image.base.digest": "sha256:4b59067e269f313a78f0a698e79261230fb02e3712f42ffd54b3e9ec9be9705a",
+                "org.opencontainers.image.ref.name": "ubuntu",
+                "org.opencontainers.image.revision": "42b918e36fa3bdd04e3d7bd7ad4a9c7695b9624f",
+                "org.opencontainers.image.source": "https://github.com/vllm-project/vllm",
+                "org.opencontainers.image.url": "",
+                "org.opencontainers.image.version": "local/vllm-openai:dev"
+            }
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 8670872433,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:9d592720ced4a7a4ddf16adef8a126e4c8c49f22114de769343320b37674321e",
+                "sha256:66d3d8a459d5610ab77c9e2541f7de7c977629fc89134ce000e29922c8326924",
+                "sha256:6e7fca69a642c3dfa6e52b07f4bb96c93c57dcf7e2ee4dd5d96682b1aaa9398c",
+                "sha256:b800df4a565ef7287963fe8ee2de71a600389b25eba88ef56c15482209449e39",
+                "sha256:495bbaf4cc5ca53d8286fe305d2fc2fd3ecb2c8791cfdd4473e984d2eb0f3ea1",
+                "sha256:22b54f88f222e91989dcabbdae37f2d5dd1c117035d8ffb4634d97478095b0e0",
+                "sha256:88278cd57e3d6299493e9d06ed0513da6e84c03293ed81d028a765cc5ae46651",
+                "sha256:c92f24b373a6d3fae320832cb60ff7841342d4950d7cb77942e1d96e61915013",
+                "sha256:d110028176cd594b0063f09e53f83d373c4bce92648c0d7cfcdb3354b09c67ac",
+                "sha256:3b86d331c65cd6c28408f21c45888fde4454bb356c2c2e0f33c1a672439d8e81",
+                "sha256:84e012ca5c8d750e9cb7677c86193edcf3a97e863d6244ee78d309af7c77f82a",
+                "sha256:d8a6518838b663688d1f8377dc4fb11e01d4c56264374d8b82a76a39b9f7c4aa",
+                "sha256:c6022831eece9220f831708a9b7727f1afe4bbd6add99ca79a4a3f5df2e7df99",
+                "sha256:90ca1271ce3ee46cb815e656261768e31d63cb62dee16ea57a6aa53c1230d86b",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:fd51b2b7ca374e2cafc0a1402069a478a9b900f41cbe78745c82688d62ddf2d1",
+                "sha256:2356a389ce378e447f24115d0a4f463b9850e8b8ceeea105536c71dcbf7bc105",
+                "sha256:4e8ad1f2a9e728ef817fbd0748f6f242f572050e34e1ce6f94e33dbede04cb3b",
+                "sha256:267b7845283490de77ea6522a96bbaa38947c2e7559e500bf3e521a3f6f7bdb9",
+                "sha256:3b85cfb0ec96643c0cf5741be9b8d41d49d2bf8759816cac0d2fd17f12c38b75",
+                "sha256:bf9a4fdbc88d0c08120c877a35c218d8afef4f59a2fd0ca3620c2a706b3c93c6",
+                "sha256:061afaefd839cd5afc28351619b23907abba336b878f6d422d46126028ce38c5",
+                "sha256:d484428298efd9f3cafcb3cc2b8ee5e502e904309d03e62d078509c51fe4910d",
+                "sha256:b7ec05e25ddb5edc0ec0267f3857d6c3b6ba5889bde8993adc10aba48d67f8e1",
+                "sha256:7ca9911d60ddd181c784945659598667ee9eec622579f0b71181e9d28ca6a85b",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:668d98cf8d2fe06b8325b9cbe25ccfa569ecdadc2bada0f674999efe830b4ab7",
+                "sha256:f446d823432448db597e6d6ffd85a096d96524b1c523c4ab6f398a9f0f5bea9f",
+                "sha256:70cc368463c6e9efbf642f0f869f21fadb81b01c2456d9bd1fc9a83ac4461816",
+                "sha256:565441e962c80c2cf2870df8c13f35a3b199ad20253acdf883dce7b8af452e9b",
+                "sha256:f345721739924c6aa536087933e2c870c73b08f2df10654edf8578a0b7f0d84e",
+                "sha256:46c3f41374203b2f7d41ca459783b32e9e540b1a39d05ef4a5eeac62dede7c72",
+                "sha256:25a0384218cf0609dcb1960f372d27c917557b53cdaf70f49f57ed3d7ddead1b",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:ccb48cd403408c80a347016d55e13b249ec891d2a4d8041b77d39f722c60da2f",
+                "sha256:35e4427e4e0276fa02d5622ee5962f31a91dd5a6703b1a5ec2ac2581cdfdd16e",
+                "sha256:a6aea3809da13ba931342cea7807cf65313ff047ab7bc105641ce2ed17967059",
+                "sha256:161091bf34ba81fc3a93a5376d377da8f531797a93b6ea17291eb03bfcf477af",
+                "sha256:e4a2d599dd6de3666b79e40738ead04943ee5040cda921ee37063de0698d800d",
+                "sha256:1311660cb5bbcf6adbcf493d8b9dde5ec5aa50f91a2fa228e499c8024afd883d",
+                "sha256:28a20a55d5cdbc483fab42bafdc683d14236cc8b87b967f7ae2240a401fa635d",
+                "sha256:d21120c508e06ad1bdd5e9a8aa5e15bc06bb83a140170e2bd7db0379a77cdc47",
+                "sha256:8d6e3c48709517cb97ac85cfee6e420afa8775fb00e44eb0cd2304ec4aa8e929",
+                "sha256:f04b4be1902f74cc0e5041e16fa07934043352be223a1b6618bfb68b6056a4f2",
+                "sha256:43658ee67cdf7a7c441c8db44adbaf721d9520d0607976ce49b7b683a0e716bb",
+                "sha256:231e5e8f23948ce7fcce71e2b74b2946e3a37b79bbfc6d9577dd06e4a3cc1d87",
+                "sha256:d7a543c458a6e93b6418b081c7be674128b2b512378d13aefb1ebca5a988ec81",
+                "sha256:635a9180ca811dda2761472bf397c6940bf45d4fa6252077f72df6c93517c892",
+                "sha256:a9f3fcdf7d4cde4bf66adb8da71f14ea6006d9b979167520a35ff725d13170f0",
+                "sha256:d8065a1124d7a04bcd3527128ecaab6cbc54a53a12820dbd218e397047254d86",
+                "sha256:cd1cb0ceb48950a97e29a1e112071333ff2752772b7bb5208c5ad6981d0d2ae2",
+                "sha256:c51c75d4b5ce08b54b09e7410e212d6957a12c88bba8734c2a0b6810a1c99442",
+                "sha256:c1fe3e1c505316aedd20288a8a66168134cf8ee3d4e9f545156b3770dc2d7ca7"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-08-31T01:38:08.941247455Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:0c0488d13990e54f0e4bc8c0de8ca71da63e265f95e7be85748da3c45fb9f9e8",
+            "size": 857
+        },
+        "Identity": {
+            "Build": [
+                {
+                    "Ref": "g83pvuip7v6ou45w39je6bst5",
+                    "CreatedAt": "2026-08-31T01:38:09.282190482Z"
+                }
+            ]
+        }
+    }
+]

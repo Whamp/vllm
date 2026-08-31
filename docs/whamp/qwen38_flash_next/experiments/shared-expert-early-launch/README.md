@@ -1,8 +1,17 @@
 # Shared-expert early-launch delivery
 
-This directory contains the thin-image contract for the default-off Qwen3.8 CUDA shared-expert early-launch experiment.
+This directory contains the thin-image contract for the default-off Qwen3.8
+CUDA shared-expert early-launch experiment.
 
-Do not run it while another agent owns server60. Do not run it after the production image changes without updating and reviewing `MANIFEST.json`.
+The first server60 gate completed on 2026-08-31. It did not clear the 3% decode
+promotion threshold, but C2 aggregate decode and both prefill measures improved.
+The candidate remains default-off for a matched retest after the planned BIOS
+work on server60's PCIe Gen3 x4 link. The current test does not establish that
+the x4 link caused the mixed result. See
+[the evidence bundle](../../evidence/qwen38-shared-expert-early-launch-20260831/README.md).
+
+Do not run it while another agent owns server60. Do not run it after the
+production image changes without updating and reviewing `MANIFEST.json`.
 
 After an explicit GPU release, verify and arm rollback before stopping production:
 
