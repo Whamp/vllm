@@ -6,7 +6,9 @@ import math
 from pathlib import Path
 
 import pytest
+import torch
 
+from vllm.models.qwen4_exp.common import qsa_fp8_calibration
 from vllm.models.qwen4_exp.common.qsa_fp8 import (
     load_qsa_fp8_layer_scales,
     merge_qsa_fp8_calibration_reports,
@@ -22,6 +24,59 @@ def should_do_global_cleanup_after_test() -> bool:
 def _write_scale_file(path: Path, data: object) -> Path:
     path.write_text(json.dumps(data))
     return path
+
+
+def test_qsa_fp8_calibration_flush_defers_during_cuda_graph_capture(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    output_base = tmp_path / "qsa-fp8"
+    monkeypatch.setattr(qsa_fp8_calibration, "_CALIBRATION_PATH", str(output_base))
+    monkeypatch.setattr(
+        qsa_fp8_calibration,
+        "_CALIBRATION_STATE",
+        {
+            "mtp.layers.48.self_attn.attn": {
+                "k_absmax": torch.tensor(4.0),
+                "v_absmax": torch.tensor(8.0),
+                "calls": 10,
+            }
+        },
+    )
+    monkeypatch.setattr(torch.cuda, "is_current_stream_capturing", lambda: True)
+
+    qsa_fp8_calibration.flush_qsa_fp8_calibration()
+
+    assert not list(tmp_path.glob("qsa-fp8.rank*.json"))
+
+
+def test_qsa_fp8_calibration_flush_writes_outside_cuda_graph_capture(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    output_base = tmp_path / "qsa-fp8"
+    monkeypatch.setattr(qsa_fp8_calibration, "_CALIBRATION_PATH", str(output_base))
+    monkeypatch.setattr(
+        qsa_fp8_calibration,
+        "_CALIBRATION_STATE",
+        {
+            "mtp.layers.48.self_attn.attn": {
+                "k_absmax": torch.tensor(4.0),
+                "v_absmax": torch.tensor(8.0),
+                "calls": 10,
+            }
+        },
+    )
+    monkeypatch.setattr(torch.cuda, "is_current_stream_capturing", lambda: False)
+
+    qsa_fp8_calibration.flush_qsa_fp8_calibration()
+
+    report = json.loads((tmp_path / "qsa-fp8.rank0.json").read_text())
+    assert report["per_layer"]["mtp.layers.48.self_attn.attn"] == {
+        "k_absmax": 4.0,
+        "v_absmax": 8.0,
+        "calls": 10,
+    }
 
 
 def test_load_qsa_fp8_layer_scales_requires_exact_calibrated_layer(
