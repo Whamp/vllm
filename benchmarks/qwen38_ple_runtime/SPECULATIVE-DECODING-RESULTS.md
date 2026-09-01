@@ -40,6 +40,8 @@ Decode-only replication measured:
 
 The primary candidate run accepted 63.48% of draft tokens with mean acceptance length 2.270. The BF16-expert FP8 K2 profile accepted 62.55% with mean length 2.251. INT4 draft experts did not reduce matched-workload acceptance.
 
+The deployed image cannot embed speculative metrics in each API response. Eight requests were therefore run in isolation with Prometheus snapshots before and after each request. Counter deltas give exact per-request metrics when the engine has no concurrent traffic. Acceptance ranged from 56.2% to 86.7%, averaged 68.8%, and produced mean acceptance length 2.376. Position-level acceptance and request metadata are in `runtime/qwen38-spec-decode-study/mtp-k2-int4experts-fp8-cg12/per-request-spec-metrics.json`.
+
 ## Context and concurrency proof
 
 The candidate started with 317,179 GPU KV-cache tokens. A real API stress test submitted two distinct prompts concurrently, each with 150,020 input tokens. Both requests completed without an OOM, restart, or capacity error. The service remained healthy with restart count zero.
