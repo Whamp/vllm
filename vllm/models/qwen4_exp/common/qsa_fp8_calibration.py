@@ -77,6 +77,8 @@ def flush_qsa_fp8_calibration() -> None:
 
     if _CALIBRATION_PATH is None or not _CALIBRATION_STATE:
         return
+    if torch.cuda.is_current_stream_capturing():
+        return
     rank = _tensor_parallel_rank()
     output_path = Path(f"{_CALIBRATION_PATH}.rank{rank}.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)
