@@ -10,6 +10,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from numbers import Real
 from pathlib import Path
+from typing import TypedDict
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,6 +19,25 @@ class QSAFP8LayerScales:
 
     k_scale: float
     v_scale: float
+
+
+class QSAFP8CalibrationLayerResult(TypedDict):
+    """One merged layer's absolute maxima and calibrated E4M3 scales."""
+
+    k_absmax: float
+    v_absmax: float
+    k_scale: float
+    v_scale: float
+
+
+class QSAFP8CalibrationMergeResult(TypedDict):
+    """Deterministic output from merging all QSA rank calibration reports."""
+
+    schema_version: int
+    format: str
+    safety_margin: float
+    source_reports: list[str]
+    per_layer: dict[str, QSAFP8CalibrationLayerResult]
 
 
 def _parse_positive_qsa_fp8_scale(
@@ -82,7 +102,7 @@ def merge_qsa_fp8_calibration_reports(
     report_paths: Iterable[str | Path],
     *,
     safety_margin: float,
-) -> dict[str, object]:
+) -> QSAFP8CalibrationMergeResult:
     """Merge rank maxima into deterministic per-layer E4M3 cache scales."""
 
     if not math.isfinite(safety_margin) or safety_margin < 1.0:
@@ -115,7 +135,7 @@ def merge_qsa_fp8_calibration_reports(
         reports.append((path, per_layer))
 
     assert expected_layers is not None
-    merged_layers = {}
+    merged_layers: dict[str, QSAFP8CalibrationLayerResult] = {}
     for layer_name in sorted(expected_layers):
         maxima = {"k_absmax": 0.0, "v_absmax": 0.0}
         for path, per_layer in reports:
@@ -138,11 +158,12 @@ def merge_qsa_fp8_calibration_reports(
                         f"for {layer_name}: {value!r}"
                     )
                 maxima[field] = max(maxima[field], numeric_value)
-        merged_layers[layer_name] = {
-            **maxima,
-            "k_scale": maxima["k_absmax"] * safety_margin / 448.0,
-            "v_scale": maxima["v_absmax"] * safety_margin / 448.0,
-        }
+        merged_layers[layer_name] = QSAFP8CalibrationLayerResult(
+            k_absmax=maxima["k_absmax"],
+            v_absmax=maxima["v_absmax"],
+            k_scale=maxima["k_absmax"] * safety_margin / 448.0,
+            v_scale=maxima["v_absmax"] * safety_margin / 448.0,
+        )
 
     return {
         "schema_version": 1,

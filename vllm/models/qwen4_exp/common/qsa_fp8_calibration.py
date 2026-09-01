@@ -42,11 +42,11 @@ def record_qsa_fp8_calibration(
         return
     state = _CALIBRATION_STATE.get(layer_name)
     if state is None:
-        state = {
-            "k_absmax": torch.zeros((), dtype=torch.float32, device=key.device),
-            "v_absmax": torch.zeros((), dtype=torch.float32, device=value.device),
-            "calls": 0,
-        }
+        state = _LayerCalibrationState(
+            k_absmax=torch.zeros((), dtype=torch.float32, device=key.device),
+            v_absmax=torch.zeros((), dtype=torch.float32, device=value.device),
+            calls=0,
+        )
         _CALIBRATION_STATE[layer_name] = state
     torch.maximum(
         state["k_absmax"],
