@@ -45,6 +45,7 @@ nav:
       - contributing/model/transcription.md
     - CI: contributing/ci
     - Design Documents:
+      - Server60 RTX 3090 inference journey: whamp/SERVER60-RTX3090-INFERENCE-JOURNEY.md
       - DeepSeek V4 native GGUF research: whamp/deepseek_v4_gguf_tp/README.md
       - Plugins:
         - design/*plugin*.md
