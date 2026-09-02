@@ -18,6 +18,12 @@ def _cuda_check(result: Any, operation: str) -> Any:
     return result
 
 
+def _ensure_cuda_context(device_index: int) -> None:
+    """Initialize the target device's primary context before driver IPC calls."""
+    with torch.cuda.device(device_index):
+        torch.cuda.current_stream()
+
+
 def validate_cuda_ipc_tensor_region(
     *,
     allocation_base: int,
@@ -103,6 +109,7 @@ class PleCudaIpcMapping:
     @classmethod
     def open(cls, descriptor: PleCudaIpcTensor) -> "PleCudaIpcMapping":
         """Open a raw CUDA IPC allocation in the descriptor's device context."""
+        _ensure_cuda_context(descriptor.device_index)
         handle = cuda_driver.CUipcMemHandle()
         handle.reserved = descriptor.allocation_handle
         with torch.accelerator.device_index(descriptor.device_index):

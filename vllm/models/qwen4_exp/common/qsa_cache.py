@@ -740,6 +740,16 @@ class _QSAStateCache(nn.Module, AttentionLayerBase):
     def get_attn_backend(self) -> type[AttentionBackend]:
         return QSAStateBackend
 
+    def bind_kv_cache(self, kv_cache: torch.Tensor) -> None:
+        """Bind a standard BHNC cache as the BNHC view used by QSA kernels."""
+        if kv_cache.ndim != 4:
+            raise ValueError("QSA side cache must be a four-dimensional tensor")
+        if kv_cache.shape[1] == 1:
+            kv_cache = kv_cache.transpose(1, 2)
+        elif kv_cache.shape[2] != 1:
+            raise ValueError("QSA side cache must have exactly one KV head")
+        super().bind_kv_cache(kv_cache)
+
 
 class QSAKeyStateCache(_QSAStateCache):
     """Raw BF16 key, optionally followed by exact int64 MRoPE positions."""
@@ -762,11 +772,10 @@ class QSAKeyStateCache(_QSAStateCache):
         super().__init__(head_size=storage_head_size, **kwargs)
 
     def bind_kv_cache(self, kv_cache: torch.Tensor) -> None:
-        if kv_cache.ndim != 4 or kv_cache.shape[2] != 1:
-            raise ValueError("QSA raw cache must be [blocks, block_size, 1, width]")
+        super().bind_kv_cache(kv_cache)
+        kv_cache = self.kv_cache
         if kv_cache.dtype != torch.bfloat16 or kv_cache.shape[3] != self.head_size:
             raise ValueError("QSA raw cache does not match its packed BF16 cache spec")
-        super().bind_kv_cache(kv_cache)
         self.key_cache = kv_cache[..., : self.key_head_size]
         if self.cache_rope_positions:
             position_tail = kv_cache[..., self.rope_position_offset :]
