@@ -43,6 +43,7 @@ from vllm.config import (
     ECTransferConfig,
     EncoderCacheManagerConfig,
     EPLBConfig,
+    ExpertVMMOffloadConfig,
     FaultToleranceConfig,
     KernelConfig,
     KVEventsConfig,
@@ -538,6 +539,8 @@ class EngineArgs:
     offload_num_in_group: int = PrefetchOffloadConfig.offload_num_in_group
     offload_prefetch_step: int = PrefetchOffloadConfig.offload_prefetch_step
     offload_params: set[str] = get_field(PrefetchOffloadConfig, "offload_params")
+    expert_vmm_hot_experts: int = ExpertVMMOffloadConfig.hot_experts
+    expert_vmm_rankings_path: str | None = ExpertVMMOffloadConfig.rankings_path
     gpu_memory_utilization: float = CacheConfig.gpu_memory_utilization
     kv_cache_memory_bytes: int | None = CacheConfig.kv_cache_memory_bytes
     max_num_batched_tokens: int | None = None
@@ -1286,6 +1289,7 @@ class EngineArgs:
         offload_kwargs = get_kwargs(OffloadConfig)
         uva_kwargs = get_kwargs(UVAOffloadConfig)
         prefetch_kwargs = get_kwargs(PrefetchOffloadConfig)
+        expert_vmm_kwargs = get_kwargs(ExpertVMMOffloadConfig)
         offload_group = parser.add_argument_group(
             title="OffloadConfig",
             description=OffloadConfig.__doc__,
@@ -1311,6 +1315,14 @@ class EngineArgs:
         )
         offload_group.add_argument(
             "--offload-params", **prefetch_kwargs["offload_params"]
+        )
+        offload_group.add_argument(
+            "--expert-vmm-hot-experts",
+            **expert_vmm_kwargs["hot_experts"],
+        )
+        offload_group.add_argument(
+            "--expert-vmm-rankings-path",
+            **expert_vmm_kwargs["rankings_path"],
         )
 
         # Multimodal related configs
@@ -2525,6 +2537,10 @@ class EngineArgs:
                 offload_num_in_group=self.offload_num_in_group,
                 offload_prefetch_step=self.offload_prefetch_step,
                 offload_params=self.offload_params,
+            ),
+            expert_vmm=ExpertVMMOffloadConfig(
+                hot_experts=self.expert_vmm_hot_experts,
+                rankings_path=self.expert_vmm_rankings_path,
             ),
         )
 

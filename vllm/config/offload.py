@@ -77,6 +77,23 @@ class PrefetchOffloadConfig:
 
 
 @config
+class ExpertVMMOffloadConfig:
+    """Static mixed-VMM placement for expert-major quantized weights."""
+
+    hot_experts: int = Field(default=0, ge=0)
+    """Number of local experts per layer to keep in device-backed pages.
+    Zero disables expert VMM placement. The remaining local experts use pinned
+    host-memory pages accessed by the existing MoE kernel through CUDA VMM.
+    """
+
+    rankings_path: str | None = None
+    """JSON file mapping exact routed-expert layer prefixes to ranked global
+    expert IDs. Only listed layers are changed, which keeps unrelated MoE and
+    speculative-draft layers on their existing placement.
+    """
+
+
+@config
 class OffloadConfig:
     """Configuration for model weight offloading to reduce GPU memory usage."""
 
@@ -93,6 +110,9 @@ class OffloadConfig:
 
     prefetch: PrefetchOffloadConfig = Field(default_factory=PrefetchOffloadConfig)
     """Parameters for prefetch offloading backend."""
+
+    expert_vmm: ExpertVMMOffloadConfig = Field(default_factory=ExpertVMMOffloadConfig)
+    """Parameters for expert-granular CUDA VMM placement."""
 
     @model_validator(mode="after")
     def validate_offload_config(self) -> "OffloadConfig":
@@ -112,9 +132,20 @@ class OffloadConfig:
                     f" (offload_group_size > 0)"
                 )
 
+        expert_vmm_active = self.expert_vmm.hot_experts > 0
+        if expert_vmm_active and not self.expert_vmm.rankings_path:
+            raise ValueError(
+                "expert_vmm.rankings_path is required when "
+                "expert_vmm.hot_experts is greater than zero"
+            )
+
         # Warn if both backends have non-default values
         uva_active = self.uva.cpu_offload_gb > 0
         prefetch_active = self.prefetch.offload_group_size > 0
+        if expert_vmm_active and (uva_active or prefetch_active):
+            raise ValueError(
+                "expert VMM cannot be combined with UVA or prefetch weight offload"
+            )
         if self.offload_backend == "uva" and prefetch_active:
             warnings.warn(
                 "Prefetch offload fields are set but offload_backend='uva'. "
