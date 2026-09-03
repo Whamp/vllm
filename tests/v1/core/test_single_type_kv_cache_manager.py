@@ -103,6 +103,53 @@ def test_mamba_speculative_block_relocation_requires_exclusive_ownership():
         manager._relocate_speculative_block([pinned_block], 0)
 
 
+def test_mamba_align_reclaims_obsolete_states_across_null_holes():
+    block_size = 1600
+    spec = MambaSpec(
+        block_size=block_size,
+        shapes=((1, 1),),
+        dtypes=(torch.float32,),
+        mamba_cache_mode="align",
+        num_speculative_blocks=2,
+    )
+    block_pool = BlockPool(
+        num_gpu_blocks=10,
+        enable_caching=True,
+        hash_block_size=block_size,
+    )
+    manager = MambaManager(
+        spec,
+        block_pool=block_pool,
+        enable_caching=True,
+        kv_cache_group_id=0,
+        scheduler_block_size=block_size,
+    )
+    request_id = "request"
+    old_state, checkpoint_state, current_state = block_pool.get_new_blocks(3)
+    manager.req_to_blocks[request_id] = [
+        old_state,
+        block_pool.null_block,
+        checkpoint_state,
+        block_pool.null_block,
+        current_state,
+    ]
+    free_blocks_before = block_pool.get_num_free_blocks()
+
+    manager.remove_skipped_blocks(
+        request_id,
+        processed_computed_tokens=5 * block_size,
+    )
+
+    assert manager.req_to_blocks[request_id] == [
+        block_pool.null_block,
+        block_pool.null_block,
+        block_pool.null_block,
+        block_pool.null_block,
+        current_state,
+    ]
+    assert block_pool.get_num_free_blocks() == free_blocks_before + 2
+
+
 def get_sliding_window_manager(
     sliding_window_spec,
     block_pool,
