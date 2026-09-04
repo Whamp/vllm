@@ -119,6 +119,12 @@ def test_cuda_ipc_mapping_copies_signals_and_closes(
         "device_index",
         lambda _: nullcontext(),
     )
+    initialized_devices: list[int] = []
+    monkeypatch.setattr(
+        ple_cuda_ipc,
+        "_ensure_cuda_context",
+        initialized_devices.append,
+    )
     monkeypatch.setattr(
         ple_cuda_ipc.cuda_driver,
         "CUipcMemHandle",
@@ -195,6 +201,7 @@ def test_cuda_ipc_mapping_copies_signals_and_closes(
     mapping.close()
     mapping.close()
 
+    assert initialized_devices == [0]
     assert opened_handle.reserved == b"i" * 64
     assert events[0][:2] == ("copy", 0x2020)
     assert events[0][3:] == (source.nbytes, 77)

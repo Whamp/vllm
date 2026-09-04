@@ -141,7 +141,7 @@ class INCWna16Scheme(INCScheme):
         prefix: str,
         layer_config: "INCLayerConfig",
     ):
-        del config, prefix
+        del config
         # CPU does not support quantized MoE yet.
         if current_platform.is_cpu():
             from vllm.model_executor.layers.fused_moe import (
@@ -150,13 +150,17 @@ class INCWna16Scheme(INCScheme):
 
             return UnquantizedFusedMoEMethod(layer.moe_config)
         if layer_config.is_gptq:
-            return _resolve_gptq_moe(layer, layer_config)
+            return _resolve_gptq_moe(layer, layer_config, prefix)
         if layer_config.is_awq:
             return _resolve_awq_moe(layer, layer_config)
         raise NotImplementedError(f"WNA16 MoE does not support config {layer_config}")
 
 
-def _resolve_gptq_moe(layer: "torch.nn.Module", layer_config: "INCLayerConfig"):
+def _resolve_gptq_moe(
+    layer: "torch.nn.Module",
+    layer_config: "INCLayerConfig",
+    prefix: str,
+):
     from vllm.model_executor.layers.quantization.auto_gptq import (
         AutoGPTQMoEMethod,
     )
@@ -178,7 +182,7 @@ def _resolve_gptq_moe(layer: "torch.nn.Module", layer_config: "INCLayerConfig"):
     } and check_moe_marlin_supports_layer(layer, layer_config.group_size)
 
     if use_marlin:
-        return AutoGPTQMoEMethod(
+        method = AutoGPTQMoEMethod(
             AutoGPTQConfig(
                 weight_bits=layer_config.bits,
                 group_size=layer_config.group_size,
@@ -190,6 +194,8 @@ def _resolve_gptq_moe(layer: "torch.nn.Module", layer_config: "INCLayerConfig"):
             ),
             layer.moe_config,
         )
+        method.layer_name = prefix
+        return method
 
     moe_config = MoeWNA16Config.from_config(
         {

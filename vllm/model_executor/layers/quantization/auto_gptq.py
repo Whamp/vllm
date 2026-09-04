@@ -9,6 +9,7 @@ from safetensors.torch import _TYPES as _SAFETENSORS_TO_TORCH_DTYPE
 from transformers import PretrainedConfig
 
 import vllm.model_executor.layers.fused_moe  # noqa
+from vllm.config import get_current_vllm_config_or_none
 from vllm.logger import init_logger
 from vllm.model_executor.kernels.linear import (
     MPLinearLayerConfig,
@@ -91,7 +92,9 @@ def get_moe_quant_method(
         # Dynamic per module/layer rules may override base config
         override_config(cloned_config, prefix=prefix)
 
-    return moe_method_cls(cloned_config, layer.moe_config)
+    method = moe_method_cls(cloned_config, layer.moe_config)
+    method.layer_name = prefix
+    return method
 
 
 class AutoGPTQConfig(QuantizationConfig):
@@ -494,6 +497,28 @@ class AutoGPTQMoEMethod(FusedMoEMethodBase):
             may_have_bias=True,
             allow_tile_padding=not self.quant_config.desc_act,
         )
+        self.layer_name = ""
+        self.expert_vmm = None
+        vllm_config = get_current_vllm_config_or_none()
+        if vllm_config is not None:
+            expert_vmm_config = vllm_config.offload_config.expert_vmm
+            if expert_vmm_config.hot_experts > 0:
+                if self.wna16_moe_backend not in (
+                    WNA16MoEBackend.MARLIN,
+                    WNA16MoEBackend.BATCHED_MARLIN,
+                ):
+                    raise NotImplementedError(
+                        "AutoGPTQ expert VMM currently supports Marlin backends only"
+                    )
+                assert expert_vmm_config.rankings_path is not None
+                from vllm.model_executor.layers.quantization import (
+                    auto_gptq_expert_vmm,
+                )
+
+                self.expert_vmm = auto_gptq_expert_vmm.AutoGPTQExpertVMM(
+                    hot_experts=expert_vmm_config.hot_experts,
+                    rankings_path=expert_vmm_config.rankings_path,
+                )
 
     def create_weights(
         self,
@@ -761,6 +786,8 @@ class AutoGPTQMoEMethod(FusedMoEMethodBase):
         layer.w13_weight = layer.w13_qweight
         layer.w2_weight = layer.w2_qweight
 
+        if self.expert_vmm is not None:
+            self.expert_vmm.place_experts(layer, self.layer_name)
         self._setup_kernel(layer)
 
     def _setup_kernel(self, layer: RoutedExperts) -> None:

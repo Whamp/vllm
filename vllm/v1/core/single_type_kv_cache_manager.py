@@ -604,11 +604,12 @@ class SingleTypeKVCacheManager(ABC):
         request_id: str,
         first_block: int,
         last_block: int,
+        stop_at_null: bool = True,
     ) -> None:
         """Free blocks in ``[first_block, last_block)`` and replace with null_block.
 
-        Iterates backward so newly-evictable tail blocks are reached even after
-        earlier blocks in the range were nulled in a prior call.
+        Dense managers use an existing null block as the reclaimed-prefix
+        frontier. Sparse Mamba state tables must scan across null holes.
         """
         if request_id not in self.req_to_blocks:
             return
@@ -620,7 +621,9 @@ class SingleTypeKVCacheManager(ABC):
         freed: list[KVCacheBlock] = []
         for i in range(last_block - 1, first_block - 1, -1):
             if blocks[i] == self._null_block:
-                break
+                if stop_at_null:
+                    break
+                continue
             freed.append(blocks[i])
             blocks[i] = self._null_block
         if freed:
@@ -1531,9 +1534,23 @@ class MambaManager(SingleTypeKVCacheManager):
     ) -> None:
         assert isinstance(self.kv_cache_spec, MambaSpec)
 
-        super().remove_skipped_blocks(
-            request_id, processed_computed_tokens, num_prompt_tokens
-        )
+        if self.mamba_cache_mode == "align":
+            num_skipped_tokens = self.get_num_skipped_tokens(processed_computed_tokens)
+            if num_skipped_tokens > 0 and request_id in self.req_to_blocks:
+                num_skipped_blocks = min(
+                    num_skipped_tokens // self.block_size,
+                    len(self.req_to_blocks[request_id]),
+                )
+                self._remove_blocks_in_range(
+                    request_id,
+                    0,
+                    num_skipped_blocks,
+                    stop_at_null=False,
+                )
+        else:
+            super().remove_skipped_blocks(
+                request_id, processed_computed_tokens, num_prompt_tokens
+            )
         if self.mamba_cache_mode == "align":
             # `last_state_block_idx` refers to the block index allocated two steps ago.
             # The block allocated in the previous step is used to copy Mamba states

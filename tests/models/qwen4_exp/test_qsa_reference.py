@@ -381,6 +381,30 @@ def test_qsa_ring_capacity_must_divide_the_attention_block_size() -> None:
         cache.get_kv_cache_spec(SimpleNamespace(num_speculative_tokens=5))
 
 
+@pytest.mark.parametrize(
+    "cache_type",
+    [qsa_cache.QSAKeyStateCache, qsa_cache.QSACompressedKeyCache],
+)
+def test_qsa_side_cache_binds_standard_bhnc_view(cache_type: type) -> None:
+    """The standardized allocator's BHNC view is normalized without copying."""
+    cache = cache_type(
+        head_size=64,
+        dtype=torch.bfloat16,
+        cache_config=SimpleNamespace(block_size=48),
+        prefix=f"standardized.{cache_type.__name__}",
+        vllm_config=SimpleNamespace(
+            compilation_config=SimpleNamespace(static_forward_context={})
+        ),
+        compress_ratio=4,
+    )
+    allocated = torch.empty((2, 1, 8, 64), dtype=torch.bfloat16)
+
+    cache.bind_kv_cache(allocated)
+
+    assert cache.kv_cache.shape == (2, 8, 1, 64)
+    assert cache.kv_cache.data_ptr() == allocated.data_ptr()
+
+
 @requires_qsa_kernels
 def test_qsa_compressed_metadata_keeps_dummy_slots_inert() -> None:
     device = torch.device("cuda")
