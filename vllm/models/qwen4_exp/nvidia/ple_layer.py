@@ -60,6 +60,7 @@ from vllm.v1.ple_offload.bf16_ple_mmap_gather import Bf16PleMmapGather
 
 from ..common.ple import copy_ple_embedding_shard_
 from ..common.ple_sidecar import NvFp4PleSidecar
+from .ops.ple_prefill import ple_prefill_convolution
 
 logger = init_logger(__name__)
 
@@ -1339,6 +1340,22 @@ class Qwen4ExpPLELayer(nn.Module, MambaBase):
         max_len = metadata.max_prefill_query_len
         if max_len <= 0:
             return output
+
+        if (
+            envs.VLLM_QWEN4_EXP_PLE_PREFILL_TRITON
+            and x_p.is_cuda
+            and x_p.dtype in (torch.float16, torch.bfloat16, torch.float32)
+        ):
+            return ple_prefill_convolution(
+                x_p,
+                conv_state,
+                conv_weights,
+                q_starts,
+                state_indices_tensor_p[:num_prefills],
+                has_initial_states_p[:num_prefills],
+                self.short_conv_dilation,
+                output,
+            )
 
         hidden_size = x_p.shape[1]
         positions = torch.arange(
