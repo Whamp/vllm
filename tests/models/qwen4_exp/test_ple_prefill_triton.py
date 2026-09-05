@@ -29,6 +29,58 @@ def enable_bounded_ple_prefill(monkeypatch):
     torch.backends.cudnn.allow_tf32 = previous_tf32
 
 
+def test_ragged_lengths_and_metadata_offsets_reuse_compiled_kernels(monkeypatch):
+    from triton import knobs
+
+    from vllm.models.qwen4_exp.nvidia.ops.ple_prefill import ple_prefill_convolution
+
+    state = torch.zeros(6, 64, 11, device="cuda", dtype=torch.bfloat16)
+    weights = torch.randn(64, 4, device="cuda", dtype=torch.bfloat16)
+
+    def run_shape(tokens, requests, offset):
+        x = torch.randn(tokens, 64, device="cuda", dtype=torch.bfloat16)
+        starts_storage = torch.zeros(
+            offset + requests + 1, device="cuda", dtype=torch.int32
+        )
+        starts = starts_storage[offset:]
+        starts.copy_(
+            torch.tensor(
+                [tokens * i // requests for i in range(requests + 1)],
+                device="cuda",
+                dtype=torch.int32,
+            )
+        )
+        index_storage = torch.zeros(offset + requests, device="cuda", dtype=torch.int32)
+        indices = index_storage[offset:]
+        indices.copy_(torch.arange(1, requests + 1, device="cuda", dtype=torch.int32))
+        initial = torch.ones(offset + requests, device="cuda", dtype=torch.bool)[
+            offset:
+        ]
+        ple_prefill_convolution(
+            x, state, weights, starts, indices, initial, 3, torch.empty_like(x)
+        )
+        torch.cuda.synchronize()
+
+    run_shape(17, 1, 0)
+    compiled = []
+    previous_hook = knobs.runtime.jit_post_compile_hook
+
+    def record_compilation(**kwargs):
+        name = getattr(kwargs.get("fn"), "name", "")
+        if name.startswith("_ple_prefill_"):
+            compiled.append(name)
+        if previous_hook is not None:
+            return previous_hook(**kwargs)
+        return None
+
+    monkeypatch.setattr(knobs.runtime, "jit_post_compile_hook", record_compilation)
+    for shape in ((1, 1, 1), (16, 2, 2), (31, 3, 3), (64, 4, 0), (73, 2, 1)):
+        run_shape(*shape)
+    assert compiled == [], (
+        f"Ragged PLE inputs created new JIT specializations: {compiled}"
+    )
+
+
 def make_inputs(lengths, hidden, dilation, dtype, strided=False, kernel=4):
     torch.manual_seed(9325)
     state_len = dilation * (kernel - 1)

@@ -7,7 +7,18 @@ import torch
 from vllm.triton_utils import tl, triton
 
 
-@triton.jit
+# Ragged lengths and metadata slice offsets vary between otherwise equal batches.
+# Do not create a new GPU module for each token count, request count or alignment.
+@triton.jit(
+    do_not_specialize=["num_tokens", "num_requests"],
+    do_not_specialize_on_alignment=[
+        "num_tokens",
+        "num_requests",
+        "STARTS",
+        "INDICES",
+        "INITIAL",
+    ],
+)
 def _ple_prefill_convolution_kernel(
     X,
     STATE,
@@ -28,9 +39,9 @@ def _ple_prefill_convolution_kernel(
     INITIAL_STRIDE: tl.constexpr,
     OUTPUT_TOKEN_STRIDE: tl.constexpr,
     OUTPUT_CHANNEL_STRIDE: tl.constexpr,
-    TOKENS: tl.constexpr,
+    num_tokens,
     CHANNELS: tl.constexpr,
-    REQUESTS: tl.constexpr,
+    num_requests,
     STATE_ROWS: tl.constexpr,
     HISTORY: tl.constexpr,
     KERNEL_SIZE: tl.constexpr,
@@ -44,13 +55,13 @@ def _ple_prefill_convolution_kernel(
     sequence_start = tl.full((BLOCK_TOKENS,), 0, tl.int32)
     # Serving batches contain few requests. Resolve ownership once per token
     # tile rather than materializing a padded [requests, max_length, channels].
-    for row in range(REQUESTS):
+    for row in range(num_requests):
         start = tl.load(STARTS + row * START_STRIDE).to(tl.int32)
         end = tl.load(STARTS + (row + 1) * START_STRIDE).to(tl.int32)
         owns_token = (tokens >= start) & (tokens < end)
         request = tl.where(owns_token, row, request)
         sequence_start = tl.where(owns_token, start, sequence_start)
-    token_valid = (tokens < TOKENS) & (request >= 0)
+    token_valid = (tokens < num_tokens) & (request >= 0)
     state_index = tl.load(INDICES + request * INDEX_STRIDE, token_valid, other=0)
     initial = tl.load(INITIAL + request * INITIAL_STRIDE, token_valid, other=0)
     valid = token_valid[:, None] & (channels[None, :] < CHANNELS)
@@ -100,7 +111,7 @@ def _ple_prefill_convolution_kernel(
     )
 
 
-@triton.jit
+@triton.jit(do_not_specialize_on_alignment=["STARTS", "INDICES", "INITIAL"])
 def _ple_prefill_update_history_kernel(
     X,
     STATE,
