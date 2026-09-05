@@ -11,7 +11,10 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from vllm.models.qwen4_exp.nvidia.ple_layer import Qwen4ExpPLELayer
+from vllm.models.qwen4_exp.nvidia.ple_layer import (
+    Qwen4ExpPLEGroupedNorm,
+    Qwen4ExpPLELayer,
+)
 
 pytestmark = pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
 
@@ -19,7 +22,11 @@ pytestmark = pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA requ
 @pytest.fixture(autouse=True)
 def enable_bounded_ple_prefill(monkeypatch):
     monkeypatch.setenv("VLLM_QWEN4_EXP_PLE_PREFILL_TRITON", "1")
+    monkeypatch.setenv("VLLM_QWEN4_EXP_PLE_GROUPED_NORM_TRITON", "1")
+    previous_tf32 = torch.backends.cudnn.allow_tf32
     torch.backends.cudnn.allow_tf32 = False
+    yield
+    torch.backends.cudnn.allow_tf32 = previous_tf32
 
 
 def make_inputs(lengths, hidden, dilation, dtype, strided=False, kernel=4):
@@ -27,7 +34,7 @@ def make_inputs(lengths, hidden, dilation, dtype, strided=False, kernel=4):
     state_len = dilation * (kernel - 1)
     requests = len(lengths)
     x = torch.randn(sum(lengths), hidden * 2, device="cuda", dtype=dtype)[:, ::2]
-    weights = torch.randn(hidden, kernel * 2, device="cuda", dtype=dtype)[:, ::2] / 4
+    weights = (torch.randn(hidden, kernel * 2, device="cuda", dtype=dtype) / 4)[:, ::2]
     # Extra leading and trailing storage catches damage to unrelated state.
     backing = torch.randn(
         requests + 2, state_len + 5, hidden, device="cuda", dtype=dtype
@@ -261,3 +268,86 @@ def test_ple_prefill_reports_matched_kernel_cost(monkeypatch, lengths):
         else:
             torch.testing.assert_close(output, expected, rtol=0.016, atol=2e-5)
         del output
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float16, torch.bfloat16])
+@pytest.mark.parametrize("hidden,group_size", [(17, None), (256, 16), (10240, 2560)])
+@torch.inference_mode()
+def test_ple_grouped_norm_matches_independent_rmsnorm(dtype, hidden, group_size):
+    torch.manual_seed(142)
+    module = Qwen4ExpPLEGroupedNorm(hidden, 1e-6, group_size, dtype).cuda()
+    module.weight.normal_(std=0.25)
+    inputs = torch.randn(9, hidden, device="cuda", dtype=dtype)
+    width = group_size or hidden
+    groups = hidden // width
+    normalized = F.rms_norm(
+        inputs.float().reshape(9, groups, width), (width,), eps=module.eps
+    ).reshape_as(inputs)
+    expected = (normalized * (1.0 + module.weight.float())).to(dtype)
+    actual = module(inputs)
+    tolerance = {torch.bfloat16: 0.016, torch.float16: 0.002, torch.float32: 2e-5}
+    torch.testing.assert_close(actual, expected, rtol=tolerance[dtype], atol=2e-6)
+
+
+@torch.inference_mode()
+def test_ple_grouped_norm_workspace_is_bounded_by_output_size():
+    module = Qwen4ExpPLEGroupedNorm(10240, 1e-6, 2560, torch.bfloat16).cuda()
+    inputs = torch.randn(4096, 10240, device="cuda", dtype=torch.bfloat16)
+    warmup = module(inputs)
+    torch.cuda.synchronize()
+    del warmup
+    torch.cuda.empty_cache()
+    baseline = torch.cuda.memory_allocated()
+    torch.cuda.reset_peak_memory_stats()
+    output = module(inputs)
+    torch.cuda.synchronize()
+    peak_extra = torch.cuda.max_memory_allocated() - baseline
+    allowed = output.numel() * output.element_size() + 1024**2
+    print(f"PLE_GROUPED_NORM_PEAK_EXTRA_BYTES={peak_extra}", flush=True)
+    assert peak_extra <= allowed, (
+        f"PLE grouped norm workspace {peak_extra} exceeds {allowed}"
+    )
+
+
+@pytest.mark.parametrize("layout", ["disabled", "strided", "rank3", "empty", "cpu"])
+@torch.inference_mode()
+def test_ple_grouped_norm_retains_fallback(monkeypatch, layout):
+    device = "cpu" if layout == "cpu" else "cuda"
+    module = Qwen4ExpPLEGroupedNorm(17, 1e-6, None, torch.bfloat16).to(device)
+    inputs = torch.randn(6, 17, device=device, dtype=torch.bfloat16)
+    if layout == "disabled":
+        monkeypatch.setenv("VLLM_QWEN4_EXP_PLE_GROUPED_NORM_TRITON", "0")
+    elif layout == "strided":
+        inputs = torch.randn(6, 34, device=device, dtype=torch.bfloat16)[:, ::2]
+    elif layout == "rank3":
+        inputs = inputs.reshape(2, 3, 17)
+    elif layout == "empty":
+        inputs = inputs[:0]
+
+    def forbidden_kernel(*args, **kwargs):
+        raise AssertionError("unsupported PLE norm input reached the fused kernel")
+
+    monkeypatch.setattr(
+        "vllm.models.qwen4_exp.nvidia.ple_layer.grouped_gemma_rmsnorm", forbidden_kernel
+    )
+    expected = F.rms_norm(inputs.float(), (17,), eps=module.eps).to(inputs.dtype)
+    torch.testing.assert_close(module(inputs), expected, rtol=0.016, atol=2e-6)
+
+
+@torch.inference_mode()
+def test_ple_grouped_norm_graph_replay_reads_new_input_and_weight():
+    module = Qwen4ExpPLEGroupedNorm(256, 1e-6, 64, torch.bfloat16).cuda()
+    inputs = torch.randn(9, 256, device="cuda", dtype=torch.bfloat16)
+    module(inputs)
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        output = module(inputs)
+    for scale in (0.25, 0.5, -0.5):
+        inputs.mul_(scale)
+        module.weight.add_(0.125)
+        graph.replay()
+        norm = F.rms_norm(
+            inputs.float().reshape(9, 4, 64), (64,), eps=module.eps
+        ).reshape_as(inputs)
+        expected = (norm * (1.0 + module.weight.float())).to(inputs.dtype)
+        torch.testing.assert_close(output, expected, rtol=0.016, atol=2e-6)

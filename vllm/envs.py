@@ -93,6 +93,7 @@ if TYPE_CHECKING:
     VLLM_BATCH_INVARIANT: bool = False
     VLLM_QWEN4_EXP_HYPERCONNECTION_BF16_SM86: bool = False
     VLLM_QWEN4_EXP_PLE_PREFILL_TRITON: bool = False
+    VLLM_QWEN4_EXP_PLE_GROUPED_NORM_TRITON: bool = False
     VLLM_TRITON_USE_TD: bool | None = None
     VLLM_GPU_SYNC_CHECK: Literal["warn", "error"] | None = None
     MAX_JOBS: str | None = None
@@ -665,6 +666,9 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Bounded ragged PLE prefill kernel; retain the torch path unless opted in.
     "VLLM_QWEN4_EXP_PLE_PREFILL_TRITON": lambda: bool(
         int(os.getenv("VLLM_QWEN4_EXP_PLE_PREFILL_TRITON", "0"))
+    ),
+    "VLLM_QWEN4_EXP_PLE_GROUPED_NORM_TRITON": lambda: bool(
+        int(os.getenv("VLLM_QWEN4_EXP_PLE_GROUPED_NORM_TRITON", "0"))
     ),
     # Use tensor descriptors for Q/K/V loads and output stores in the
     # Triton unified-attention kernel.  Enables HW 2D block reads on

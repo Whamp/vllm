@@ -60,6 +60,7 @@ from vllm.v1.ple_offload.bf16_ple_mmap_gather import Bf16PleMmapGather
 
 from ..common.ple import copy_ple_embedding_shard_
 from ..common.ple_sidecar import NvFp4PleSidecar
+from .ops.hc import grouped_gemma_rmsnorm
 from .ops.ple_prefill import ple_prefill_convolution
 
 logger = init_logger(__name__)
@@ -148,6 +149,23 @@ class Qwen4ExpPLEGroupedNorm(nn.Module):
         self.weight = nn.Parameter(torch.zeros(hidden_size, dtype=dtype))
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        if (
+            envs.VLLM_QWEN4_EXP_PLE_GROUPED_NORM_TRITON
+            and hidden_states.is_cuda
+            and hidden_states.ndim == 2
+            and hidden_states.numel() > 0
+            and hidden_states.stride(-1) == 1
+            and self.weight.is_contiguous()
+            and hidden_states.dtype in (torch.float16, torch.bfloat16, torch.float32)
+        ):
+            num_groups = (
+                1
+                if self.group_size is None
+                else hidden_states.shape[-1] // self.group_size
+            )
+            return grouped_gemma_rmsnorm(
+                hidden_states, self.weight, self.eps, num_groups
+            )
         input_dtype = hidden_states.dtype
         hidden_states = hidden_states.float()
         if self.group_size is None:
