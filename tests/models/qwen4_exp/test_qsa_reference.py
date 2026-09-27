@@ -108,7 +108,9 @@ def test_sm86_qsa_warmup_compiles_split_k_and_merge_kernels(
         (64, 4, 2),
     }
     assert len(split_kernels) == 7
-    assert len(merge_kernels) == 4
+    assert len(merge_kernels) == 5
+    # The two four-split profiles reuse a merge binary regardless of BLOCK_N.
+    assert len({kernel.hash for kernel in merge_kernels}) == 4
     for kernel in [*split_kernels, *merge_kernels]:
         assert isinstance(kernel, CompiledKernel)
         assert kernel.name in {
