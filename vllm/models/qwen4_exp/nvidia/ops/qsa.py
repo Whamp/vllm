@@ -28,6 +28,32 @@ def _is_sm90() -> bool:
     return current_platform.get_device_capability() == (9, 0)
 
 
+@lru_cache(maxsize=1)
+def _is_sm86() -> bool:
+    """Return whether the current GPU has compute capability 8.6."""
+    return current_platform.get_device_capability() == (8, 6)
+
+
+@triton.jit
+def _decode_e4m3_bytes_sm86(encoded: tl.tensor) -> tl.tensor:
+    """Decode E4M3FN bytes to FP16 without SM86-unsupported FP8 types."""
+    bits = encoded.to(tl.uint16)
+    sign = (bits & 0x80) << 8
+    exponent = (bits >> 3) & 0x0F
+    mantissa = bits & 0x07
+    normal = (sign | ((exponent + 8) << 10) | (mantissa << 7)).to(
+        tl.float16, bitcast=True
+    )
+    subnormal = (mantissa.to(tl.float16) * 0.001953125).to(tl.uint16, bitcast=True)
+    subnormal = (subnormal | sign).to(tl.float16, bitcast=True)
+    nan = (sign | 0x7E00).to(tl.float16, bitcast=True)
+    return tl.where(
+        (exponent == 15) & (mantissa == 7),
+        nan,
+        tl.where(exponent == 0, subnormal, normal),
+    )
+
+
 @triton.jit(do_not_specialize=["num_rows", "num_requests"])
 def _qsa_sparse_paged_gqa_splitk_kernel(
     q_ptr,
@@ -70,6 +96,7 @@ def _qsa_sparse_paged_gqa_splitk_kernel(
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
     IS_FP8: tl.constexpr,
+    DECODE_SM86_FP8: tl.constexpr,
 ) -> None:
     row = tl.program_id(0)
     kv_head = tl.program_id(1)
@@ -150,9 +177,12 @@ def _qsa_sparse_paged_gqa_splitk_kernel(
             mask=valid[:, None],
             other=0.0,
         )
+        if DECODE_SM86_FP8:
+            keys = _decode_e4m3_bytes_sm86(keys)
+            values = _decode_e4m3_bytes_sm86(values)
         if IS_FP8:
-            # e4m3 -> Q dtype is exact; keep the QK dot in Q's dtype (fp8 QK
-            # measured slower here and less accurate).
+            # Keep the QK dot in Q's dtype (fp8 QK measured slower here and
+            # less accurate). SM86 uses software-decoded FP16 inputs.
             keys = keys.to(query.dtype)
         scores = tl.dot(query, keys)
         # Scaling scores avoids re-quantizing a scaled query to BF16; for fp8
@@ -637,6 +667,7 @@ def qsa_sparse_paged_attention(
     assert q.dtype == torch.bfloat16
     assert k_cache.dtype == v_cache.dtype
     is_fp8 = k_cache.dtype == torch.float8_e4m3fn
+    decode_sm86_fp8 = is_fp8 and _is_sm86()
     if is_fp8:
         assert k_scale is not None and v_scale is not None
         # Host pre-multiply: fold the K dequant scale into the attention scale
@@ -691,10 +722,14 @@ def qsa_sparse_paged_attention(
         )
 
     partial_grid = (q.shape[0], k_cache.shape[2], num_splits)
+    # SM86 cannot compile E4M3 pointers. Preserve byte strides and decode in
+    # the sparse reader; other architectures keep the upstream FP8 path.
+    reader_k_cache = k_cache.view(torch.uint8) if decode_sm86_fp8 else k_cache
+    reader_v_cache = v_cache.view(torch.uint8) if decode_sm86_fp8 else v_cache
     _qsa_sparse_paged_gqa_splitk_kernel[partial_grid](
         q,
-        k_cache,
-        v_cache,
+        reader_k_cache,
+        reader_v_cache,
         logical_indices,
         block_table,
         token_to_req,
@@ -732,6 +767,7 @@ def qsa_sparse_paged_attention(
         BLOCK_M=block_m,
         BLOCK_N=block_n,
         IS_FP8=is_fp8,
+        DECODE_SM86_FP8=decode_sm86_fp8,
         num_warps=partial_warps,
         num_stages=2,
     )
@@ -770,7 +806,10 @@ def warmup_qsa_sparse_paged_attention(
     key_cache, value_cache = kv_cache.transpose(1, 2).split(head_dim, dim=-1)
     # An fp8 cache is allocated as uint8 and viewed as e4m3 at attention time.
     is_fp8 = kv_cache.dtype == torch.uint8
-    cache_dtype = torch.float8_e4m3fn if is_fp8 else key_cache.dtype
+    decode_sm86_fp8 = is_fp8 and _is_sm86()
+    cache_dtype = key_cache.dtype
+    if is_fp8:
+        cache_dtype = torch.uint8 if decode_sm86_fp8 else torch.float8_e4m3fn
     num_kv_heads = key_cache.shape[2]
     group_size = num_query_heads // num_kv_heads
     block_m = triton.next_power_of_2(group_size)
@@ -875,6 +914,7 @@ def warmup_qsa_sparse_paged_attention(
             BLOCK_M=block_m,
             BLOCK_N=block_n,
             IS_FP8=is_fp8,
+            DECODE_SM86_FP8=decode_sm86_fp8,
             num_warps=warps,
             num_stages=2,
             grid=(num_rows, num_kv_heads, num_splits),

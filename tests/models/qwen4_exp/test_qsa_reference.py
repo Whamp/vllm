@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
+from vllm.config import VllmConfig, set_current_vllm_config
 from vllm.models.qwen4_exp.common import qsa_cache
 from vllm.models.qwen4_exp.common.qsa_cache import QSAMetadataBuilder
 from vllm.models.qwen4_exp.nvidia import indexer_qsa
@@ -16,12 +17,106 @@ from vllm.models.qwen4_exp.nvidia import (
 from vllm.models.qwen4_exp.nvidia.ops import qsa as qsa_ops
 from vllm.models.qwen4_exp.nvidia.ops import qsa_indexer as qsa_indexer_ops
 from vllm.platforms import current_platform
-from vllm.triton_utils import HAS_TRITON
+from vllm.triton_utils import HAS_TRITON, tl, triton
 
 requires_qsa_kernels = pytest.mark.skipif(
     not current_platform.is_cuda() or not HAS_TRITON,
     reason="QSA kernels require CUDA and Triton",
 )
+
+
+@triton.jit
+def _decode_sm86_e4m3_test_kernel(source: tl.tensor, output: tl.tensor) -> None:
+    offsets = tl.arange(0, 256)
+    encoded = tl.load(source + offsets)
+    decoded = qsa_ops._decode_e4m3_bytes_sm86(encoded)
+    tl.store(output + offsets, decoded)
+
+
+@requires_qsa_kernels
+def test_sm86_qsa_e4m3_byte_decode_matches_torch() -> None:
+    if not current_platform.is_device_capability(86):
+        pytest.skip("SM86 byte decoder is only selected on SM86")
+    encoded = torch.arange(256, device="cuda", dtype=torch.int16).to(torch.uint8)
+    output = torch.empty(256, device="cuda", dtype=torch.float16)
+    _decode_sm86_e4m3_test_kernel[(1,)](encoded, output)
+    expected = encoded.view(torch.float8_e4m3fn).to(torch.float16)
+    assert torch.equal(torch.isnan(output), torch.isnan(expected))
+    finite = ~torch.isnan(expected)
+    torch.testing.assert_close(output[finite], expected[finite], rtol=0, atol=0)
+    assert torch.equal(torch.signbit(output[finite]), torch.signbit(expected[finite]))
+
+
+@pytest.mark.parametrize("is_fp8", [False, True])
+def test_sm86_qsa_keeps_existing_launch_config(
+    monkeypatch: pytest.MonkeyPatch, is_fp8: bool
+) -> None:
+    monkeypatch.setattr(qsa_ops, "_is_sm120", lambda: False)
+    monkeypatch.setattr(qsa_ops, "_is_sm90", lambda: False)
+    monkeypatch.setattr(qsa_ops, "_is_sm86", lambda: True)
+    assert qsa_ops._select_config(1, 1, False, 2048, is_fp8) == (32, 4, 64, 64)
+
+
+@requires_qsa_kernels
+@pytest.mark.parametrize("cache_dtype", [torch.uint8, torch.bfloat16])
+def test_sm86_qsa_warmup_compiles_split_k_and_merge_kernels(
+    monkeypatch: pytest.MonkeyPatch, cache_dtype: torch.dtype
+) -> None:
+    if not current_platform.is_device_capability(86):
+        pytest.skip("SM86 QSA warmup is only selected on SM86")
+
+    from triton.compiler import CompiledKernel
+
+    split_kernels: list[CompiledKernel] = []
+    merge_kernels: list[CompiledKernel] = []
+    split_warmup = qsa_ops._qsa_sparse_paged_gqa_splitk_kernel.warmup
+    merge_warmup = qsa_ops._qsa_merge_splitk_kernel.warmup
+
+    def capture_split_warmup(*args: object, **kwargs: object) -> CompiledKernel:
+        kernel = split_warmup(*args, **kwargs)
+        split_kernels.append(kernel)
+        return kernel
+
+    def capture_merge_warmup(*args: object, **kwargs: object) -> CompiledKernel:
+        kernel = merge_warmup(*args, **kwargs)
+        merge_kernels.append(kernel)
+        return kernel
+
+    monkeypatch.setattr(
+        qsa_ops._qsa_sparse_paged_gqa_splitk_kernel,
+        "warmup",
+        capture_split_warmup,
+    )
+    monkeypatch.setattr(
+        qsa_ops._qsa_merge_splitk_kernel, "warmup", capture_merge_warmup
+    )
+
+    kv_cache = torch.empty((16, 1, 800, 512), dtype=cache_dtype)
+    block_table = torch.empty((16, 168), dtype=torch.int32)
+    with set_current_vllm_config(VllmConfig()):
+        profiles = qsa_ops.warmup_qsa_sparse_paged_attention(
+            kv_cache, block_table, num_query_heads=6, selection_width=2051
+        )
+
+    assert set(profiles) == {
+        (32, 1, 1),
+        (32, 4, 1),
+        (32, 8, 1),
+        (32, 16, 1),
+        (32, 64, 4),
+        (64, 1, 2),
+        (64, 4, 2),
+    }
+    assert len(split_kernels) == 7
+    assert len(merge_kernels) == 4
+    for kernel in [*split_kernels, *merge_kernels]:
+        assert isinstance(kernel, CompiledKernel)
+        assert kernel.name in {
+            "_qsa_sparse_paged_gqa_splitk_kernel",
+            "_qsa_merge_splitk_kernel",
+        }
+        assert ".target sm_86" in kernel.asm["ptx"]
+        assert kernel.asm["cubin"].startswith(b"\x7fELF")
 
 
 def test_qsa_mtp_index_share_updates_cache_but_skips_selection(
@@ -937,6 +1032,11 @@ def test_qsa_block_expansion_correctness() -> None:
         pytest.param(128, 24, 2, 1568, True, 7, True, id="tp1_r128_fp8"),
         pytest.param(2048, 24, 2, 1600, True, 63, True, id="tp1_r2048_prefill_fp8"),
         pytest.param(2048, 24, 2, 1600, False, 63, True, id="tp1_r2048_uniform_fp8"),
+        pytest.param(1, 6, 1, 800, False, 1, True, id="tp4_r1_fp8"),
+        pytest.param(5, 6, 1, 800, False, 1, True, id="tp4_r5_fp8"),
+        pytest.param(32, 6, 1, 800, False, 8, True, id="tp4_r32_fp8"),
+        pytest.param(256, 6, 1, 800, True, 8, True, id="tp4_r256_fp8"),
+        pytest.param(2048, 6, 1, 800, True, 8, True, id="tp4_r2048_prefill_fp8"),
     ],
 )
 def test_qsa_sparse_paged_attention_correctness(
